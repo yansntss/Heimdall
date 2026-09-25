@@ -14,7 +14,7 @@
 - [x] Popup com slider vertical de volume + botão de mudo ao clicar no ícone
 - [x] Capa do álbum em miniatura via `MediaProperties.Thumbnail` → `BitmapImage`
 - [x] Marquee (rolagem) de título/artista quando não cabe, só com o mouse em cima
-- [ ] Barra de progresso fina via `GetTimelineProperties()` (ocultar quando o app não informa)
+- [x] Barra de progresso fina via `GetTimelineProperties()` (ocultar quando o app não informa)
 - [ ] Layout horizontal: `[capa] Título — Artista [⏮ ⏯ ⏭] [🔊]`
 - [ ] Layout vertical: capa e botões empilhados, texto só no tooltip
 - [ ] Modo overlay: só texto da faixa, sem botões (clique atravessa)

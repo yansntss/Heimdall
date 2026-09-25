@@ -58,6 +58,16 @@ public sealed class MediaWidget : IWidget
         VerticalAlignment = VerticalAlignment.Center
     };
 
+    private readonly Border _progressFill = new() { Height = 2, HorizontalAlignment = HorizontalAlignment.Left, Width = 0 };
+    private readonly Grid _progressBar = new()
+    {
+        Height = 2,
+        Margin = new Thickness(0, 2, 0, 0),
+        Visibility = Visibility.Collapsed
+    };
+
+    private readonly StackPanel _textStack = new();
+
     private readonly Border _textClip = new()
     {
         Width = TextWidth,
@@ -90,6 +100,7 @@ public sealed class MediaWidget : IWidget
     private readonly TextBlock _feedbackText = new() { FontSize = 12 };
     private readonly Popup _feedbackPopup;
     private readonly DispatcherTimer _feedbackTimer;
+    private readonly DispatcherTimer _progressTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
     private bool _updatingSliderProgrammatically;
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
@@ -103,8 +114,14 @@ public sealed class MediaWidget : IWidget
         _popupBackground = style.Background;
         _popupForeground = style.Foreground;
 
+        _progressBar.Background = FrozenBrush(Color.FromArgb(0x33, _popupForeground.R, _popupForeground.G, _popupForeground.B));
+        _progressFill.Background = FrozenBrush(style.Accent);
+        _progressBar.Children.Add(_progressFill);
+
         _text.RenderTransform = _textScroll;
-        _textClip.Child = _text;
+        _textStack.Children.Add(_text);
+        _textStack.Children.Add(_progressBar);
+        _textClip.Child = _textStack;
         _textClip.MouseEnter += OnTextMouseEnter;
         _textClip.MouseLeave += OnTextMouseLeave;
 
@@ -139,6 +156,8 @@ public sealed class MediaWidget : IWidget
         _playPause.Click += (_, _) => _ = _session?.TryTogglePlayPauseAsync();
         _next.Click += (_, _) => _ = _session?.TrySkipNextAsync();
         _root.MouseWheel += OnMouseWheel;
+        _progressTimer.Tick += (_, _) => UpdateProgress();
+        _progressTimer.Start();
         _ = InitializeAsync();
     }
 
@@ -162,6 +181,7 @@ public sealed class MediaWidget : IWidget
         {
             _session.MediaPropertiesChanged -= OnSessionEvent;
             _session.PlaybackInfoChanged -= OnSessionEvent;
+            _session.TimelinePropertiesChanged -= OnSessionEvent;
         }
 
         _session = _manager?.GetCurrentSession();
@@ -170,6 +190,7 @@ public sealed class MediaWidget : IWidget
         {
             _session.MediaPropertiesChanged += OnSessionEvent;
             _session.PlaybackInfoChanged += OnSessionEvent;
+            _session.TimelinePropertiesChanged += OnSessionEvent;
         }
 
         RefreshControls();
@@ -198,6 +219,38 @@ public sealed class MediaWidget : IWidget
             : GlyphPlay;
 
         RefreshVolumeIcon();
+        UpdateProgress();
+    }
+
+    /// <summary>
+    /// Recalcula a barra de progresso. GetTimelineProperties() é síncrono e só reflete
+    /// a posição no momento da última atualização do player — por isso soma o tempo
+    /// corrido desde LastUpdatedTime quando está tocando, e o timer de 1s chama isso de
+    /// novo pra a barra avançar sozinha entre eventos do SMTC.
+    /// </summary>
+    private void UpdateProgress()
+    {
+        var session = _session;
+        if (session is null) { _progressBar.Visibility = Visibility.Collapsed; return; }
+
+        GlobalSystemMediaTransportControlsSessionTimelineProperties timeline;
+        try { timeline = session.GetTimelineProperties(); }
+        catch { _progressBar.Visibility = Visibility.Collapsed; return; }
+
+        var total = timeline.EndTime - timeline.StartTime;
+        if (total <= TimeSpan.Zero)
+        {
+            _progressBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        bool playing = session.GetPlaybackInfo()?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+        var elapsedSinceUpdate = playing ? DateTime.Now - timeline.LastUpdatedTime : TimeSpan.Zero;
+        var position = timeline.Position - timeline.StartTime + elapsedSinceUpdate;
+
+        double fraction = Math.Clamp(position / total, 0, 1);
+        _progressBar.Visibility = Visibility.Visible;
+        _progressFill.Width = TextWidth * fraction;
     }
 
     private static void SetEnabled(Button button, bool enabled)
@@ -473,6 +526,7 @@ public sealed class MediaWidget : IWidget
     public void Dispose()
     {
         _feedbackTimer.Stop();
+        _progressTimer.Stop();
         StopMarquee();
         _volumePopup.IsOpen = false;
         _feedbackPopup.IsOpen = false;
@@ -481,6 +535,7 @@ public sealed class MediaWidget : IWidget
         {
             _session.MediaPropertiesChanged -= OnSessionEvent;
             _session.PlaybackInfoChanged -= OnSessionEvent;
+            _session.TimelinePropertiesChanged -= OnSessionEvent;
         }
     }
 }
