@@ -81,7 +81,7 @@ O checkbox na aba Geral grava/remove uma entrada em `HKEY_CURRENT_USER\Software\
 
 ## Widgets
 - `clock` — relógio/data (ver `Clock` acima).
-- `media` — controle de mídia via SMTC (Spotify, YouTube, qualquer player), sem login. Mostra "artista — título" da faixa atual. Clique esquerdo: play/pause. Clique do meio: próxima faixa. Fica oculto quando nada está tocando.
+- `media` — controle de mídia via SMTC (Spotify, YouTube, qualquer player), sem login. Mostra "artista — título" da faixa atual com botões ⏮ ⏯ ⏭ (habilitados/desabilitados conforme o player permite, ícone de play/pause reflete o estado real). Fica oculto quando nada está tocando.
 - `reminder` — lembretes fixos e agendados, definidos em `Reminders`:
   - `Kind`: `"Fixed"` (texto permanente, sempre visível) ou `"Scheduled"` (dispara em um horário).
   - `Time`: horário `"HH:mm"`, usado apenas em `Scheduled`.
