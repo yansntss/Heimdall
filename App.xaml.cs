@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Heimdall.Config;
@@ -186,6 +187,12 @@ public partial class App : Application
     {
         ConfigService.EnsureExists();
         Process.Start(new ProcessStartInfo("notepad.exe", $"\"{ConfigService.ConfigPath}\"") { UseShellExecute = true });
+    }
+
+    public void OpenReminderHistory()
+    {
+        Directory.CreateDirectory(ReminderHistoryService.HistoryDir);
+        Process.Start(new ProcessStartInfo(ReminderHistoryService.HistoryDir) { UseShellExecute = true });
     }
 
     public void ShowMonitors()

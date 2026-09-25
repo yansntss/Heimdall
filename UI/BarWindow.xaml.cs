@@ -129,6 +129,8 @@ public partial class BarWindow : Window
 
     private void OpenConfig_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenConfig();
 
+    private void OpenReminderHistory_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenReminderHistory();
+
     private void Reload_Click(object sender, RoutedEventArgs e) =>
         Dispatcher.BeginInvoke(new Action(CurrentApp.Reload));
 

@@ -26,7 +26,7 @@
 - [x] Recorrentes: concluir encerra só a ocorrência atual (volta no próximo horário)
 - [x] Opção "Excluir" no menu de clique direito do lembrete
 - [x] Histórico em `%AppData%\Heimdall\docs\lembretes\*.md` (um arquivo por mês, formato `- [x] Texto — criado dd/MM HH:mm — concluído dd/MM HH:mm`)
-- [ ] Item "Abrir histórico de lembretes" no menu de clique direito da barra
+- [x] Item "Abrir histórico de lembretes" no menu de clique direito da barra
 - [ ] Botão "+" no hover do widget de lembretes + atalho global `Ctrl+Shift+R`
 - [ ] Popup de adição rápida ancorado à barra (posição conforme a borda), com foco (não `NOACTIVATE`)
 - [ ] Campo de texto com foco automático, Enter salva, Esc fecha, fecha ao perder foco

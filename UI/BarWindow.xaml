@@ -13,6 +13,7 @@
             <ContextMenu>
                 <MenuItem Header="Configurações..." Click="OpenSettings_Click" />
                 <MenuItem Header="Editar config.json" Click="OpenConfig_Click" />
+                <MenuItem Header="Abrir histórico de lembretes" Click="OpenReminderHistory_Click" />
                 <MenuItem Header="Tema" x:Name="ThemeMenu" />
                 <MenuItem Header="Recarregar" Click="Reload_Click" />
                 <MenuItem Header="Monitores detectados" Click="Monitors_Click" />
