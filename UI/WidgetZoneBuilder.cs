@@ -8,7 +8,7 @@ namespace Heimdall.UI;
 /// <summary>Monta as 3 zonas (início/centro/fim) de widgets — usado pela BarWindow e pela OverlayWindow.</summary>
 internal static class WidgetZoneBuilder
 {
-    public static List<IWidget> Build(AppConfig cfg, bool vertical, Grid zones, StackPanel start, StackPanel center, StackPanel end)
+    public static List<IWidget> Build(AppConfig cfg, bool vertical, Grid zones, StackPanel start, StackPanel center, StackPanel end, bool isOverlay = false)
     {
         var widgets = new List<IWidget>();
         var orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
@@ -17,20 +17,20 @@ internal static class WidgetZoneBuilder
 
         SetupZone(widgets, cfg, start, cfg.Widgets.Start, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left,
-            vertical ? VerticalAlignment.Top : VerticalAlignment.Center);
+            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay);
 
         SetupZone(widgets, cfg, center, cfg.Widgets.Center, orientation,
-            HorizontalAlignment.Center, VerticalAlignment.Center);
+            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay);
 
         SetupZone(widgets, cfg, end, cfg.Widgets.End, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Right,
-            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center);
+            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay);
 
         return widgets;
     }
 
     private static void SetupZone(List<IWidget> widgets, AppConfig cfg, StackPanel zone, IEnumerable<string>? ids,
-        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical)
+        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay)
     {
         zone.Orientation = orientation;
         zone.HorizontalAlignment = horizontal;
@@ -40,7 +40,7 @@ internal static class WidgetZoneBuilder
 
         foreach (var id in ids)
         {
-            var widget = WidgetFactory.Create(id, cfg);
+            var widget = WidgetFactory.Create(id, cfg, isOverlay);
             if (widget is null) continue;
 
             widget.ApplyOrientation(orientation);

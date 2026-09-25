@@ -108,7 +108,7 @@ public sealed class MediaWidget : IWidget
 
     public FrameworkElement View => _root;
 
-    public MediaWidget(AppConfig cfg)
+    public MediaWidget(AppConfig cfg, bool isOverlay = false)
     {
         var style = ThemeService.GetEffectiveStyle(cfg);
         _popupBackground = style.Background;
@@ -127,10 +127,16 @@ public sealed class MediaWidget : IWidget
 
         _root.Children.Add(_thumbnail);
         _root.Children.Add(_textClip);
-        _root.Children.Add(_previous);
-        _root.Children.Add(_playPause);
-        _root.Children.Add(_next);
-        _root.Children.Add(_volume);
+
+        // No overlay (jogo em tela cheia) a janela é click-through — botões nunca seriam
+        // clicáveis ali, então nem aparecem. Só o texto/capa/progresso da faixa.
+        if (!isOverlay)
+        {
+            _root.Children.Add(_previous);
+            _root.Children.Add(_playPause);
+            _root.Children.Add(_next);
+            _root.Children.Add(_volume);
+        }
 
         _volumePopup = BuildVolumePopup();
 

@@ -17,7 +17,7 @@
 - [x] Barra de progresso fina via `GetTimelineProperties()` (ocultar quando o app não informa)
 - [ ] Layout horizontal: `[capa] Título — Artista [⏮ ⏯ ⏭] [🔊]`
 - [ ] Layout vertical: capa e botões empilhados, texto só no tooltip
-- [ ] Modo overlay: só texto da faixa, sem botões (clique atravessa)
+- [x] Modo overlay: só texto da faixa, sem botões (clique atravessa)
 - [ ] Atalhos globais opcionais: `Ctrl+Alt+Espaço` (play/pause), `Ctrl+Alt+←/→` (anterior/próximo), `Ctrl+Alt+↑/↓` (volume)
 
 ## Etapa 3 — Lembretes interativos

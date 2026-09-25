@@ -32,7 +32,7 @@ public partial class OverlayWindow : Window
         Height = 1;
 
         ApplyStyle();
-        _widgets.AddRange(WidgetZoneBuilder.Build(_cfg, IsVertical, Zones, StartZone, CenterZone, EndZone));
+        _widgets.AddRange(WidgetZoneBuilder.Build(_cfg, IsVertical, Zones, StartZone, CenterZone, EndZone, isOverlay: true));
 
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
