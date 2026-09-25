@@ -154,7 +154,14 @@ public sealed class MediaWidget : IWidget
         _feedbackTimer.Tick += (_, _) => { _feedbackTimer.Stop(); _feedbackPopup.IsOpen = false; };
     }
 
-    public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
+    public void ApplyOrientation(Orientation orientation)
+    {
+        _root.Orientation = orientation;
+
+        // Barra vertical: sem espaço pros 140px do texto — capa e botões empilhados,
+        // texto só no tooltip (setado em RefreshTextAsync).
+        _textClip.Visibility = orientation == Orientation.Vertical ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     public void Start()
     {
@@ -290,6 +297,7 @@ public sealed class MediaWidget : IWidget
                     return;
                 }
                 _text.Text = full;
+                _root.ToolTip = full; // barra vertical: texto some, sobra só o tooltip
                 _thumbnail.Source = thumbnail;
                 _thumbnail.Visibility = thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
                 _root.Visibility = Visibility.Visible;

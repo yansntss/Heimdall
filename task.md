@@ -15,8 +15,8 @@
 - [x] Capa do álbum em miniatura via `MediaProperties.Thumbnail` → `BitmapImage`
 - [x] Marquee (rolagem) de título/artista quando não cabe, só com o mouse em cima
 - [x] Barra de progresso fina via `GetTimelineProperties()` (ocultar quando o app não informa)
-- [ ] Layout horizontal: `[capa] Título — Artista [⏮ ⏯ ⏭] [🔊]`
-- [ ] Layout vertical: capa e botões empilhados, texto só no tooltip
+- [x] Layout horizontal: `[capa] Título — Artista [⏮ ⏯ ⏭] [🔊]`
+- [x] Layout vertical: capa e botões empilhados, texto só no tooltip
 - [x] Modo overlay: só texto da faixa, sem botões (clique atravessa)
 - [ ] Atalhos globais opcionais: `Ctrl+Alt+Espaço` (play/pause), `Ctrl+Alt+←/→` (anterior/próximo), `Ctrl+Alt+↑/↓` (volume)
 
