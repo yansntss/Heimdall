@@ -16,10 +16,14 @@ public partial class BarWindow : Window
     private readonly AppConfig _cfg;
     private readonly MonitorInfo _monitor;
     private readonly List<IWidget> _widgets = new();
-    private AppBarManager? _appBar;
-    private bool _overlay;
 
     private bool IsVertical => _cfg.Edge is BarEdge.Left or BarEdge.Right;
+
+    /// <summary>Null até a janela ter um HWND (depois de <see cref="OnSourceInitialized"/>).</summary>
+    internal AppBarManager? AppBar { get; private set; }
+
+    /// <summary>true = um app em tela cheia abriu nesse monitor; false = fechou.</summary>
+    internal event Action<bool>? FullscreenChanged;
 
     internal BarWindow(AppConfig cfg, MonitorInfo monitor)
     {
@@ -36,6 +40,7 @@ public partial class BarWindow : Window
 
         ApplyStyle();
         BuildWidgets();
+        BuildThemeMenu();
 
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
@@ -45,21 +50,18 @@ public partial class BarWindow : Window
     {
         var hwnd = new WindowInteropHelper(this).Handle;
 
-        // Fora do Alt+Tab e da taskbar; nunca rouba ativação/foco (nem barra, nem overlay)
+        // Fora do Alt+Tab e da taskbar; nunca rouba ativação/foco
         NativeMethods.SetExStyle(hwnd,
             add: NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOACTIVATE,
             remove: NativeMethods.WS_EX_APPWINDOW);
 
-        _appBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, Math.Clamp(_cfg.Thickness, 16, 400));
+        DwmVisuals.Apply(hwnd, ThemeService.GetEffectiveStyle(_cfg));
 
-        _appBar.FullscreenChanged += fullscreen =>
-        {
-            if (fullscreen) EnterOverlay();
-            else ExitOverlay();
-        };
+        AppBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, Math.Clamp(_cfg.Thickness, 16, 400));
+        AppBar.FullscreenChanged += fullscreen => FullscreenChanged?.Invoke(fullscreen);
 
-        HwndSource.FromHwnd(hwnd)?.AddHook(_appBar.WndProc);
-        _appBar.Register();
+        HwndSource.FromHwnd(hwnd)?.AddHook(AppBar.WndProc);
+        AppBar.Register();
 
         FadeIn();
     }
@@ -73,39 +75,9 @@ public partial class BarWindow : Window
         BeginAnimation(OpacityProperty, animation);
     }
 
-    // ---------- Modo overlay (tela cheia) ----------
-
-    private void EnterOverlay()
-    {
-        if (_overlay) return;
-        _overlay = true;
-
-        _appBar?.Unregister();
-        Root.Background = Brushes.Transparent;
-
-        var hwnd = new WindowInteropHelper(this).Handle;
-        NativeMethods.SetExStyle(hwnd, add: NativeMethods.WS_EX_LAYERED | NativeMethods.WS_EX_TRANSPARENT);
-
-        var b = _monitor.Bounds;
-        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST,
-            b.Left, b.Top, b.Width, b.Height, NativeMethods.SWP_NOACTIVATE);
-    }
-
-    private void ExitOverlay()
-    {
-        if (!_overlay) return;
-        _overlay = false;
-
-        var hwnd = new WindowInteropHelper(this).Handle;
-        NativeMethods.SetExStyle(hwnd, remove: NativeMethods.WS_EX_TRANSPARENT);
-
-        ApplyStyle();
-        _appBar?.Register();
-    }
-
     private void OnClosed(object? sender, EventArgs e)
     {
-        _appBar?.Dispose();
+        AppBar?.Dispose();
         foreach (var widget in _widgets) widget.Dispose();
         _widgets.Clear();
     }
@@ -114,77 +86,44 @@ public partial class BarWindow : Window
 
     private void ApplyStyle()
     {
-        var style = _cfg.Style;
-        Root.Background = ParseBrush(style.Background, Color.FromArgb(0xE6, 0x1E, 0x1E, 0x1E));
-        TextElement.SetForeground(Root, ParseBrush(style.Foreground, Colors.White));
-        TextElement.SetFontFamily(Root, new FontFamily(string.IsNullOrWhiteSpace(style.FontFamily) ? "Segoe UI" : style.FontFamily));
-        TextElement.SetFontSize(Root, Math.Clamp(style.FontSize, 8, 72));
-    }
+        var style = ThemeService.GetEffectiveStyle(_cfg);
 
-    private static SolidColorBrush ParseBrush(string? value, Color fallback)
-    {
-        Color color = fallback;
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(value) && ColorConverter.ConvertFromString(value) is Color parsed)
-                color = parsed;
-        }
-        catch (FormatException) { }
+        var background = new SolidColorBrush(style.Background);
+        background.Freeze();
+        Root.Background = background;
 
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
+        var foreground = new SolidColorBrush(style.Foreground);
+        foreground.Freeze();
+        TextElement.SetForeground(Root, foreground);
+
+        TextElement.SetFontFamily(Root, new FontFamily(style.FontFamily));
+        TextElement.SetFontSize(Root, style.FontSize);
     }
 
     // ---------- Widgets ----------
 
-    private void BuildWidgets()
-    {
-        bool vertical = IsVertical;
-        var orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
-
-        Zones.Margin = vertical ? new Thickness(0, 8, 0, 8) : new Thickness(8, 0, 8, 0);
-
-        SetupZone(StartZone, _cfg.Widgets.Start, orientation,
-            vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left,
-            vertical ? VerticalAlignment.Top : VerticalAlignment.Center);
-
-        SetupZone(CenterZone, _cfg.Widgets.Center, orientation,
-            HorizontalAlignment.Center, VerticalAlignment.Center);
-
-        SetupZone(EndZone, _cfg.Widgets.End, orientation,
-            vertical ? HorizontalAlignment.Center : HorizontalAlignment.Right,
-            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center);
-    }
-
-    private void SetupZone(StackPanel zone, IEnumerable<string>? ids, Orientation orientation,
-        HorizontalAlignment horizontal, VerticalAlignment vertical)
-    {
-        zone.Orientation = orientation;
-        zone.HorizontalAlignment = horizontal;
-        zone.VerticalAlignment = vertical;
-
-        if (ids is null) return;
-
-        foreach (var id in ids)
-        {
-            var widget = WidgetFactory.Create(id, _cfg);
-            if (widget is null) continue;
-
-            widget.ApplyOrientation(orientation);
-            widget.View.Margin = orientation == Orientation.Vertical
-                ? new Thickness(0, 4, 0, 4)
-                : new Thickness(8, 0, 8, 0);
-
-            zone.Children.Add(widget.View);
-            _widgets.Add(widget);
-            widget.Start();
-        }
-    }
+    private void BuildWidgets() =>
+        _widgets.AddRange(WidgetZoneBuilder.Build(_cfg, IsVertical, Zones, StartZone, CenterZone, EndZone));
 
     // ---------- Menu de contexto ----------
 
     private static App CurrentApp => (App)Application.Current;
+
+    private void BuildThemeMenu()
+    {
+        foreach (var name in ThemeService.GetAllThemeNames())
+        {
+            var item = new MenuItem
+            {
+                Header = name,
+                IsCheckable = true,
+                IsChecked = string.Equals(name, _cfg.Theme, StringComparison.OrdinalIgnoreCase),
+                Tag = name
+            };
+            item.Click += (sender, _) => CurrentApp.SetTheme((string)((MenuItem)sender).Tag);
+            ThemeMenu.Items.Add(item);
+        }
+    }
 
     private void OpenSettings_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenSettings();
 

@@ -143,4 +143,31 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    // ---------- DWM (temas: backdrop, cantos, cor de destaque) ----------
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MARGINS
+    {
+        public int Left, Right, Top, Bottom;
+    }
+
+    public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    public const int DWMWCP_DEFAULT = 0;
+    public const int DWMWCP_DONOTROUND = 1;
+    public const int DWMWCP_ROUND = 2;
+
+    public const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+    public const int DWMSBT_NONE = 1;
+    public const int DWMSBT_MAINWINDOW = 2;       // Mica
+    public const int DWMSBT_TRANSIENTWINDOW = 3;  // Acrylic
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hWnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmGetColorizationColor(out uint pcrColorization, [MarshalAs(UnmanagedType.Bool)] out bool pfOpaqueBlend);
 }

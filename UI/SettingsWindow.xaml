@@ -37,34 +37,34 @@
             <!-- ================= APARÊNCIA ================= -->
             <TabItem Header="Aparência">
                 <StackPanel Margin="12">
-                    <TextBlock Text="Cor de fundo" FontWeight="Bold"/>
+                    <TextBlock Text="Tema" FontWeight="Bold"/>
+                    <ComboBox x:Name="ThemeCombo" Margin="0,4,0,16" HorizontalAlignment="Left" Width="200"/>
+
+                    <TextBlock Text="Overrides opcionais (vazio = usa o tema)" FontWeight="Bold" Margin="0,0,0,4"/>
+
+                    <TextBlock Text="Cor de fundo"/>
                     <DockPanel Margin="0,4,0,12" LastChildFill="False">
                         <Border x:Name="BackgroundSwatch" Width="28" Height="20"
                                 BorderBrush="Gray" BorderThickness="1" Margin="0,0,8,0"/>
                         <Button Content="Escolher..." Width="90" Margin="0,0,8,0" Click="PickBackground_Click"/>
                         <TextBox x:Name="BackgroundHexBox" Width="120" TextChanged="BackgroundHexBox_TextChanged"/>
+                        <Button Content="Limpar" Width="60" Margin="8,0,0,0" Click="ClearBackground_Click"/>
                     </DockPanel>
 
-                    <TextBlock Text="Cor do texto" FontWeight="Bold"/>
+                    <TextBlock Text="Cor do texto"/>
                     <DockPanel Margin="0,4,0,12" LastChildFill="False">
                         <Border x:Name="ForegroundSwatch" Width="28" Height="20"
                                 BorderBrush="Gray" BorderThickness="1" Margin="0,0,8,0"/>
                         <Button Content="Escolher..." Width="90" Margin="0,0,8,0" Click="PickForeground_Click"/>
                         <TextBox x:Name="ForegroundHexBox" Width="120" TextChanged="ForegroundHexBox_TextChanged"/>
+                        <Button Content="Limpar" Width="60" Margin="8,0,0,0" Click="ClearForeground_Click"/>
                     </DockPanel>
 
-                    <TextBlock Text="Fonte" FontWeight="Bold"/>
-                    <ComboBox x:Name="FontFamilyCombo" IsEditable="True" Margin="0,4,0,12"/>
+                    <TextBlock Text="Fonte"/>
+                    <ComboBox x:Name="FontFamilyCombo" IsEditable="True" Margin="0,4,0,12" HorizontalAlignment="Left" Width="200"/>
 
-                    <TextBlock Text="Tamanho da fonte" FontWeight="Bold"/>
+                    <TextBlock Text="Tamanho da fonte"/>
                     <TextBox x:Name="FontSizeBox" Width="80" HorizontalAlignment="Left" Margin="0,4,0,12"/>
-
-                    <TextBlock Text="Temas prontos" FontWeight="Bold"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <Button Content="Escuro" Width="90" Margin="0,0,8,0" Click="ThemeDark_Click"/>
-                        <Button Content="Claro" Width="90" Margin="0,0,8,0" Click="ThemeLight_Click"/>
-                        <Button Content="Acrílico" Width="90" Click="ThemeAcrylic_Click"/>
-                    </StackPanel>
                 </StackPanel>
             </TabItem>
 

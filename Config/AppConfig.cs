@@ -25,15 +25,22 @@ public sealed class AppConfig
     public List<ReminderConfig> Reminders { get; set; } = new();
 
     public bool StartWithWindows { get; set; }
+
+    /// <summary>Nome de um tema embutido ou de %AppData%\InfoBar\themes\*.json.</summary>
+    public string Theme { get; set; } = "Escuro";
 }
 
+/// <summary>
+/// Overrides opcionais por cima do tema selecionado (<see cref="AppConfig.Theme"/>) —
+/// nulo/vazio significa "usa o valor do tema".
+/// </summary>
 public sealed class BarStyle
 {
     /// <summary>#AARRGGBB</summary>
-    public string Background { get; set; } = "#E61E1E1E";
-    public string Foreground { get; set; } = "#FFFFFFFF";
-    public string FontFamily { get; set; } = "Segoe UI";
-    public double FontSize { get; set; } = 13;
+    public string? Background { get; set; }
+    public string? Foreground { get; set; }
+    public string? FontFamily { get; set; }
+    public double? FontSize { get; set; }
 }
 
 /// <summary>Três zonas: início (esq./topo), centro e fim (dir./base).</summary>

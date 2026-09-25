@@ -41,11 +41,13 @@ public partial class SettingsWindow : Window
         StartWithWindowsCheck.IsChecked = _cfg.StartWithWindows;
 
         // Aparência
+        ThemeCombo.ItemsSource = ThemeService.GetAllThemeNames();
+        ThemeCombo.SelectedItem = _cfg.Theme;
         BackgroundHexBox.Text = _cfg.Style.Background;
         ForegroundHexBox.Text = _cfg.Style.Foreground;
         FontFamilyCombo.ItemsSource = Fonts.SystemFontFamilies.Select(f => f.Source).OrderBy(s => s).ToList();
         FontFamilyCombo.Text = _cfg.Style.FontFamily;
-        FontSizeBox.Text = _cfg.Style.FontSize.ToString(CultureInfo.InvariantCulture);
+        FontSizeBox.Text = _cfg.Style.FontSize?.ToString(CultureInfo.InvariantCulture) ?? "";
 
         // Widgets
         StartCatalog.ItemsSource = WidgetCatalog;
@@ -99,14 +101,16 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private void ThemeDark_Click(object sender, RoutedEventArgs e) => ApplyTheme("#E61E1E1E", "#FFFFFFFF");
-    private void ThemeLight_Click(object sender, RoutedEventArgs e) => ApplyTheme("#F2F5F5F5", "#FF1E1E1E");
-    private void ThemeAcrylic_Click(object sender, RoutedEventArgs e) => ApplyTheme("#661E1E1E", "#FFFFFFFF");
-
-    private void ApplyTheme(string background, string foreground)
+    private void ClearBackground_Click(object sender, RoutedEventArgs e)
     {
-        BackgroundHexBox.Text = background;
-        ForegroundHexBox.Text = foreground;
+        BackgroundHexBox.Text = "";
+        BackgroundSwatch.Background = Brushes.Transparent;
+    }
+
+    private void ClearForeground_Click(object sender, RoutedEventArgs e)
+    {
+        ForegroundHexBox.Text = "";
+        ForegroundSwatch.Background = Brushes.Transparent;
     }
 
     // ---------- Widgets ----------
@@ -167,12 +171,17 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        if (!double.TryParse(FontSizeBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double fontSize)
-            || fontSize < 8 || fontSize > 72)
+        double? fontSize = null;
+        if (!string.IsNullOrWhiteSpace(FontSizeBox.Text))
         {
-            MessageBox.Show(this, "Tamanho de fonte inválido — use um valor entre 8 e 72.", "InfoBar",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
+            if (!double.TryParse(FontSizeBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double parsed)
+                || parsed < 8 || parsed > 72)
+            {
+                MessageBox.Show(this, "Tamanho de fonte inválido — use um valor entre 8 e 72 (ou deixe vazio pra usar o tema).", "InfoBar",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            fontSize = parsed;
         }
 
         foreach (var row in _reminders)
@@ -190,9 +199,10 @@ public partial class SettingsWindow : Window
         _cfg.Thickness = thickness;
         _cfg.MonitorMode = (MonitorMode)MonitorModeCombo.SelectedItem;
         _cfg.MonitorDevice = (MonitorCombo.SelectedItem as MonitorOption)?.Device;
-        _cfg.Style.Background = BackgroundHexBox.Text;
-        _cfg.Style.Foreground = ForegroundHexBox.Text;
-        _cfg.Style.FontFamily = FontFamilyCombo.Text;
+        _cfg.Theme = (string)ThemeCombo.SelectedItem;
+        _cfg.Style.Background = string.IsNullOrWhiteSpace(BackgroundHexBox.Text) ? null : BackgroundHexBox.Text;
+        _cfg.Style.Foreground = string.IsNullOrWhiteSpace(ForegroundHexBox.Text) ? null : ForegroundHexBox.Text;
+        _cfg.Style.FontFamily = string.IsNullOrWhiteSpace(FontFamilyCombo.Text) ? null : FontFamilyCombo.Text;
         _cfg.Style.FontSize = fontSize;
         _cfg.Widgets.Start = StartList.Items.Cast<string>().ToList();
         _cfg.Widgets.Center = CenterList.Items.Cast<string>().ToList();

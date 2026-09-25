@@ -11,7 +11,7 @@ namespace InfoBar;
 
 public partial class App : Application
 {
-    private readonly List<BarWindow> _bars = new();
+    private readonly List<BarPresenter> _bars = new();
     private Mutex? _mutex;
     private DispatcherTimer? _displayDebounce;
     private HotkeyManager? _hotkeys;
@@ -36,6 +36,7 @@ public partial class App : Application
             BuildBars();
         };
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
         _hotkeys = new HotkeyManager();
         _hotkeys.Pressed += ToggleBarsVisibility;
@@ -45,14 +46,20 @@ public partial class App : Application
 
     private void ToggleBarsVisibility()
     {
-        var target = _bars.Any(b => b.Visibility == Visibility.Visible)
-            ? Visibility.Hidden
-            : Visibility.Visible;
-
-        foreach (var bar in _bars) bar.Visibility = target;
+        bool target = !_bars.Any(b => b.IsVisible);
+        foreach (var bar in _bars) bar.SetHidden(!target);
     }
 
-    private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) => RestartDebounce();
+
+    private void OnUserPreferenceChanged(object? sender, UserPreferenceChangedEventArgs e)
+    {
+        // Só recarrega se o tema atual acompanha o SO ("Auto" ou "Destaque do Windows") —
+        // outras mudanças de preferência do usuário não afetam a barra.
+        if (ThemeService.IsLiveTheme(ConfigService.Load().Theme)) RestartDebounce();
+    }
+
+    private void RestartDebounce() =>
         Dispatcher.BeginInvoke(new Action(() =>
         {
             _displayDebounce!.Stop();
@@ -84,9 +91,9 @@ public partial class App : Application
 
         foreach (var monitor in targets)
         {
-            var bar = new BarWindow(cfg, monitor);
-            _bars.Add(bar);
-            bar.Show();
+            var presenter = new BarPresenter(cfg, monitor);
+            _bars.Add(presenter);
+            presenter.Show();
         }
     }
 
@@ -99,6 +106,23 @@ public partial class App : Application
     // ---- Ações chamadas pelo menu de contexto da barra ----
 
     public void Reload() => BuildBars();
+
+    public void SetTheme(string name)
+    {
+        var cfg = ConfigService.Load();
+        cfg.Theme = name;
+
+        // Trocar pelo menu rápido é um "usa este tema inteiro" — limpa overrides
+        // antigos de cor/fonte que, senão, ficariam escondendo a troca de tema.
+        // Overrides finos continuam disponíveis na tela de Configurações.
+        cfg.Style.Background = null;
+        cfg.Style.Foreground = null;
+        cfg.Style.FontFamily = null;
+        cfg.Style.FontSize = null;
+
+        ConfigService.Save(cfg);
+        Reload();
+    }
 
     public void OpenSettings()
     {
@@ -141,6 +165,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         _hotkeys?.Dispose();
         CloseBars();
         if (_mutex is not null)
