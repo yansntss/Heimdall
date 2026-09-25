@@ -8,6 +8,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI;
 
 namespace Heimdall.Widgets;
 
@@ -20,10 +21,15 @@ public sealed class ReminderWidget : IWidget
 {
     private static readonly TimeSpan HighlightDuration = TimeSpan.FromSeconds(6);
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
+    private const string GlyphAdd = "";
     private const string GlyphCheck = "";
+
+    /// <summary>Último widget de lembretes construído — é nele que o hotkey global Ctrl+Shift+R abre o popup.</summary>
+    internal static ReminderWidget? Primary { get; private set; }
 
     private readonly AppConfig _cfg;
     private readonly Color _accent;
+    private readonly EffectiveStyle _style;
 
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMinutes(1) };
     private readonly DispatcherTimer _highlightTimer = new() { Interval = HighlightDuration };
@@ -31,20 +37,82 @@ public sealed class ReminderWidget : IWidget
     private readonly Dictionary<ReminderConfig, string> _lastFired = new();
     private readonly List<Border> _fixedChips = new();
 
-    private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center };
+    private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center, Background = Brushes.Transparent };
+    private readonly Button _addButton;
 
     private Border? _activeScheduledChip;
     private Border? _activeBadge;
     private bool _highlighting;
+    private QuickAddReminderWindow? _quickAddWindow;
 
     public FrameworkElement View => _root;
 
     public ReminderWidget(AppConfig cfg)
     {
         _cfg = cfg;
-        _accent = ThemeService.GetEffectiveStyle(cfg).Accent;
+        _style = ThemeService.GetEffectiveStyle(cfg);
+        _accent = _style.Accent;
         _clock.Tick += (_, _) => CheckSchedule();
         _highlightTimer.Tick += (_, _) => { _highlightTimer.Stop(); ShowNextHighlight(); };
+
+        var addIcon = new TextBlock
+        {
+            Text = GlyphAdd,
+            FontFamily = IconFont,
+            FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = FrozenBrush(_style.Foreground)
+        };
+        TextOptions.SetTextRenderingMode(addIcon, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(addIcon, TextFormattingMode.Display);
+
+        _addButton = new Button
+        {
+            Content = addIcon,
+            Opacity = 0,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(4, 0, 4, 0),
+            Cursor = Cursors.Hand,
+            Focusable = false,
+            ToolTip = "Novo lembrete (Ctrl+Shift+R)"
+        };
+        _addButton.Click += (_, _) => OpenQuickAdd();
+
+        _root.MouseEnter += (_, _) =>
+            _addButton.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
+        _root.MouseLeave += (_, _) =>
+            _addButton.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
+
+        _root.Children.Add(_addButton);
+
+        Primary = this;
+    }
+
+    /// <summary>Abre o popup de adição rápida ancorado a esta barra, no lado oposto à borda configurada.</summary>
+    public void OpenQuickAdd()
+    {
+        if (_quickAddWindow is not null)
+        {
+            _quickAddWindow.Activate();
+            return;
+        }
+
+        var window = new QuickAddReminderWindow(_style);
+        window.AnchorTo(_root, _cfg.Edge);
+        window.Saved += OnQuickAddSaved;
+        window.Closed += (_, _) => _quickAddWindow = null;
+
+        _quickAddWindow = window;
+        window.Show();
+        window.Activate();
+    }
+
+    private void OnQuickAddSaved(ReminderConfig reminder)
+    {
+        _cfg.Reminders.Add(reminder);
+        ConfigService.Save(_cfg);
+        RebuildFixedChips();
     }
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
@@ -61,16 +129,15 @@ public sealed class ReminderWidget : IWidget
         foreach (var chip in _fixedChips) _root.Children.Remove(chip);
         _fixedChips.Clear();
 
+        // O botão "+" fica sempre por último (índice mais alto) — os chips fixos
+        // entram antes dele, na ordem em que aparecem no config.
+        int insertAt = _root.Children.IndexOf(_addButton);
         foreach (var reminder in _cfg.Reminders.Where(r => r.Kind == ReminderKind.Fixed && !string.IsNullOrWhiteSpace(r.Text)))
         {
             var chip = CreateChip(reminder, isFixed: true, out _);
             _fixedChips.Add(chip);
-            _root.Children.Add(chip);
+            _root.Children.Insert(insertAt++, chip);
         }
-
-        _root.Visibility = _fixedChips.Count > 0 || _activeScheduledChip is not null
-            ? Visibility.Visible
-            : Visibility.Collapsed;
     }
 
     private void CheckSchedule()
@@ -128,7 +195,6 @@ public sealed class ReminderWidget : IWidget
         {
             _highlighting = false;
             _activeBadge = null;
-            _root.Visibility = _fixedChips.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             return;
         }
 
@@ -137,7 +203,6 @@ public sealed class ReminderWidget : IWidget
         _activeScheduledChip = CreateChip(reminder, isFixed: false, out _activeBadge);
         _activeScheduledChip.Background = CreatePulsingBrush();
         _root.Children.Insert(0, _activeScheduledChip);
-        _root.Visibility = Visibility.Visible;
         RefreshBadge();
 
         _highlightTimer.Stop();
@@ -317,5 +382,7 @@ public sealed class ReminderWidget : IWidget
     {
         _clock.Stop();
         _highlightTimer.Stop();
+        _quickAddWindow?.Close();
+        if (Primary == this) Primary = null;
     }
 }

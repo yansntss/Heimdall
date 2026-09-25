@@ -44,6 +44,8 @@ public partial class App : Application
         _hotkeys = new HotkeyManager();
         _hotkeys.Pressed += ToggleBarsVisibility;
         RegisterMediaHotkeys();
+        _hotkeys.Register(NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, NativeMethods.VK_R,
+            () => Widgets.ReminderWidget.Primary?.OpenQuickAdd());
         _ = InitMediaManagerAsync();
 
         BuildBars();
