@@ -25,4 +25,11 @@ public sealed class ReminderConfig
 
     /// <summary>Quando foi criado — usado só pro histórico ("criado dd/MM HH:mm"). Nulo em lembretes de configs antigas.</summary>
     public DateTime? CreatedAt { get; set; }
+
+    /// <summary>
+    /// Dia específico pra lembretes "Once" (ex: "Amanhã 9h" do popup de adição rápida).
+    /// Nulo dispara no primeiro HH:mm que bater, independente do dia — mantém o
+    /// comportamento de sempre pros lembretes existentes que não têm essa data.
+    /// </summary>
+    public DateOnly? Date { get; set; }
 }

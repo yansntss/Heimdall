@@ -30,9 +30,9 @@
 - [x] Botão "+" no hover do widget de lembretes + atalho global `Ctrl+Shift+R`
 - [x] Popup de adição rápida ancorado à barra (posição conforme a borda), com foco (não `NOACTIVATE`)
 - [x] Campo de texto com foco automático, Enter salva, Esc fecha, fecha ao perder foco
-- [ ] Chips de tempo rápido: Sem horário / +15 min / +1 h / Hoje 18h / Amanhã 9h / Personalizado
-- [ ] "Personalizado" expande seletores de data/hora
-- [ ] "Mais opções" recolhido por padrão: recorrência (Única/Diária/Dias da semana) + toggle de som
+- [x] Chips de tempo rápido: Sem horário / +15 min / +1 h / Hoje 18h / Amanhã 9h / Personalizado
+- [x] "Personalizado" expande seletores de data/hora
+- [x] "Mais opções" recolhido por padrão: recorrência (Única/Diária/Dias da semana) + toggle de som
 - [x] Salvar direto no `config.json` e atualizar a barra sem recarregar tudo
 - [x] Ao disparar, lembrete pulsa com a cor de destaque do tema por alguns segundos
 - [x] Badge com contador de lembretes pendentes quando houver mais de um

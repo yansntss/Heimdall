@@ -149,6 +149,9 @@ public sealed class ReminderWidget : IWidget
         {
             if (reminder.Kind != ReminderKind.Scheduled) continue;
             if (reminder.Recurrence == ReminderRecurrence.Once && reminder.Completed) continue;
+            if (reminder.Recurrence == ReminderRecurrence.Once && reminder.Date is { } date
+                && date != DateOnly.FromDateTime(now))
+                continue;
 
             if (!DateTime.TryParseExact(reminder.Time, "HH:mm", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out var time))
