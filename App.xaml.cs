@@ -15,6 +15,7 @@ public partial class App : Application
     private Mutex? _mutex;
     private DispatcherTimer? _displayDebounce;
     private HotkeyManager? _hotkeys;
+    private SettingsWindow? _settingsWindow;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -98,6 +99,19 @@ public partial class App : Application
     // ---- Ações chamadas pelo menu de contexto da barra ----
 
     public void Reload() => BuildBars();
+
+    public void OpenSettings()
+    {
+        if (_settingsWindow is not null)
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow();
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show();
+    }
 
     public void OpenConfig()
     {

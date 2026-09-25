@@ -10,6 +10,13 @@
     <RootNamespace>InfoBar</RootNamespace>
     <AssemblyName>InfoBar</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Só a referência (sem UseWindowsForms=true) para não colidir com os "global using"
+         do WPF em Orientation/Color/TextBox/etc. Usado só pelo ColorDialog nativo. -->
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+  </ItemGroup>
 
 </Project>

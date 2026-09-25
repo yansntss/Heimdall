@@ -23,6 +23,8 @@ public sealed class AppConfig
     public ClockConfig Clock { get; set; } = new();
 
     public List<ReminderConfig> Reminders { get; set; } = new();
+
+    public bool StartWithWindows { get; set; }
 }
 
 public sealed class BarStyle

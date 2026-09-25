@@ -13,7 +13,8 @@
     <Border x:Name="Root">
         <Border.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="Abrir configuração" Click="OpenConfig_Click" />
+                <MenuItem Header="Configurações..." Click="OpenSettings_Click" />
+                <MenuItem Header="Editar config.json" Click="OpenConfig_Click" />
                 <MenuItem Header="Recarregar" Click="Reload_Click" />
                 <MenuItem Header="Monitores detectados" Click="Monitors_Click" />
                 <Separator />

@@ -1,0 +1,147 @@
+<Window x:Class="InfoBar.UI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="InfoBar — Configurações"
+        Width="560" Height="520"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip">
+
+    <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Cancelar" Width="90" Margin="0,0,8,0" Click="Cancel_Click"/>
+            <Button Content="Salvar e recarregar" Width="150" Click="Save_Click"/>
+        </StackPanel>
+
+        <TabControl>
+            <!-- ================= GERAL ================= -->
+            <TabItem Header="Geral">
+                <StackPanel Margin="12">
+                    <TextBlock Text="Borda" FontWeight="Bold"/>
+                    <ComboBox x:Name="EdgeCombo" Margin="0,4,0,12" HorizontalAlignment="Left" Width="160"/>
+
+                    <TextBlock Text="Espessura (DIPs)" FontWeight="Bold"/>
+                    <TextBox x:Name="ThicknessBox" Margin="0,4,0,12" Width="100" HorizontalAlignment="Left"/>
+
+                    <TextBlock Text="Modo de monitor" FontWeight="Bold"/>
+                    <ComboBox x:Name="MonitorModeCombo" Margin="0,4,0,8" HorizontalAlignment="Left" Width="160"
+                              SelectionChanged="MonitorModeCombo_SelectionChanged"/>
+
+                    <TextBlock Text="Monitor específico" FontWeight="Bold"/>
+                    <ComboBox x:Name="MonitorCombo" Margin="0,4,0,12"/>
+
+                    <CheckBox x:Name="StartWithWindowsCheck" Content="Iniciar com o Windows" Margin="0,8,0,0"/>
+                </StackPanel>
+            </TabItem>
+
+            <!-- ================= APARÊNCIA ================= -->
+            <TabItem Header="Aparência">
+                <StackPanel Margin="12">
+                    <TextBlock Text="Cor de fundo" FontWeight="Bold"/>
+                    <DockPanel Margin="0,4,0,12" LastChildFill="False">
+                        <Border x:Name="BackgroundSwatch" Width="28" Height="20"
+                                BorderBrush="Gray" BorderThickness="1" Margin="0,0,8,0"/>
+                        <Button Content="Escolher..." Width="90" Margin="0,0,8,0" Click="PickBackground_Click"/>
+                        <TextBox x:Name="BackgroundHexBox" Width="120" TextChanged="BackgroundHexBox_TextChanged"/>
+                    </DockPanel>
+
+                    <TextBlock Text="Cor do texto" FontWeight="Bold"/>
+                    <DockPanel Margin="0,4,0,12" LastChildFill="False">
+                        <Border x:Name="ForegroundSwatch" Width="28" Height="20"
+                                BorderBrush="Gray" BorderThickness="1" Margin="0,0,8,0"/>
+                        <Button Content="Escolher..." Width="90" Margin="0,0,8,0" Click="PickForeground_Click"/>
+                        <TextBox x:Name="ForegroundHexBox" Width="120" TextChanged="ForegroundHexBox_TextChanged"/>
+                    </DockPanel>
+
+                    <TextBlock Text="Fonte" FontWeight="Bold"/>
+                    <ComboBox x:Name="FontFamilyCombo" IsEditable="True" Margin="0,4,0,12"/>
+
+                    <TextBlock Text="Tamanho da fonte" FontWeight="Bold"/>
+                    <TextBox x:Name="FontSizeBox" Width="80" HorizontalAlignment="Left" Margin="0,4,0,12"/>
+
+                    <TextBlock Text="Temas prontos" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <Button Content="Escuro" Width="90" Margin="0,0,8,0" Click="ThemeDark_Click"/>
+                        <Button Content="Claro" Width="90" Margin="0,0,8,0" Click="ThemeLight_Click"/>
+                        <Button Content="Acrílico" Width="90" Click="ThemeAcrylic_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+
+            <!-- ================= WIDGETS ================= -->
+            <TabItem Header="Widgets">
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <TextBlock Text="Início" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <ListBox x:Name="StartList" Height="150"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Button Content="▲" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveUp_Click"/>
+                            <Button Content="▼" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveDown_Click"/>
+                            <Button Content="Remover" Tag="{Binding ElementName=StartList}" Click="Remove_Click"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <ComboBox x:Name="StartCatalog" Width="80"/>
+                            <Button Content="+" Width="26" Click="AddStart_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="6,0,6,0">
+                        <TextBlock Text="Centro" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <ListBox x:Name="CenterList" Height="150"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Button Content="▲" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveUp_Click"/>
+                            <Button Content="▼" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveDown_Click"/>
+                            <Button Content="Remover" Tag="{Binding ElementName=CenterList}" Click="Remove_Click"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <ComboBox x:Name="CenterCatalog" Width="80"/>
+                            <Button Content="+" Width="26" Click="AddCenter_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Margin="6,0,0,0">
+                        <TextBlock Text="Fim" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <ListBox x:Name="EndList" Height="150"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Button Content="▲" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveUp_Click"/>
+                            <Button Content="▼" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveDown_Click"/>
+                            <Button Content="Remover" Tag="{Binding ElementName=EndList}" Click="Remove_Click"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <ComboBox x:Name="EndCatalog" Width="80"/>
+                            <Button Content="+" Width="26" Click="AddEnd_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- ================= LEMBRETES ================= -->
+            <TabItem Header="Lembretes">
+                <DockPanel Margin="12">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="Adicionar lembrete" Margin="0,0,8,0" Click="AddReminder_Click"/>
+                        <Button Content="Remover selecionado" Click="RemoveReminder_Click"/>
+                    </StackPanel>
+                    <DataGrid x:Name="RemindersGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                              RowHeaderWidth="0">
+                        <DataGrid.Columns>
+                            <DataGridComboBoxColumn x:Name="KindColumn" Header="Tipo" SelectedItemBinding="{Binding Kind}" Width="90"/>
+                            <DataGridTextColumn Header="Texto" Binding="{Binding Text}" Width="*"/>
+                            <DataGridTextColumn Header="Horário (HH:mm)" Binding="{Binding Time}" Width="110"/>
+                            <DataGridComboBoxColumn x:Name="RecurrenceColumn" Header="Recorrência" SelectedItemBinding="{Binding Recurrence}" Width="100"/>
+                            <DataGridTextColumn Header="Dias (Weekly)" Binding="{Binding Days}" Width="150"/>
+                            <DataGridCheckBoxColumn Header="Som" Binding="{Binding PlaySound}" Width="45"/>
+                            <DataGridCheckBoxColumn Header="Concluído" Binding="{Binding Completed}" Width="70"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

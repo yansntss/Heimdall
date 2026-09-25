@@ -186,6 +186,8 @@ public partial class BarWindow : Window
 
     private static App CurrentApp => (App)Application.Current;
 
+    private void OpenSettings_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenSettings();
+
     private void OpenConfig_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenConfig();
 
     private void Reload_Click(object sender, RoutedEventArgs e) =>
