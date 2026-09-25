@@ -34,6 +34,7 @@ internal sealed class QuickAddReminderWindow : Window
     private readonly TextBox _customTime;
 
     // "Mais opções"
+    private readonly Expander _moreOptions;
     private readonly RadioButton _recurOnce;
     private readonly RadioButton _recurDaily;
     private readonly RadioButton _recurWeekly;
@@ -41,15 +42,22 @@ internal sealed class QuickAddReminderWindow : Window
     private readonly Dictionary<DayOfWeek, ToggleButton> _dayToggles = new();
     private readonly CheckBox _playSoundCheck;
 
+    private readonly ReminderConfig? _editing;
     private bool _closing;
 
     public event Action<ReminderConfig>? Saved;
 
-    public QuickAddReminderWindow(EffectiveStyle style)
+    /// <summary>
+    /// <paramref name="editing"/> nulo cria um lembrete novo; não-nulo pré-preenche os
+    /// campos com os valores dele e o Save() atualiza esse mesmo objeto (mesma
+    /// referência) em vez de criar outro.
+    /// </summary>
+    public QuickAddReminderWindow(EffectiveStyle style, ReminderConfig? editing = null)
     {
         _style = style;
+        _editing = editing;
 
-        Title = "Heimdall — Novo lembrete";
+        Title = editing is null ? "Heimdall — Novo lembrete" : "Heimdall — Editar lembrete";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -70,7 +78,8 @@ internal sealed class QuickAddReminderWindow : Window
             BorderThickness = new Thickness(0),
             CaretBrush = FrozenBrush(style.Foreground),
             Foreground = FrozenBrush(style.Foreground),
-            FontFamily = new FontFamily(style.FontFamily)
+            FontFamily = new FontFamily(style.FontFamily),
+            Text = editing?.Text ?? ""
         };
 
         _chipNone = CreateChip("Sem horário", isChecked: true);
@@ -143,7 +152,7 @@ internal sealed class QuickAddReminderWindow : Window
         moreOptionsContent.Children.Add(_daysPanel);
         moreOptionsContent.Children.Add(_playSoundCheck);
 
-        var expander = new Expander
+        _moreOptions = new Expander
         {
             Header = CreateLabel("Mais opções"),
             IsExpanded = false,
@@ -156,7 +165,7 @@ internal sealed class QuickAddReminderWindow : Window
         root.Children.Add(_textBox);
         root.Children.Add(chipsPanel);
         root.Children.Add(_customPanel);
-        root.Children.Add(expander);
+        root.Children.Add(_moreOptions);
 
         var border = new Border
         {
@@ -179,7 +188,38 @@ internal sealed class QuickAddReminderWindow : Window
         {
             _textBox.Focus();
             Keyboard.Focus(_textBox);
+            _textBox.SelectAll();
         };
+
+        if (editing is not null) Prefill(editing);
+    }
+
+    /// <summary>Marca o chip/opções que correspondem ao lembrete existente, editando em vez de criar do zero.</summary>
+    private void Prefill(ReminderConfig reminder)
+    {
+        if (reminder.Kind == ReminderKind.Fixed)
+        {
+            _chipNone.IsChecked = true;
+            return;
+        }
+
+        _chipCustom.IsChecked = true;
+        if (!string.IsNullOrWhiteSpace(reminder.Time)) _customTime.Text = reminder.Time;
+        _customDate.SelectedDate = reminder.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today;
+
+        if (reminder.Recurrence == ReminderRecurrence.Daily)
+        {
+            _recurDaily.IsChecked = true;
+        }
+        else if (reminder.Recurrence == ReminderRecurrence.Weekly)
+        {
+            _recurWeekly.IsChecked = true;
+            foreach (var day in reminder.Days)
+                if (_dayToggles.TryGetValue(day, out var toggle)) toggle.IsChecked = true;
+        }
+
+        _playSoundCheck.IsChecked = reminder.PlaySound;
+        _moreOptions.IsExpanded = true;
     }
 
     private static string DayLabel(DayOfWeek day) => day switch
@@ -235,16 +275,23 @@ internal sealed class QuickAddReminderWindow : Window
     private ReminderConfig? BuildReminder(string text)
     {
         var now = DateTime.Now;
-        var reminder = new ReminderConfig
-        {
-            Text = text,
-            CreatedAt = now,
-            PlaySound = _playSoundCheck.IsChecked == true
-        };
+
+        // Editando: atualiza o mesmo objeto (mesma referência, já está em _cfg.Reminders)
+        // em vez de criar outro — e mantém o CreatedAt original.
+        var reminder = _editing ?? new ReminderConfig { CreatedAt = now };
+        reminder.Text = text;
+        reminder.PlaySound = _playSoundCheck.IsChecked == true;
+        // Reativa um "Once" que já tinha disparado/sido concluído — editar implica
+        // "quero isso de novo", não deixar preso no estado antigo.
+        reminder.Completed = false;
 
         if (_chipNone.IsChecked == true)
         {
             reminder.Kind = ReminderKind.Fixed;
+            reminder.Time = null;
+            reminder.Date = null;
+            reminder.Recurrence = ReminderRecurrence.Once;
+            reminder.Days = new();
             return reminder;
         }
 
@@ -262,6 +309,8 @@ internal sealed class QuickAddReminderWindow : Window
         }
 
         reminder.Time = target.ToString("HH:mm");
+        reminder.Date = null;
+        reminder.Days = new();
 
         if (_recurDaily.IsChecked == true)
         {

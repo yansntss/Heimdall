@@ -100,7 +100,12 @@ public sealed class ReminderWidget : IWidget
 
         var window = new QuickAddReminderWindow(_style);
         window.AnchorTo(_root, _cfg.Edge);
-        window.Saved += OnQuickAddSaved;
+        window.Saved += reminder =>
+        {
+            _cfg.Reminders.Add(reminder);
+            ConfigService.Save(_cfg);
+            RebuildFixedChips();
+        };
         window.Closed += (_, _) => _quickAddWindow = null;
 
         _quickAddWindow = window;
@@ -108,11 +113,40 @@ public sealed class ReminderWidget : IWidget
         window.Activate();
     }
 
-    private void OnQuickAddSaved(ReminderConfig reminder)
+    /// <summary>Editar reutiliza o mesmo popup, pré-preenchido — Saved atualiza o mesmo objeto (mesma referência).</summary>
+    private void Edit(ReminderConfig reminder, bool isFixed, Border chip)
     {
-        _cfg.Reminders.Add(reminder);
-        ConfigService.Save(_cfg);
-        RebuildFixedChips();
+        if (_quickAddWindow is not null)
+        {
+            _quickAddWindow.Activate();
+            return;
+        }
+
+        var window = new QuickAddReminderWindow(_style, editing: reminder);
+        window.AnchorTo(chip, _cfg.Edge);
+        window.Saved += _ =>
+        {
+            ConfigService.Save(_cfg);
+            if (isFixed) RebuildFixedChips();
+            else RefreshActiveScheduledChip(reminder);
+        };
+        window.Closed += (_, _) => _quickAddWindow = null;
+
+        _quickAddWindow = window;
+        window.Show();
+        window.Activate();
+    }
+
+    /// <summary>Recria o chip agendado em destaque pra refletir o texto/badge após editar.</summary>
+    private void RefreshActiveScheduledChip(ReminderConfig reminder)
+    {
+        if (_activeScheduledChip is null) return;
+
+        _root.Children.Remove(_activeScheduledChip);
+        _activeScheduledChip = CreateChip(reminder, isFixed: false, out _activeBadge);
+        _activeScheduledChip.Background = CreatePulsingBrush();
+        _root.Children.Insert(0, _activeScheduledChip);
+        RefreshBadge();
     }
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
@@ -351,9 +385,11 @@ public sealed class ReminderWidget : IWidget
         chip.MouseLeave += (_, _) =>
             completeButton.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
 
+        var editItem = new MenuItem { Header = "Editar..." };
+        editItem.Click += (_, _) => Edit(reminder, isFixed, chip);
         var deleteItem = new MenuItem { Header = "Excluir" };
         deleteItem.Click += (_, _) => Delete(reminder, isFixed, chip);
-        chip.ContextMenu = new ContextMenu { Items = { deleteItem } };
+        chip.ContextMenu = new ContextMenu { Items = { editItem, deleteItem } };
 
         return chip;
     }

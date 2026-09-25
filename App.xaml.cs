@@ -18,6 +18,7 @@ public partial class App : Application
     private DispatcherTimer? _displayDebounce;
     private HotkeyManager? _hotkeys;
     private SettingsWindow? _settingsWindow;
+    private ReminderHistoryWindow? _historyWindow;
     private GlobalSystemMediaTransportControlsSessionManager? _mediaManager;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -193,8 +194,15 @@ public partial class App : Application
 
     public void OpenReminderHistory()
     {
-        Directory.CreateDirectory(ReminderHistoryService.HistoryDir);
-        Process.Start(new ProcessStartInfo(ReminderHistoryService.HistoryDir) { UseShellExecute = true });
+        if (_historyWindow is not null)
+        {
+            _historyWindow.Activate();
+            return;
+        }
+
+        _historyWindow = new ReminderHistoryWindow();
+        _historyWindow.Closed += (_, _) => _historyWindow = null;
+        _historyWindow.Show();
     }
 
     public void ShowMonitors()

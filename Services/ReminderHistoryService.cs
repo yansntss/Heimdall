@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using Heimdall.Config;
 
 namespace Heimdall.Services;
@@ -27,5 +28,26 @@ internal static class ReminderHistoryService
         {
             // Histórico é um extra — não derruba o app se a gravação falhar.
         }
+    }
+
+    /// <summary>
+    /// Lê todo o histórico, mais recente primeiro (arquivos por nome — "yyyy-MM" ordena
+    /// certo — e linhas de cada arquivo invertidas, já que são gravadas por Append).
+    /// </summary>
+    public static List<(string MonthKey, List<string> Lines)> ReadAll()
+    {
+        var result = new List<(string, List<string>)>();
+        if (!Directory.Exists(HistoryDir)) return result;
+
+        foreach (var file in Directory.EnumerateFiles(HistoryDir, "*.md").OrderByDescending(f => f))
+        {
+            var lines = File.ReadAllLines(file)
+                .Where(l => l.StartsWith("- [x]"))
+                .Reverse()
+                .ToList();
+            if (lines.Count > 0)
+                result.Add((Path.GetFileNameWithoutExtension(file), lines));
+        }
+        return result;
     }
 }
