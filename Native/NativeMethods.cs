@@ -134,9 +134,16 @@ internal static class NativeMethods
     // ---------- Hotkey global ----------
 
     public const int WM_HOTKEY = 0x0312;
+    public const uint MOD_ALT = 0x0001;
     public const uint MOD_CONTROL = 0x0002;
     public const uint MOD_SHIFT = 0x0004;
     public const uint MOD_NOREPEAT = 0x4000;
+
+    public const uint VK_SPACE = 0x20;
+    public const uint VK_LEFT = 0x25;
+    public const uint VK_UP = 0x26;
+    public const uint VK_RIGHT = 0x27;
+    public const uint VK_DOWN = 0x28;
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);

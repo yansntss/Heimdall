@@ -18,7 +18,7 @@
 - [x] Layout horizontal: `[capa] Título — Artista [⏮ ⏯ ⏭] [🔊]`
 - [x] Layout vertical: capa e botões empilhados, texto só no tooltip
 - [x] Modo overlay: só texto da faixa, sem botões (clique atravessa)
-- [ ] Atalhos globais opcionais: `Ctrl+Alt+Espaço` (play/pause), `Ctrl+Alt+←/→` (anterior/próximo), `Ctrl+Alt+↑/↓` (volume)
+- [x] Atalhos globais opcionais: `Ctrl+Alt+Espaço` (play/pause), `Ctrl+Alt+←/→` (anterior/próximo), `Ctrl+Alt+↑/↓` (volume)
 
 ## Etapa 3 — Lembretes interativos
 - [ ] Hover no lembrete mostra botão "✓ Concluir" com fade (via `Opacity`, sem `Visibility.Collapsed`)

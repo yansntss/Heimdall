@@ -6,6 +6,7 @@ using Heimdall.Native;
 using Heimdall.Services;
 using Heimdall.UI;
 using Microsoft.Win32;
+using Windows.Media.Control;
 
 namespace Heimdall;
 
@@ -16,6 +17,7 @@ public partial class App : Application
     private DispatcherTimer? _displayDebounce;
     private HotkeyManager? _hotkeys;
     private SettingsWindow? _settingsWindow;
+    private GlobalSystemMediaTransportControlsSessionManager? _mediaManager;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -40,8 +42,43 @@ public partial class App : Application
 
         _hotkeys = new HotkeyManager();
         _hotkeys.Pressed += ToggleBarsVisibility;
+        RegisterMediaHotkeys();
+        _ = InitMediaManagerAsync();
 
         BuildBars();
+    }
+
+    // ---------- Atalhos globais de mídia (opcionais, Ctrl+Alt+...) ----------
+    // Agem na sessão SMTC atual direto (não num widget específico), então funcionam
+    // mesmo sem o widget "media" na barra ou com várias barras em monitores diferentes.
+
+    private void RegisterMediaHotkeys()
+    {
+        const uint mod = NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT;
+        _hotkeys!.Register(mod, NativeMethods.VK_SPACE, MediaPlayPause);
+        _hotkeys.Register(mod, NativeMethods.VK_LEFT, MediaPrevious);
+        _hotkeys.Register(mod, NativeMethods.VK_RIGHT, MediaNext);
+        _hotkeys.Register(mod, NativeMethods.VK_UP, () => AdjustMediaVolume(+0.05f));
+        _hotkeys.Register(mod, NativeMethods.VK_DOWN, () => AdjustMediaVolume(-0.05f));
+    }
+
+    private async Task InitMediaManagerAsync()
+    {
+        try { _mediaManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync(); }
+        catch { /* SMTC indisponível: atalhos de mídia viram no-op */ }
+    }
+
+    private void MediaPlayPause() => _ = _mediaManager?.GetCurrentSession()?.TryTogglePlayPauseAsync();
+
+    private void MediaPrevious() => _ = _mediaManager?.GetCurrentSession()?.TrySkipPreviousAsync();
+
+    private void MediaNext() => _ = _mediaManager?.GetCurrentSession()?.TrySkipNextAsync();
+
+    private void AdjustMediaVolume(float delta)
+    {
+        string? app = _mediaManager?.GetCurrentSession()?.SourceAppUserModelId;
+        float current = AudioVolumeService.GetVolume(app);
+        AudioVolumeService.SetVolume(app, Math.Clamp(current + delta, 0f, 1f));
     }
 
     private void ToggleBarsVisibility()
