@@ -91,6 +91,14 @@ public partial class App : Application
 
     private void OnUserPreferenceChanged(object? sender, UserPreferenceChangedEventArgs e)
     {
+        // Categorias que realmente indicam troca de tema/cor do SO. "Desktop" fica de
+        // fora de propósito: registrar/desregistrar o AppBar muda a work area, e o
+        // Windows dispara UserPreferenceChanged(Desktop) pra isso — sem esse filtro,
+        // com um tema "vivo" (Auto/Destaque do Windows) isso virava um loop infinito de
+        // BuildBars() → AppBar registra → Desktop muda → BuildBars() de novo.
+        if (e.Category is not (UserPreferenceCategory.General or UserPreferenceCategory.Color or UserPreferenceCategory.VisualStyle))
+            return;
+
         // Só recarrega se o tema atual acompanha o SO ("Auto" ou "Destaque do Windows") —
         // outras mudanças de preferência do usuário não afetam a barra.
         if (ThemeService.IsLiveTheme(ConfigService.Load().Theme)) RestartDebounce();

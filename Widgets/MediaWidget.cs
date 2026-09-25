@@ -38,10 +38,19 @@ public sealed class MediaWidget : IWidget
     private readonly Color _popupBackground;
     private readonly Color _popupForeground;
 
-    private readonly Button _previous = CreateIconButton(GlyphPrevious);
-    private readonly Button _playPause = CreateIconButton(GlyphPlay);
-    private readonly Button _next = CreateIconButton(GlyphNext);
-    private readonly ToggleButton _volume = CreateIconToggleButton(GlyphVolumeOn);
+    // Glifo num TextBlock à parte (não Button.Content = string direto): o Style padrão
+    // do Button no tema Fluent ignora a property Foreground pro conteúdo — só um
+    // TextBlock com Foreground seu garante a cor certa em qualquer tema.
+    private readonly TextBlock _previousIcon = CreateGlyph(GlyphPrevious);
+    private readonly TextBlock _playPauseIcon = CreateGlyph(GlyphPlay);
+    private readonly TextBlock _nextIcon = CreateGlyph(GlyphNext);
+    private readonly TextBlock _volumeIcon = CreateGlyph(GlyphVolumeOn);
+    private readonly TextBlock _muteIcon = CreateGlyph(GlyphVolumeOn);
+
+    private readonly Button _previous;
+    private readonly Button _playPause;
+    private readonly Button _next;
+    private readonly ToggleButton _volume;
 
     private readonly Image _thumbnail = new()
     {
@@ -94,7 +103,7 @@ public sealed class MediaWidget : IWidget
         Width = 24,
         Margin = new Thickness(0, 8, 0, 8)
     };
-    private readonly Button _muteButton = CreateIconButton(GlyphVolumeOn);
+    private readonly Button _muteButton;
     private readonly Popup _volumePopup;
 
     private readonly TextBlock _feedbackText = new() { FontSize = 12 };
@@ -114,14 +123,18 @@ public sealed class MediaWidget : IWidget
         _popupBackground = style.Background;
         _popupForeground = style.Foreground;
 
-        // Botão tem estilo/tema padrão do WPF com Foreground próprio (Setter de Style
-        // vence herança) — sem isso os ícones saem pretos em cima de tema escuro.
         var iconBrush = FrozenBrush(_popupForeground);
-        _previous.Foreground = iconBrush;
-        _playPause.Foreground = iconBrush;
-        _next.Foreground = iconBrush;
-        _volume.Foreground = iconBrush;
-        _muteButton.Foreground = iconBrush;
+        _previousIcon.Foreground = iconBrush;
+        _playPauseIcon.Foreground = iconBrush;
+        _nextIcon.Foreground = iconBrush;
+        _volumeIcon.Foreground = iconBrush;
+        _muteIcon.Foreground = iconBrush;
+
+        _previous = CreateIconButton(_previousIcon);
+        _playPause = CreateIconButton(_playPauseIcon);
+        _next = CreateIconButton(_nextIcon);
+        _volume = CreateIconToggleButton(_volumeIcon);
+        _muteButton = CreateIconButton(_muteIcon);
 
         _progressBar.Background = FrozenBrush(Color.FromArgb(0x33, _popupForeground.R, _popupForeground.G, _popupForeground.B));
         _progressFill.Background = FrozenBrush(style.Accent);
@@ -236,7 +249,7 @@ public sealed class MediaWidget : IWidget
         SetEnabled(_next, controls?.IsNextEnabled ?? false);
         SetEnabled(_playPause, (controls?.IsPlayEnabled ?? false) || (controls?.IsPauseEnabled ?? false));
 
-        _playPause.Content = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
+        _playPauseIcon.Text = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
             ? GlyphPause
             : GlyphPlay;
 
@@ -446,10 +459,10 @@ public sealed class MediaWidget : IWidget
     private void RefreshVolumeIcon()
     {
         bool muted = AudioVolumeService.GetMuted(CurrentAppUserModelId);
-        _volume.Content = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+        _volumeIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
     }
 
-    private void RefreshMuteButtonGlyph(bool muted) => _muteButton.Content = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+    private void RefreshMuteButtonGlyph(bool muted) => _muteIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
 
     private void ShowVolumeFeedback(float volume, bool muted)
     {
@@ -520,11 +533,28 @@ public sealed class MediaWidget : IWidget
         return brush;
     }
 
-    private static Button CreateIconButton(string glyph) => new()
+    private static TextBlock CreateGlyph(string glyph)
     {
-        Content = glyph,
-        FontFamily = IconFont,
-        FontSize = 13,
+        var text = new TextBlock
+        {
+            Text = glyph,
+            FontFamily = IconFont,
+            FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        // ClearType (subpixel) quebra em cima de janela translúcida/com blur do DWM —
+        // vira uma franja colorida sem preenchimento sólido, bem visível em traços finos
+        // como os desses glifos. Grayscale AA não depende do fundo, sempre sólido.
+        TextOptions.SetTextRenderingMode(text, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(text, TextFormattingMode.Display);
+
+        return text;
+    }
+
+    private static Button CreateIconButton(TextBlock icon) => new()
+    {
+        Content = icon,
         Padding = new Thickness(4, 0, 4, 0),
         Margin = new Thickness(2, 0, 2, 0),
         Background = Brushes.Transparent,
@@ -533,11 +563,9 @@ public sealed class MediaWidget : IWidget
         Focusable = false
     };
 
-    private static ToggleButton CreateIconToggleButton(string glyph) => new()
+    private static ToggleButton CreateIconToggleButton(TextBlock icon) => new()
     {
-        Content = glyph,
-        FontFamily = IconFont,
-        FontSize = 13,
+        Content = icon,
         Padding = new Thickness(4, 0, 4, 0),
         Margin = new Thickness(2, 0, 2, 0),
         Background = Brushes.Transparent,
