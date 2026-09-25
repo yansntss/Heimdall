@@ -34,6 +34,7 @@ public sealed class ReminderWidget : IWidget
     private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center };
 
     private Border? _activeScheduledChip;
+    private Border? _activeBadge;
     private bool _highlighting;
 
     public FrameworkElement View => _root;
@@ -62,7 +63,7 @@ public sealed class ReminderWidget : IWidget
 
         foreach (var reminder in _cfg.Reminders.Where(r => r.Kind == ReminderKind.Fixed && !string.IsNullOrWhiteSpace(r.Text)))
         {
-            var chip = CreateChip(reminder, isFixed: true);
+            var chip = CreateChip(reminder, isFixed: true, out _);
             _fixedChips.Add(chip);
             _root.Children.Add(chip);
         }
@@ -100,6 +101,10 @@ public sealed class ReminderWidget : IWidget
     private void Fire(ReminderConfig reminder)
     {
         _pendingScheduled.Enqueue(reminder);
+        // Se outro lembrete já está em destaque, o badge dele precisa refletir esse novo
+        // agora — calcular o badge só na criação do chip perderia quem chegou depois
+        // (o chip do primeiro já existia quando o segundo foi enfileirado).
+        RefreshBadge();
         if (reminder.PlaySound) SystemSounds.Exclamation.Play();
 
         if (reminder.Recurrence == ReminderRecurrence.Once)
@@ -122,19 +127,39 @@ public sealed class ReminderWidget : IWidget
         if (_pendingScheduled.Count == 0)
         {
             _highlighting = false;
+            _activeBadge = null;
             _root.Visibility = _fixedChips.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             return;
         }
 
         _highlighting = true;
         var reminder = _pendingScheduled.Dequeue();
-        _activeScheduledChip = CreateChip(reminder, isFixed: false);
+        _activeScheduledChip = CreateChip(reminder, isFixed: false, out _activeBadge);
         _activeScheduledChip.Background = CreatePulsingBrush();
         _root.Children.Insert(0, _activeScheduledChip);
         _root.Visibility = Visibility.Visible;
+        RefreshBadge();
 
         _highlightTimer.Stop();
         _highlightTimer.Start();
+    }
+
+    /// <summary>Mostra/atualiza o "+N" no chip agendado ativo conforme quantos ainda estão na fila.</summary>
+    private void RefreshBadge()
+    {
+        if (_activeBadge is null) return;
+
+        int count = _pendingScheduled.Count;
+        if (count > 0)
+        {
+            ((TextBlock)_activeBadge.Child).Text = $"+{count}";
+            _activeBadge.ToolTip = $"+{count} lembrete(s) na fila";
+            _activeBadge.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            _activeBadge.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void DismissActiveScheduled()
@@ -187,11 +212,35 @@ public sealed class ReminderWidget : IWidget
         chip.BeginAnimation(UIElement.OpacityProperty, animation);
     }
 
-    private Border CreateChip(ReminderConfig reminder, bool isFixed)
+    private Border CreateChip(ReminderConfig reminder, bool isFixed, out Border? badge)
     {
         Border chip = null!;
+        badge = null;
 
         var text = new TextBlock { Text = reminder.Text, VerticalAlignment = VerticalAlignment.Center };
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+
+        if (!isFixed)
+        {
+            var badgeText = new TextBlock
+            {
+                FontSize = 10,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = Brushes.White
+            };
+            badge = new Border
+            {
+                Background = FrozenBrush(_accent),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(4, 0, 4, 0),
+                Margin = new Thickness(0, 0, 4, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Visibility = Visibility.Collapsed,
+                Child = badgeText
+            };
+            row.Children.Add(badge);
+        }
 
         var checkIcon = new TextBlock
         {
@@ -217,7 +266,6 @@ public sealed class ReminderWidget : IWidget
         };
         completeButton.Click += (_, e) => { e.Handled = true; Complete(reminder, isFixed, chip); };
 
-        var row = new StackPanel { Orientation = Orientation.Horizontal };
         row.Children.Add(text);
         row.Children.Add(completeButton);
 

@@ -35,7 +35,7 @@
 - [ ] "Mais opções" recolhido por padrão: recorrência (Única/Diária/Dias da semana) + toggle de som
 - [ ] Salvar direto no `config.json` e atualizar a barra sem recarregar tudo
 - [x] Ao disparar, lembrete pulsa com a cor de destaque do tema por alguns segundos
-- [ ] Badge com contador de lembretes pendentes quando houver mais de um
+- [x] Badge com contador de lembretes pendentes quando houver mais de um
 
 ## Etapa 4 — Detalhes visuais
 - [ ] Modo flutuante opcional: margem das bordas da tela + cantos arredondados, espaço do AppBar incluindo a margem
