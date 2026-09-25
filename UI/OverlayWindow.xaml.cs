@@ -32,6 +32,7 @@ public partial class OverlayWindow : Window
         Height = 1;
 
         ApplyStyle();
+        ApplyLayout();
         _widgets.AddRange(WidgetZoneBuilder.Build(_cfg, IsVertical, Zones, StartZone, CenterZone, EndZone, isOverlay: true));
 
         SourceInitialized += OnSourceInitialized;
@@ -77,5 +78,44 @@ public partial class OverlayWindow : Window
         TextElement.SetForeground(Root, foreground);
         TextElement.SetFontFamily(Root, new FontFamily(style.FontFamily));
         TextElement.SetFontSize(Root, style.FontSize);
+    }
+
+    /// <summary>
+    /// A janela de overlay cobre o monitor inteiro (precisa, pro click-through funcionar
+    /// em qualquer parte da tela) — sem isso o Root ficava esticado pra célula toda e as
+    /// zonas (Start/Center/End) centralizavam no meio da tela em vez de ficar na borda.
+    /// Ancora o Root na borda configurada com a mesma espessura da AppBar normal.
+    /// </summary>
+    private void ApplyLayout()
+    {
+        double thickness = Math.Clamp(_cfg.Thickness, 16, 400);
+
+        switch (_cfg.Edge)
+        {
+            case BarEdge.Top:
+                Root.HorizontalAlignment = HorizontalAlignment.Stretch;
+                Root.VerticalAlignment = VerticalAlignment.Top;
+                Root.Height = thickness;
+                Root.Width = double.NaN;
+                break;
+            case BarEdge.Bottom:
+                Root.HorizontalAlignment = HorizontalAlignment.Stretch;
+                Root.VerticalAlignment = VerticalAlignment.Bottom;
+                Root.Height = thickness;
+                Root.Width = double.NaN;
+                break;
+            case BarEdge.Left:
+                Root.HorizontalAlignment = HorizontalAlignment.Left;
+                Root.VerticalAlignment = VerticalAlignment.Stretch;
+                Root.Width = thickness;
+                Root.Height = double.NaN;
+                break;
+            case BarEdge.Right:
+                Root.HorizontalAlignment = HorizontalAlignment.Right;
+                Root.VerticalAlignment = VerticalAlignment.Stretch;
+                Root.Width = thickness;
+                Root.Height = double.NaN;
+                break;
+        }
     }
 }

@@ -114,6 +114,15 @@ public sealed class MediaWidget : IWidget
         _popupBackground = style.Background;
         _popupForeground = style.Foreground;
 
+        // Botão tem estilo/tema padrão do WPF com Foreground próprio (Setter de Style
+        // vence herança) — sem isso os ícones saem pretos em cima de tema escuro.
+        var iconBrush = FrozenBrush(_popupForeground);
+        _previous.Foreground = iconBrush;
+        _playPause.Foreground = iconBrush;
+        _next.Foreground = iconBrush;
+        _volume.Foreground = iconBrush;
+        _muteButton.Foreground = iconBrush;
+
         _progressBar.Background = FrozenBrush(Color.FromArgb(0x33, _popupForeground.R, _popupForeground.G, _popupForeground.B));
         _progressFill.Background = FrozenBrush(style.Accent);
         _progressBar.Children.Add(_progressFill);
