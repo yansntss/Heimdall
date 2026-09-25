@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using InfoBar.Config;
 using InfoBar.Native;
 using InfoBar.Services;
@@ -16,6 +17,7 @@ public partial class BarWindow : Window
     private readonly MonitorInfo _monitor;
     private readonly List<IWidget> _widgets = new();
     private AppBarManager? _appBar;
+    private bool _overlay;
 
     private bool IsVertical => _cfg.Edge is BarEdge.Left or BarEdge.Right;
 
@@ -30,6 +32,7 @@ public partial class BarWindow : Window
         Top = -32000;
         Width = 1;
         Height = 1;
+        Opacity = 0;
 
         ApplyStyle();
         BuildWidgets();
@@ -42,20 +45,62 @@ public partial class BarWindow : Window
     {
         var hwnd = new WindowInteropHelper(this).Handle;
 
-        // Fora do Alt+Tab e da taskbar
-        NativeMethods.SetExStyle(hwnd, add: NativeMethods.WS_EX_TOOLWINDOW, remove: NativeMethods.WS_EX_APPWINDOW);
+        // Fora do Alt+Tab e da taskbar; nunca rouba ativação/foco (nem barra, nem overlay)
+        NativeMethods.SetExStyle(hwnd,
+            add: NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOACTIVATE,
+            remove: NativeMethods.WS_EX_APPWINDOW);
 
         _appBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, Math.Clamp(_cfg.Thickness, 16, 400));
 
-        // Fase 1: com app em tela cheia, a barra sai do topo. Fase 2 troca isso pelo modo overlay.
         _appBar.FullscreenChanged += fullscreen =>
         {
-            _appBar.KeepTopmost = !fullscreen;
-            Topmost = !fullscreen;
+            if (fullscreen) EnterOverlay();
+            else ExitOverlay();
         };
 
         HwndSource.FromHwnd(hwnd)?.AddHook(_appBar.WndProc);
         _appBar.Register();
+
+        FadeIn();
+    }
+
+    private void FadeIn()
+    {
+        var animation = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+        {
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        };
+        BeginAnimation(OpacityProperty, animation);
+    }
+
+    // ---------- Modo overlay (tela cheia) ----------
+
+    private void EnterOverlay()
+    {
+        if (_overlay) return;
+        _overlay = true;
+
+        _appBar?.Unregister();
+        Root.Background = Brushes.Transparent;
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        NativeMethods.SetExStyle(hwnd, add: NativeMethods.WS_EX_LAYERED | NativeMethods.WS_EX_TRANSPARENT);
+
+        var b = _monitor.Bounds;
+        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST,
+            b.Left, b.Top, b.Width, b.Height, NativeMethods.SWP_NOACTIVATE);
+    }
+
+    private void ExitOverlay()
+    {
+        if (!_overlay) return;
+        _overlay = false;
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        NativeMethods.SetExStyle(hwnd, remove: NativeMethods.WS_EX_TRANSPARENT);
+
+        ApplyStyle();
+        _appBar?.Register();
     }
 
     private void OnClosed(object? sender, EventArgs e)

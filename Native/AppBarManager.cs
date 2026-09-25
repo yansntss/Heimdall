@@ -18,8 +18,10 @@ internal sealed class AppBarManager : IDisposable
     private readonly int _thicknessDip;
     private readonly int _callbackMsg;
     private readonly int _taskbarCreatedMsg;
+    private readonly DispatcherTimer _fallbackTimer;
     private bool _registered;
     private bool _positioning;
+    private bool _isFullscreen;
 
     /// <summary>true = um app em tela cheia abriu; false = fechou.</summary>
     public event Action<bool>? FullscreenChanged;
@@ -36,6 +38,16 @@ internal sealed class AppBarManager : IDisposable
         _callbackMsg = (int)RegisterWindowMessage("InfoBar.AppBarCallback");
         // Enviada quando o Explorer reinicia: registros de AppBar são perdidos
         _taskbarCreatedMsg = (int)RegisterWindowMessage("TaskbarCreated");
+
+        // Reforço/fallback: nem todo jogo dispara ABN_FULLSCREENAPP, e enquanto o
+        // AppBar está desregistrado (modo overlay) o shell para de notificar de vez —
+        // esse timer é quem detecta a volta ao modo janela nesse caso.
+        _fallbackTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _fallbackTimer.Tick += (_, _) => CheckFullscreenFallback();
+        _fallbackTimer.Start();
     }
 
     public void Register()
@@ -86,7 +98,7 @@ internal sealed class AppBarManager : IDisposable
                     break;
                 case ABN_FULLSCREENAPP:
                     bool fullscreen = lParam != IntPtr.Zero;
-                    Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => FullscreenChanged?.Invoke(fullscreen)));
+                    Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => SetFullscreen(fullscreen)));
                     break;
             }
             handled = true;
@@ -123,6 +135,27 @@ internal sealed class AppBarManager : IDisposable
         return IntPtr.Zero;
     }
 
+    private void CheckFullscreenFallback()
+    {
+        IntPtr fg = GetForegroundWindow();
+        if (fg == IntPtr.Zero || fg == _hwnd) return;
+
+        bool matches = GetWindowRect(fg, out RECT rect)
+            && rect.Left == _monitor.Bounds.Left
+            && rect.Top == _monitor.Bounds.Top
+            && rect.Right == _monitor.Bounds.Right
+            && rect.Bottom == _monitor.Bounds.Bottom;
+
+        SetFullscreen(matches);
+    }
+
+    private void SetFullscreen(bool fullscreen)
+    {
+        if (fullscreen == _isFullscreen) return;
+        _isFullscreen = fullscreen;
+        FullscreenChanged?.Invoke(fullscreen);
+    }
+
     private double GetScale()
     {
         if (GetDpiForMonitor(_monitor.Handle, MDT_EFFECTIVE_DPI, out uint dpiX, out _) == 0 && dpiX > 0)
@@ -157,11 +190,18 @@ internal sealed class AppBarManager : IDisposable
         hWnd = _hwnd
     };
 
-    public void Dispose()
+    /// <summary>Remove o registro de AppBar sem fechar a janela (usado ao entrar em modo overlay).</summary>
+    public void Unregister()
     {
         if (!_registered) return;
         var abd = NewData();
         SHAppBarMessage(ABM_REMOVE, ref abd);
         _registered = false;
+    }
+
+    public void Dispose()
+    {
+        _fallbackTimer.Stop();
+        Unregister();
     }
 }

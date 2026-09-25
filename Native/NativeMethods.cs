@@ -66,6 +66,9 @@ internal static class NativeMethods
     public const int GWL_EXSTYLE = -20;
     public const long WS_EX_TOOLWINDOW = 0x00000080;
     public const long WS_EX_APPWINDOW = 0x00040000;
+    public const long WS_EX_LAYERED = 0x00080000;
+    public const long WS_EX_TRANSPARENT = 0x00000020;
+    public const long WS_EX_NOACTIVATE = 0x08000000;
 
     public static readonly IntPtr HWND_TOPMOST = new(-1);
     public const uint SWP_NOZORDER = 0x0004;
@@ -119,4 +122,25 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    // ---------- Tela cheia (fallback) ----------
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    // ---------- Hotkey global ----------
+
+    public const int WM_HOTKEY = 0x0312;
+    public const uint MOD_CONTROL = 0x0002;
+    public const uint MOD_SHIFT = 0x0004;
+    public const uint MOD_NOREPEAT = 0x4000;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 }

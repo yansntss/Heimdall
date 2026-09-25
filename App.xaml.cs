@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 using InfoBar.Config;
+using InfoBar.Native;
 using InfoBar.Services;
 using InfoBar.UI;
 using Microsoft.Win32;
@@ -13,6 +14,7 @@ public partial class App : Application
     private readonly List<BarWindow> _bars = new();
     private Mutex? _mutex;
     private DispatcherTimer? _displayDebounce;
+    private HotkeyManager? _hotkeys;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -34,7 +36,19 @@ public partial class App : Application
         };
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
+        _hotkeys = new HotkeyManager();
+        _hotkeys.Pressed += ToggleBarsVisibility;
+
         BuildBars();
+    }
+
+    private void ToggleBarsVisibility()
+    {
+        var target = _bars.Any(b => b.Visibility == Visibility.Visible)
+            ? Visibility.Hidden
+            : Visibility.Visible;
+
+        foreach (var bar in _bars) bar.Visibility = target;
     }
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
@@ -113,6 +127,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        _hotkeys?.Dispose();
         CloseBars();
         if (_mutex is not null)
         {
