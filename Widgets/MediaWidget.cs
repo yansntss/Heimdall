@@ -5,6 +5,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using System.IO;
@@ -21,7 +22,7 @@ namespace Heimdall.Widgets;
 /// </summary>
 public sealed class MediaWidget : IWidget
 {
-    private const int MaxLength = 40;
+    private const double TextWidth = 140;
     private const float VolumeStep = 0.05f;
 
     // Segoe Fluent Icons (Win11) com fallback pra Segoe MDL2 Assets (Win10) — mesmos glifos nas duas.
@@ -51,10 +52,21 @@ public sealed class MediaWidget : IWidget
         Visibility = Visibility.Collapsed
     };
 
+    private readonly TranslateTransform _textScroll = new();
     private readonly TextBlock _text = new()
     {
+        VerticalAlignment = VerticalAlignment.Center
+    };
+
+    private readonly Border _textClip = new()
+    {
+        Width = TextWidth,
+        ClipToBounds = true,
+        Margin = new Thickness(4, 0, 4, 0),
         VerticalAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(4, 0, 4, 0)
+        // Transparent (não null): Background=null deixa a área "vazia" do Border sem
+        // hit-test, então MouseEnter/Leave só disparariam em cima dos glifos do texto.
+        Background = Brushes.Transparent
     };
 
     private readonly StackPanel _root = new()
@@ -91,8 +103,13 @@ public sealed class MediaWidget : IWidget
         _popupBackground = style.Background;
         _popupForeground = style.Foreground;
 
+        _text.RenderTransform = _textScroll;
+        _textClip.Child = _text;
+        _textClip.MouseEnter += OnTextMouseEnter;
+        _textClip.MouseLeave += OnTextMouseLeave;
+
         _root.Children.Add(_thumbnail);
-        _root.Children.Add(_text);
+        _root.Children.Add(_textClip);
         _root.Children.Add(_previous);
         _root.Children.Add(_playPause);
         _root.Children.Add(_next);
@@ -213,10 +230,13 @@ public sealed class MediaWidget : IWidget
                     _root.Visibility = Visibility.Collapsed;
                     return;
                 }
-                _text.Text = Truncate(full);
+                _text.Text = full;
                 _thumbnail.Source = thumbnail;
                 _thumbnail.Visibility = thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
                 _root.Visibility = Visibility.Visible;
+
+                StopMarquee();
+                if (_textClip.IsMouseOver) StartMarquee();
             });
         }
         catch
@@ -256,8 +276,46 @@ public sealed class MediaWidget : IWidget
         }
     }
 
-    private static string Truncate(string value) =>
-        value.Length <= MaxLength ? value : value[..(MaxLength - 1)] + "…";
+    // ---------- Marquee (rolagem do título/artista no hover, só quando não cabe) ----------
+
+    private bool _marqueeRunning;
+
+    private void OnTextMouseEnter(object sender, MouseEventArgs e) => StartMarquee();
+
+    private void OnTextMouseLeave(object sender, MouseEventArgs e) => StopMarquee();
+
+    private void StartMarquee()
+    {
+        StopMarquee();
+
+        _text.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double overflow = _text.DesiredSize.Width - _textClip.Width;
+        if (overflow <= 0) return;
+
+        double scrollSeconds = Math.Clamp(overflow / 40.0, 1.5, 12.0);
+        var pause = TimeSpan.FromSeconds(0.8);
+        var scroll = TimeSpan.FromSeconds(scrollSeconds);
+
+        var animation = new DoubleAnimationUsingKeyFrames { RepeatBehavior = RepeatBehavior.Forever };
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(pause)));
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(-overflow, KeyTime.FromTimeSpan(pause + scroll)));
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(-overflow, KeyTime.FromTimeSpan(pause + scroll + pause)));
+        animation.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(pause + scroll + pause + scroll)));
+
+        // Freezable.BeginAnimation direto na property, sem Storyboard/SetTarget — mais
+        // simples e confiável pra animar um Transform isolado (não preso a um FrameworkElement).
+        _textScroll.BeginAnimation(TranslateTransform.XProperty, animation);
+        _marqueeRunning = true;
+    }
+
+    private void StopMarquee()
+    {
+        if (!_marqueeRunning) return;
+        _textScroll.BeginAnimation(TranslateTransform.XProperty, null);
+        _textScroll.X = 0;
+        _marqueeRunning = false;
+    }
 
     // ---------- Volume (NAudio Core Audio API por app, com fallback pro master) ----------
 
@@ -415,6 +473,7 @@ public sealed class MediaWidget : IWidget
     public void Dispose()
     {
         _feedbackTimer.Stop();
+        StopMarquee();
         _volumePopup.IsOpen = false;
         _feedbackPopup.IsOpen = false;
 
