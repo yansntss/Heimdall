@@ -40,6 +40,9 @@ internal sealed class QuickAddReminderWindow : Window
     private readonly RadioButton _recurWeekly;
     private readonly WrapPanel _daysPanel;
     private readonly Dictionary<DayOfWeek, ToggleButton> _dayToggles = new();
+    private readonly StackPanel _rangePanel;
+    private readonly DatePicker _startDatePicker;
+    private readonly DatePicker _endDatePicker;
     private readonly CheckBox _playSoundCheck;
 
     private readonly ReminderConfig? _editing;
@@ -131,15 +134,34 @@ internal sealed class QuickAddReminderWindow : Window
             _daysPanel.Children.Add(dayToggle);
         }
 
+        _startDatePicker = new DatePicker { Width = 104, FontSize = 11, Foreground = Brushes.Black, Background = Brushes.White };
+        _endDatePicker = new DatePicker { Width = 104, FontSize = 11, Foreground = Brushes.Black, Background = Brushes.White };
+        var startLabel = CreateLabel("De:");
+        startLabel.VerticalAlignment = VerticalAlignment.Center;
+        startLabel.Margin = new Thickness(0, 0, 4, 0);
+        var endLabel = CreateLabel("até:");
+        endLabel.VerticalAlignment = VerticalAlignment.Center;
+        endLabel.Margin = new Thickness(8, 0, 4, 0);
+        _rangePanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0, 6, 0, 0),
+            Visibility = Visibility.Collapsed
+        };
+        _rangePanel.Children.Add(startLabel);
+        _rangePanel.Children.Add(_startDatePicker);
+        _rangePanel.Children.Add(endLabel);
+        _rangePanel.Children.Add(_endDatePicker);
+
         // RadioButton/CheckBox/Expander: Content = string direto pega o Foreground
         // padrão do tema Fluent (preto), não o nosso — mesmo problema dos ícones dos
         // outros widgets. Um TextBlock à parte com Foreground seu resolve.
         _recurOnce = new RadioButton { Content = CreateLabel("Única"), GroupName = "Recur", IsChecked = true, Margin = new Thickness(0, 0, 10, 0) };
         _recurDaily = new RadioButton { Content = CreateLabel("Diária"), GroupName = "Recur", Margin = new Thickness(0, 0, 10, 0) };
         _recurWeekly = new RadioButton { Content = CreateLabel("Dias da semana"), GroupName = "Recur" };
-        _recurWeekly.Checked += (_, _) => _daysPanel.Visibility = Visibility.Visible;
-        _recurOnce.Checked += (_, _) => _daysPanel.Visibility = Visibility.Collapsed;
-        _recurDaily.Checked += (_, _) => _daysPanel.Visibility = Visibility.Collapsed;
+        _recurWeekly.Checked += (_, _) => { _daysPanel.Visibility = Visibility.Visible; _rangePanel.Visibility = Visibility.Visible; };
+        _recurOnce.Checked += (_, _) => { _daysPanel.Visibility = Visibility.Collapsed; _rangePanel.Visibility = Visibility.Collapsed; };
+        _recurDaily.Checked += (_, _) => { _daysPanel.Visibility = Visibility.Collapsed; _rangePanel.Visibility = Visibility.Visible; };
         var recurPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 0) };
         recurPanel.Children.Add(_recurOnce);
         recurPanel.Children.Add(_recurDaily);
@@ -150,6 +172,7 @@ internal sealed class QuickAddReminderWindow : Window
         var moreOptionsContent = new StackPanel();
         moreOptionsContent.Children.Add(recurPanel);
         moreOptionsContent.Children.Add(_daysPanel);
+        moreOptionsContent.Children.Add(_rangePanel);
         moreOptionsContent.Children.Add(_playSoundCheck);
 
         _moreOptions = new Expander
@@ -216,6 +239,12 @@ internal sealed class QuickAddReminderWindow : Window
             _recurWeekly.IsChecked = true;
             foreach (var day in reminder.Days)
                 if (_dayToggles.TryGetValue(day, out var toggle)) toggle.IsChecked = true;
+        }
+
+        if (reminder.Recurrence != ReminderRecurrence.Once)
+        {
+            _startDatePicker.SelectedDate = reminder.StartDate?.ToDateTime(TimeOnly.MinValue);
+            _endDatePicker.SelectedDate = reminder.EndDate?.ToDateTime(TimeOnly.MinValue);
         }
 
         _playSoundCheck.IsChecked = reminder.PlaySound;
@@ -292,6 +321,8 @@ internal sealed class QuickAddReminderWindow : Window
             reminder.Date = null;
             reminder.Recurrence = ReminderRecurrence.Once;
             reminder.Days = new();
+            reminder.StartDate = null;
+            reminder.EndDate = null;
             return reminder;
         }
 
@@ -311,21 +342,31 @@ internal sealed class QuickAddReminderWindow : Window
         reminder.Time = target.ToString("HH:mm");
         reminder.Date = null;
         reminder.Days = new();
+        reminder.StartDate = null;
+        reminder.EndDate = null;
 
         if (_recurDaily.IsChecked == true)
         {
             reminder.Recurrence = ReminderRecurrence.Daily;
+            reminder.StartDate = _startDatePicker.SelectedDate is { } s ? DateOnly.FromDateTime(s) : null;
+            reminder.EndDate = _endDatePicker.SelectedDate is { } e ? DateOnly.FromDateTime(e) : null;
         }
         else if (_recurWeekly.IsChecked == true)
         {
             reminder.Recurrence = ReminderRecurrence.Weekly;
             reminder.Days = _dayToggles.Where(kv => kv.Value.IsChecked == true).Select(kv => kv.Key).ToList();
+            reminder.StartDate = _startDatePicker.SelectedDate is { } s ? DateOnly.FromDateTime(s) : null;
+            reminder.EndDate = _endDatePicker.SelectedDate is { } e ? DateOnly.FromDateTime(e) : null;
         }
         else
         {
             reminder.Recurrence = ReminderRecurrence.Once;
             reminder.Date = DateOnly.FromDateTime(target);
         }
+
+        // Fim antes do início nunca dispararia — deixa a janela aberta pra corrigir
+        // em vez de salvar um lembrete que nunca vai funcionar.
+        if (reminder.StartDate is { } rs && reminder.EndDate is { } re && re < rs) return null;
 
         return reminder;
     }

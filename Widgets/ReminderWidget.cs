@@ -195,6 +195,13 @@ public sealed class ReminderWidget : IWidget
             if (reminder.Recurrence == ReminderRecurrence.Weekly && !reminder.Days.Contains(now.DayOfWeek))
                 continue;
 
+            var today = DateOnly.FromDateTime(now);
+            if (reminder.Recurrence != ReminderRecurrence.Once)
+            {
+                if (reminder.StartDate is { } start && today < start) continue;
+                if (reminder.EndDate is { } end && today > end) continue;
+            }
+
             if (_lastFired.TryGetValue(reminder, out var lastKey) && lastKey == minuteKey) continue;
             _lastFired[reminder] = minuteKey;
 

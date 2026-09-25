@@ -32,4 +32,10 @@ public sealed class ReminderConfig
     /// comportamento de sempre pros lembretes existentes que não têm essa data.
     /// </summary>
     public DateOnly? Date { get; set; }
+
+    /// <summary>Usado só quando Recurrence = Daily/Weekly. Nulo = sem limite nesse lado.</summary>
+    public DateOnly? StartDate { get; set; }
+
+    /// <summary>Usado só quando Recurrence = Daily/Weekly. Nulo = sem limite nesse lado.</summary>
+    public DateOnly? EndDate { get; set; }
 }
