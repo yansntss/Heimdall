@@ -21,6 +21,8 @@ public sealed class AppConfig
     public WidgetLayout Widgets { get; set; } = new();
 
     public ClockConfig Clock { get; set; } = new();
+
+    public List<ReminderConfig> Reminders { get; set; } = new();
 }
 
 public sealed class BarStyle
