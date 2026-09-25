@@ -12,7 +12,7 @@
 - [x] Fallback pro volume master do sistema quando não achar a sessão do app
 - [x] Roda do mouse sobre o widget ajusta volume em passos de 5%, com tooltip da porcentagem
 - [x] Popup com slider vertical de volume + botão de mudo ao clicar no ícone
-- [ ] Capa do álbum em miniatura via `MediaProperties.Thumbnail` → `BitmapImage`
+- [x] Capa do álbum em miniatura via `MediaProperties.Thumbnail` → `BitmapImage`
 - [ ] Marquee (rolagem) de título/artista quando não cabe, só com o mouse em cima
 - [ ] Barra de progresso fina via `GetTimelineProperties()` (ocultar quando o app não informa)
 - [ ] Layout horizontal: `[capa] Título — Artista [⏮ ⏯ ⏭] [🔊]`

@@ -5,7 +5,9 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.IO;
 using Heimdall.Config;
 using Heimdall.Services;
 using Windows.Media.Control;
@@ -39,6 +41,15 @@ public sealed class MediaWidget : IWidget
     private readonly Button _playPause = CreateIconButton(GlyphPlay);
     private readonly Button _next = CreateIconButton(GlyphNext);
     private readonly ToggleButton _volume = CreateIconToggleButton(GlyphVolumeOn);
+
+    private readonly Image _thumbnail = new()
+    {
+        Width = 16,
+        Height = 16,
+        VerticalAlignment = VerticalAlignment.Center,
+        Stretch = Stretch.UniformToFill,
+        Visibility = Visibility.Collapsed
+    };
 
     private readonly TextBlock _text = new()
     {
@@ -80,6 +91,7 @@ public sealed class MediaWidget : IWidget
         _popupBackground = style.Background;
         _popupForeground = style.Foreground;
 
+        _root.Children.Add(_thumbnail);
         _root.Children.Add(_text);
         _root.Children.Add(_previous);
         _root.Children.Add(_playPause);
@@ -192,6 +204,7 @@ public sealed class MediaWidget : IWidget
             string title = props.Title ?? "";
             string artist = props.Artist ?? "";
             string full = string.IsNullOrWhiteSpace(artist) ? title : $"{artist} — {title}";
+            var thumbnail = await LoadThumbnailAsync(props.Thumbnail);
 
             _dispatcher.Invoke(() =>
             {
@@ -201,12 +214,45 @@ public sealed class MediaWidget : IWidget
                     return;
                 }
                 _text.Text = Truncate(full);
+                _thumbnail.Source = thumbnail;
+                _thumbnail.Visibility = thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
                 _root.Visibility = Visibility.Visible;
             });
         }
         catch
         {
             _dispatcher.Invoke(() => _root.Visibility = Visibility.Collapsed);
+        }
+    }
+
+    private static async Task<BitmapImage?> LoadThumbnailAsync(Windows.Storage.Streams.IRandomAccessStreamReference? thumbnailRef)
+    {
+        if (thumbnailRef is null) return null;
+
+        try
+        {
+            using var stream = await thumbnailRef.OpenReadAsync();
+
+            // Sem AsStream()/AsStreamForRead() disponível nessa projeção do WinRT — lê os
+            // bytes crus via DataReader e monta o BitmapImage a partir de um MemoryStream.
+            using var reader = new Windows.Storage.Streams.DataReader(stream.GetInputStreamAt(0));
+            await reader.LoadAsync((uint)stream.Size);
+            var bytes = new byte[stream.Size];
+            reader.ReadBytes(bytes);
+
+            using var memory = new MemoryStream(bytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = memory;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch
+        {
+            // Player não forneceu uma capa decodificável — widget segue sem ela.
+            return null;
         }
     }
 
