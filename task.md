@@ -21,11 +21,11 @@
 - [x] Atalhos globais opcionais: `Ctrl+Alt+Espaço` (play/pause), `Ctrl+Alt+←/→` (anterior/próximo), `Ctrl+Alt+↑/↓` (volume)
 
 ## Etapa 3 — Lembretes interativos
-- [ ] Hover no lembrete mostra botão "✓ Concluir" com fade (via `Opacity`, sem `Visibility.Collapsed`)
-- [ ] Concluir remove com animação curta e grava no histórico
-- [ ] Recorrentes: concluir encerra só a ocorrência atual (volta no próximo horário)
-- [ ] Opção "Excluir" no menu de clique direito do lembrete
-- [ ] Histórico em `%AppData%\Heimdall\docs\lembretes\*.md` (um arquivo por mês, formato `- [x] Texto — criado dd/MM HH:mm — concluído dd/MM HH:mm`)
+- [x] Hover no lembrete mostra botão "✓ Concluir" com fade (via `Opacity`, sem `Visibility.Collapsed`)
+- [x] Concluir remove com animação curta e grava no histórico
+- [x] Recorrentes: concluir encerra só a ocorrência atual (volta no próximo horário)
+- [x] Opção "Excluir" no menu de clique direito do lembrete
+- [x] Histórico em `%AppData%\Heimdall\docs\lembretes\*.md` (um arquivo por mês, formato `- [x] Texto — criado dd/MM HH:mm — concluído dd/MM HH:mm`)
 - [ ] Item "Abrir histórico de lembretes" no menu de clique direito da barra
 - [ ] Botão "+" no hover do widget de lembretes + atalho global `Ctrl+Shift+R`
 - [ ] Popup de adição rápida ancorado à barra (posição conforme a borda), com foco (não `NOACTIVATE`)

@@ -22,4 +22,7 @@ public sealed class ReminderConfig
 
     /// <summary>Marcado automaticamente após um lembrete "Once" disparar; persistido no config.json.</summary>
     public bool Completed { get; set; }
+
+    /// <summary>Quando foi criado — usado só pro histórico ("criado dd/MM HH:mm"). Nulo em lembretes de configs antigas.</summary>
+    public DateTime? CreatedAt { get; set; }
 }
