@@ -8,7 +8,7 @@ public static class WidgetFactory
     public static IWidget? Create(string id, AppConfig config) => id.Trim().ToLowerInvariant() switch
     {
         "clock" => new ClockWidget(config.Clock),
-        "media" => new MediaWidget(),
+        "media" => new MediaWidget(config),
         "reminder" => new ReminderWidget(config),
         _ => null
     };

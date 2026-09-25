@@ -1,19 +1,26 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Heimdall.Config;
+using Heimdall.Services;
 using Windows.Media.Control;
 
 namespace Heimdall.Widgets;
 
 /// <summary>
 /// Controle de mídia via SMTC (Spotify/YouTube/qualquer player) — API nativa do
-/// Windows, sem login nem API key do serviço.
+/// Windows, sem login nem API key do serviço. Volume por app via NAudio, já que
+/// o SMTC não expõe controle de volume.
 /// </summary>
 public sealed class MediaWidget : IWidget
 {
     private const int MaxLength = 40;
+    private const float VolumeStep = 0.05f;
 
     // Segoe Fluent Icons (Win11) com fallback pra Segoe MDL2 Assets (Win10) — mesmos glifos nas duas.
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
@@ -21,12 +28,17 @@ public sealed class MediaWidget : IWidget
     private const string GlyphNext = "";
     private const string GlyphPlay = "";
     private const string GlyphPause = "";
+    private const string GlyphVolumeOn = "";
+    private const string GlyphVolumeMuted = "";
 
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
+    private readonly Color _popupBackground;
+    private readonly Color _popupForeground;
 
     private readonly Button _previous = CreateIconButton(GlyphPrevious);
     private readonly Button _playPause = CreateIconButton(GlyphPlay);
     private readonly Button _next = CreateIconButton(GlyphNext);
+    private readonly ToggleButton _volume = CreateIconToggleButton(GlyphVolumeOn);
 
     private readonly TextBlock _text = new()
     {
@@ -40,17 +52,54 @@ public sealed class MediaWidget : IWidget
         Visibility = Visibility.Collapsed
     };
 
+    private readonly Slider _volumeSlider = new()
+    {
+        Orientation = Orientation.Vertical,
+        Minimum = 0,
+        Maximum = 100,
+        Height = 90,
+        Width = 24,
+        Margin = new Thickness(0, 8, 0, 8)
+    };
+    private readonly Button _muteButton = CreateIconButton(GlyphVolumeOn);
+    private readonly Popup _volumePopup;
+
+    private readonly TextBlock _feedbackText = new() { FontSize = 12 };
+    private readonly Popup _feedbackPopup;
+    private readonly DispatcherTimer _feedbackTimer;
+
+    private bool _updatingSliderProgrammatically;
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
 
     public FrameworkElement View => _root;
 
-    public MediaWidget()
+    public MediaWidget(AppConfig cfg)
     {
+        var style = ThemeService.GetEffectiveStyle(cfg);
+        _popupBackground = style.Background;
+        _popupForeground = style.Foreground;
+
+        _root.Children.Add(_text);
         _root.Children.Add(_previous);
         _root.Children.Add(_playPause);
         _root.Children.Add(_next);
-        _root.Children.Add(_text);
+        _root.Children.Add(_volume);
+
+        _volumePopup = BuildVolumePopup();
+
+        // Checked/Unchecked (não Binding pro Popup.IsOpen): IsChecked é bool? e Popup.IsOpen
+        // é bool — o binding entre os dois falha silenciosamente por causa do descasamento
+        // de tipo. ToggleButton + StaysOpen=false é o mesmo padrão do ComboBox: fecha
+        // corretamente ao clicar de novo no próprio ícone, sem o Popup engolir o clique.
+        _volume.Checked += (_, _) => { SyncVolumePopupFromState(); _volumePopup.IsOpen = true; };
+        _volume.Unchecked += (_, _) => _volumePopup.IsOpen = false;
+        _volumePopup.Closed += (_, _) => _volume.IsChecked = false;
+
+        _feedbackPopup = BuildFeedbackPopup();
+
+        _feedbackTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+        _feedbackTimer.Tick += (_, _) => { _feedbackTimer.Stop(); _feedbackPopup.IsOpen = false; };
     }
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
@@ -60,6 +109,7 @@ public sealed class MediaWidget : IWidget
         _previous.Click += (_, _) => _ = _session?.TrySkipPreviousAsync();
         _playPause.Click += (_, _) => _ = _session?.TryTogglePlayPauseAsync();
         _next.Click += (_, _) => _ = _session?.TrySkipNextAsync();
+        _root.MouseWheel += OnMouseWheel;
         _ = InitializeAsync();
     }
 
@@ -117,6 +167,8 @@ public sealed class MediaWidget : IWidget
         _playPause.Content = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
             ? GlyphPause
             : GlyphPlay;
+
+        RefreshVolumeIcon();
     }
 
     private static void SetEnabled(Button button, bool enabled)
@@ -161,7 +213,147 @@ public sealed class MediaWidget : IWidget
     private static string Truncate(string value) =>
         value.Length <= MaxLength ? value : value[..(MaxLength - 1)] + "…";
 
+    // ---------- Volume (NAudio Core Audio API por app, com fallback pro master) ----------
+
+    private string? CurrentAppUserModelId => _session?.SourceAppUserModelId;
+
+    private void OnMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        e.Handled = true;
+        string? app = CurrentAppUserModelId;
+
+        float current = AudioVolumeService.GetVolume(app);
+        float next = Math.Clamp(current + (e.Delta > 0 ? VolumeStep : -VolumeStep), 0f, 1f);
+        AudioVolumeService.SetVolume(app, next);
+
+        RefreshVolumeIcon();
+        ShowVolumeFeedback(next, AudioVolumeService.GetMuted(app));
+    }
+
+    /// <summary>
+    /// Sincroniza slider e glifo de mudo com o estado real ao abrir o popup. O abrir/fechar
+    /// em si é feito pelo binding Popup.IsOpen ↔ ToggleButton.IsChecked (mesmo padrão do
+    /// ComboBox) — StaysOpen=false engole o clique de reabertura se isso for feito na mão
+    /// via Click/PreviewMouseDown do próprio botão que é o PlacementTarget do popup.
+    /// </summary>
+    private void SyncVolumePopupFromState()
+    {
+        string? app = CurrentAppUserModelId;
+        _updatingSliderProgrammatically = true;
+        _volumeSlider.Value = Math.Round(AudioVolumeService.GetVolume(app) * 100);
+        _updatingSliderProgrammatically = false;
+        RefreshMuteButtonGlyph(AudioVolumeService.GetMuted(app));
+    }
+
+    private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingSliderProgrammatically) return;
+
+        string? app = CurrentAppUserModelId;
+        AudioVolumeService.SetVolume(app, (float)(e.NewValue / 100));
+        RefreshVolumeIcon();
+    }
+
+    private void OnMuteButtonClick(object sender, RoutedEventArgs e)
+    {
+        string? app = CurrentAppUserModelId;
+        bool muted = !AudioVolumeService.GetMuted(app);
+        AudioVolumeService.SetMuted(app, muted);
+        RefreshMuteButtonGlyph(muted);
+        RefreshVolumeIcon();
+    }
+
+    private void RefreshVolumeIcon()
+    {
+        bool muted = AudioVolumeService.GetMuted(CurrentAppUserModelId);
+        _volume.Content = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+    }
+
+    private void RefreshMuteButtonGlyph(bool muted) => _muteButton.Content = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+
+    private void ShowVolumeFeedback(float volume, bool muted)
+    {
+        _feedbackText.Text = muted ? "Mudo" : $"{Math.Round(volume * 100)}%";
+        _feedbackPopup.PlacementTarget = _root;
+        _feedbackPopup.IsOpen = true;
+        _feedbackTimer.Stop();
+        _feedbackTimer.Start();
+    }
+
+    private Popup BuildVolumePopup()
+    {
+        _volumeSlider.ValueChanged += OnVolumeSliderChanged;
+        _muteButton.Click += OnMuteButtonClick;
+        _muteButton.Margin = new Thickness(0, 0, 0, 4);
+
+        var panel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+        panel.Children.Add(_volumeSlider);
+        panel.Children.Add(_muteButton);
+
+        var border = new Border
+        {
+            Background = FrozenBrush(_popupBackground),
+            BorderBrush = FrozenBrush(Color.FromArgb(0x40, _popupForeground.R, _popupForeground.G, _popupForeground.B)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(6, 8, 6, 6),
+            Child = panel
+        };
+        TextElement.SetForeground(border, FrozenBrush(_popupForeground));
+
+        return new Popup
+        {
+            Placement = PlacementMode.Top,
+            PlacementTarget = _volume,
+            StaysOpen = false,
+            AllowsTransparency = true,
+            PopupAnimation = PopupAnimation.Fade,
+            Child = border
+        };
+    }
+
+    private Popup BuildFeedbackPopup()
+    {
+        var border = new Border
+        {
+            Background = FrozenBrush(_popupBackground),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(8, 3, 8, 3),
+            Child = _feedbackText
+        };
+        TextElement.SetForeground(border, FrozenBrush(_popupForeground));
+
+        return new Popup
+        {
+            Placement = PlacementMode.Top,
+            StaysOpen = true,
+            AllowsTransparency = true,
+            IsHitTestVisible = false,
+            Child = border
+        };
+    }
+
+    private static SolidColorBrush FrozenBrush(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
     private static Button CreateIconButton(string glyph) => new()
+    {
+        Content = glyph,
+        FontFamily = IconFont,
+        FontSize = 13,
+        Padding = new Thickness(4, 0, 4, 0),
+        Margin = new Thickness(2, 0, 2, 0),
+        Background = Brushes.Transparent,
+        BorderThickness = new Thickness(0),
+        Cursor = Cursors.Hand,
+        Focusable = false
+    };
+
+    private static ToggleButton CreateIconToggleButton(string glyph) => new()
     {
         Content = glyph,
         FontFamily = IconFont,
@@ -176,6 +368,10 @@ public sealed class MediaWidget : IWidget
 
     public void Dispose()
     {
+        _feedbackTimer.Stop();
+        _volumePopup.IsOpen = false;
+        _feedbackPopup.IsOpen = false;
+
         if (_session is not null)
         {
             _session.MediaPropertiesChanged -= OnSessionEvent;

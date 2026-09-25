@@ -19,4 +19,9 @@
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Só a Core Audio API (volume por app do widget de mídia) — evita puxar Midi/Asio/Dmo/WinMM/WinForms do pacote NAudio completo. -->
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+  </ItemGroup>
+
 </Project>
