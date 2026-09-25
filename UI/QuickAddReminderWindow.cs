@@ -16,6 +16,7 @@ namespace Heimdall.UI;
 /// </summary>
 internal sealed class QuickAddReminderWindow : Window
 {
+    private readonly EffectiveStyle _style;
     private readonly TextBox _textBox;
 
     // Chips de tempo (só um selecionado por vez)
@@ -46,6 +47,8 @@ internal sealed class QuickAddReminderWindow : Window
 
     public QuickAddReminderWindow(EffectiveStyle style)
     {
+        _style = style;
+
         Title = "Heimdall — Novo lembrete";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -84,14 +87,23 @@ internal sealed class QuickAddReminderWindow : Window
             chipsPanel.Children.Add(chip);
         }
 
-        _customDate = new DatePicker { SelectedDate = DateTime.Today, Width = 120, FontSize = 12 };
+        _customDate = new DatePicker
+        {
+            SelectedDate = DateTime.Today,
+            Width = 120,
+            FontSize = 12,
+            Foreground = Brushes.Black,
+            Background = Brushes.White
+        };
         _customTime = new TextBox
         {
             Text = DateTime.Now.AddHours(1).ToString("HH:mm"),
             Width = 50,
             FontSize = 12,
             Margin = new Thickness(4, 0, 0, 0),
-            TextAlignment = TextAlignment.Center
+            TextAlignment = TextAlignment.Center,
+            Foreground = Brushes.Black,
+            Background = Brushes.White
         };
         _customPanel = new StackPanel
         {
@@ -110,9 +122,12 @@ internal sealed class QuickAddReminderWindow : Window
             _daysPanel.Children.Add(dayToggle);
         }
 
-        _recurOnce = new RadioButton { Content = "Única", GroupName = "Recur", IsChecked = true, Margin = new Thickness(0, 0, 10, 0) };
-        _recurDaily = new RadioButton { Content = "Diária", GroupName = "Recur", Margin = new Thickness(0, 0, 10, 0) };
-        _recurWeekly = new RadioButton { Content = "Dias da semana", GroupName = "Recur" };
+        // RadioButton/CheckBox/Expander: Content = string direto pega o Foreground
+        // padrão do tema Fluent (preto), não o nosso — mesmo problema dos ícones dos
+        // outros widgets. Um TextBlock à parte com Foreground seu resolve.
+        _recurOnce = new RadioButton { Content = CreateLabel("Única"), GroupName = "Recur", IsChecked = true, Margin = new Thickness(0, 0, 10, 0) };
+        _recurDaily = new RadioButton { Content = CreateLabel("Diária"), GroupName = "Recur", Margin = new Thickness(0, 0, 10, 0) };
+        _recurWeekly = new RadioButton { Content = CreateLabel("Dias da semana"), GroupName = "Recur" };
         _recurWeekly.Checked += (_, _) => _daysPanel.Visibility = Visibility.Visible;
         _recurOnce.Checked += (_, _) => _daysPanel.Visibility = Visibility.Collapsed;
         _recurDaily.Checked += (_, _) => _daysPanel.Visibility = Visibility.Collapsed;
@@ -121,7 +136,7 @@ internal sealed class QuickAddReminderWindow : Window
         recurPanel.Children.Add(_recurDaily);
         recurPanel.Children.Add(_recurWeekly);
 
-        _playSoundCheck = new CheckBox { Content = "Tocar som", Margin = new Thickness(0, 8, 0, 0) };
+        _playSoundCheck = new CheckBox { Content = CreateLabel("Tocar som"), Margin = new Thickness(0, 8, 0, 0) };
 
         var moreOptionsContent = new StackPanel();
         moreOptionsContent.Children.Add(recurPanel);
@@ -130,7 +145,7 @@ internal sealed class QuickAddReminderWindow : Window
 
         var expander = new Expander
         {
-            Header = "Mais opções",
+            Header = CreateLabel("Mais opções"),
             IsExpanded = false,
             Margin = new Thickness(0, 8, 0, 0),
             Content = moreOptionsContent,
@@ -312,15 +327,48 @@ internal sealed class QuickAddReminderWindow : Window
         };
     }
 
-    private static ToggleButton CreateChip(string label, bool isChecked = false) => new()
+    /// <summary>
+    /// Chip com fundo próprio (não só texto solto): sem isso, num tema escuro a
+    /// combinação "sem bg + Foreground do tema Fluent ignorado" deixa o texto
+    /// praticamente invisível. Fundo translúcido do Foreground quando solto, cor de
+    /// destaque sólida com texto branco quando marcado — contraste garantido nos dois
+    /// estados, em qualquer tema.
+    /// </summary>
+    private ToggleButton CreateChip(string label, bool isChecked = false)
     {
-        Content = label,
-        FontSize = 11,
-        Padding = new Thickness(8, 3, 8, 3),
-        Margin = new Thickness(0, 0, 4, 4),
-        Cursor = Cursors.Hand,
-        IsChecked = isChecked
-    };
+        var normalFg = FrozenBrush(_style.Foreground);
+        var normalBg = FrozenBrush(Color.FromArgb(0x2A, _style.Foreground.R, _style.Foreground.G, _style.Foreground.B));
+        var checkedBg = FrozenBrush(_style.Accent);
+        var checkedFg = FrozenBrush(Colors.White);
+
+        var text = new TextBlock { Text = label, Foreground = isChecked ? checkedFg : normalFg };
+        TextOptions.SetTextRenderingMode(text, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(text, TextFormattingMode.Display);
+
+        var chip = new ToggleButton
+        {
+            Content = text,
+            FontSize = 11,
+            Padding = new Thickness(8, 3, 8, 3),
+            Margin = new Thickness(0, 0, 4, 4),
+            Cursor = Cursors.Hand,
+            BorderThickness = new Thickness(0),
+            IsChecked = isChecked,
+            Background = isChecked ? checkedBg : normalBg
+        };
+        chip.Checked += (_, _) => { chip.Background = checkedBg; text.Foreground = checkedFg; };
+        chip.Unchecked += (_, _) => { chip.Background = normalBg; text.Foreground = normalFg; };
+
+        return chip;
+    }
+
+    private TextBlock CreateLabel(string text)
+    {
+        var label = new TextBlock { Text = text, Foreground = FrozenBrush(_style.Foreground) };
+        TextOptions.SetTextRenderingMode(label, TextRenderingMode.Grayscale);
+        TextOptions.SetTextFormattingMode(label, TextFormattingMode.Display);
+        return label;
+    }
 
     private static SolidColorBrush FrozenBrush(Color color)
     {
