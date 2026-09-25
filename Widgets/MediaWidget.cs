@@ -4,7 +4,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using Windows.Media.Control;
 
-namespace InfoBar.Widgets;
+namespace Heimdall.Widgets;
 
 /// <summary>
 /// Controle de mídia via SMTC (Spotify/YouTube/qualquer player) — API nativa do

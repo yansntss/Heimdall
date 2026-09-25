@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
-using InfoBar.Config;
-using InfoBar.Services;
-using static InfoBar.Native.NativeMethods;
+using Heimdall.Config;
+using Heimdall.Services;
+using static Heimdall.Native.NativeMethods;
 
-namespace InfoBar.Native;
+namespace Heimdall.Native;
 
 /// <summary>
 /// Registra a janela como AppBar: o Windows reserva a faixa da borda
@@ -35,7 +35,7 @@ internal sealed class AppBarManager : IDisposable
         _monitor = monitor;
         _edge = edge;
         _thicknessDip = thicknessDip;
-        _callbackMsg = (int)RegisterWindowMessage("InfoBar.AppBarCallback");
+        _callbackMsg = (int)RegisterWindowMessage("Heimdall.AppBarCallback");
         // Enviada quando o Explorer reinicia: registros de AppBar são perdidos
         _taskbarCreatedMsg = (int)RegisterWindowMessage("TaskbarCreated");
 

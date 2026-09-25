@@ -4,9 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
-using InfoBar.Config;
+using Heimdall.Config;
 
-namespace InfoBar.Widgets;
+namespace Heimdall.Widgets;
 
 public sealed class ReminderWidget : IWidget
 {

@@ -4,12 +4,12 @@ using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using InfoBar.Config;
-using InfoBar.Native;
-using InfoBar.Services;
-using InfoBar.Widgets;
+using Heimdall.Config;
+using Heimdall.Native;
+using Heimdall.Services;
+using Heimdall.Widgets;
 
-namespace InfoBar.UI;
+namespace Heimdall.UI;
 
 public partial class BarWindow : Window
 {

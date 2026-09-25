@@ -3,10 +3,10 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using InfoBar.Config;
-using InfoBar.Services;
+using Heimdall.Config;
+using Heimdall.Services;
 
-namespace InfoBar.UI;
+namespace Heimdall.UI;
 
 public partial class SettingsWindow : Window
 {
@@ -166,7 +166,7 @@ public partial class SettingsWindow : Window
 
         if (!int.TryParse(ThicknessBox.Text, out int thickness) || thickness < 16 || thickness > 400)
         {
-            MessageBox.Show(this, "Espessura inválida — use um valor entre 16 e 400.", "InfoBar",
+            MessageBox.Show(this, "Espessura inválida — use um valor entre 16 e 400.", "Heimdall",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -177,7 +177,7 @@ public partial class SettingsWindow : Window
             if (!double.TryParse(FontSizeBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double parsed)
                 || parsed < 8 || parsed > 72)
             {
-                MessageBox.Show(this, "Tamanho de fonte inválido — use um valor entre 8 e 72 (ou deixe vazio pra usar o tema).", "InfoBar",
+                MessageBox.Show(this, "Tamanho de fonte inválido — use um valor entre 8 e 72 (ou deixe vazio pra usar o tema).", "Heimdall",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -189,7 +189,7 @@ public partial class SettingsWindow : Window
             if (row.Kind != ReminderKind.Scheduled) continue;
             if (!DateTime.TryParseExact(row.Time, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             {
-                MessageBox.Show(this, $"Horário inválido em \"{row.Text}\" — use o formato HH:mm.", "InfoBar",
+                MessageBox.Show(this, $"Horário inválido em \"{row.Text}\" — use o formato HH:mm.", "Heimdall",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -216,7 +216,7 @@ public partial class SettingsWindow : Window
         ConfigService.Save(_cfg);
         ((App)Application.Current).Reload();
 
-        Title = "InfoBar — Configurações (salvo ✓)";
+        Title = "Heimdall — Configurações (salvo ✓)";
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();

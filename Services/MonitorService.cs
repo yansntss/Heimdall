@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using InfoBar.Native;
+using Heimdall.Native;
 
-namespace InfoBar.Services;
+namespace Heimdall.Services;
 
 internal sealed record MonitorInfo(IntPtr Handle, string DeviceName, NativeMethods.RECT Bounds, bool IsPrimary)
 {

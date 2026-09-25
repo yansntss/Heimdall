@@ -3,12 +3,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 
-namespace InfoBar.Config;
+namespace Heimdall.Config;
 
 public static class ConfigService
 {
     public static string ConfigDir =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "InfoBar");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Heimdall");
 
     public static string ConfigPath => Path.Combine(ConfigDir, "config.json");
 
@@ -38,7 +38,7 @@ public static class ConfigService
         {
             MessageBox.Show(
                 $"Erro ao ler a configuração:\n{ex.Message}\n\nUsando configuração padrão.",
-                "InfoBar", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "Heimdall", MessageBoxButton.OK, MessageBoxImage.Warning);
             return new AppConfig();
         }
     }

@@ -1,8 +1,8 @@
-namespace InfoBar.Config;
+namespace Heimdall.Config;
 
 public enum BackdropType { Solid, Translucent, Acrylic, Mica, None }
 
-/// <summary>Define a aparência de um tema — embutido ou salvo em %AppData%\InfoBar\themes\*.json.</summary>
+/// <summary>Define a aparência de um tema — embutido ou salvo em %AppData%\Heimdall\themes\*.json.</summary>
 public sealed class ThemeDefinition
 {
     public string Name { get; set; } = "";

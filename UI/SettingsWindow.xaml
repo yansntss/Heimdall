@@ -1,7 +1,7 @@
-<Window x:Class="InfoBar.UI.SettingsWindow"
+<Window x:Class="Heimdall.UI.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="InfoBar — Configurações"
+        Title="Heimdall — Configurações"
         Width="560" Height="520"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip">

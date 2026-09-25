@@ -1,13 +1,13 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
-using InfoBar.Config;
-using InfoBar.Native;
-using InfoBar.Services;
-using InfoBar.UI;
+using Heimdall.Config;
+using Heimdall.Native;
+using Heimdall.Services;
+using Heimdall.UI;
 using Microsoft.Win32;
 
-namespace InfoBar;
+namespace Heimdall;
 
 public partial class App : Application
 {
@@ -21,7 +21,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        _mutex = new Mutex(true, "InfoBar.SingleInstance", out bool created);
+        _mutex = new Mutex(true, "Heimdall.SingleInstance", out bool created);
         if (!created)
         {
             Shutdown();
@@ -153,7 +153,7 @@ public partial class App : Application
             "Use o nome em \"MonitorDevice\" com \"MonitorMode\": \"Specific\":\n\n" +
             string.Join("\n", lines) +
             "\n\n(Ctrl+C copia este texto)",
-            "InfoBar — Monitores");
+            "Heimdall — Monitores");
     }
 
     public void ExitApp()

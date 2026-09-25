@@ -2,11 +2,11 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Media;
-using InfoBar.Config;
-using InfoBar.Native;
+using Heimdall.Config;
+using Heimdall.Native;
 using Microsoft.Win32;
 
-namespace InfoBar.Services;
+namespace Heimdall.Services;
 
 /// <summary>Resultado final de mesclar o tema selecionado com os overrides de <see cref="BarStyle"/>.</summary>
 internal sealed record EffectiveStyle(

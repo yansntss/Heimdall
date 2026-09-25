@@ -2,9 +2,9 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using InfoBar.Config;
+using Heimdall.Config;
 
-namespace InfoBar.Widgets;
+namespace Heimdall.Widgets;
 
 public sealed class ClockWidget : IWidget
 {

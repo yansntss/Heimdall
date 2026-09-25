@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace InfoBar.Native;
+namespace Heimdall.Native;
 
 internal static class NativeMethods
 {

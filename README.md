@@ -1,4 +1,4 @@
-# InfoBar — Fase 1 (MVP)
+# Heimdall — Fase 1 (MVP)
 
 Barra fixa numa borda da tela (AppBar), com relógio e escolha de monitor.
 
@@ -24,7 +24,7 @@ Duas opções, dependendo de onde o `.exe` vai rodar:
 ## Uso
 Clique direito na barra: **Configurações...** (tela de config completa — veja abaixo), editar `config.json` na mão, recarregar, ver monitores, sair.
 
-Config: `%AppData%\InfoBar\config.json` (criado na 1ª execução, aceita comentários `//`).
+Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução, aceita comentários `//`).
 
 ```jsonc
 {

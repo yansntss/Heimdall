@@ -1,6 +1,6 @@
 using System.Windows.Interop;
 
-namespace InfoBar.Native;
+namespace Heimdall.Native;
 
 /// <summary>
 /// Hotkey global (Ctrl+Shift+B) para esconder/mostrar a barra manualmente,
@@ -19,7 +19,7 @@ internal sealed class HotkeyManager : IDisposable
 
     public HotkeyManager()
     {
-        var parameters = new HwndSourceParameters("InfoBar.HotkeyWindow")
+        var parameters = new HwndSourceParameters("Heimdall.HotkeyWindow")
         {
             WindowStyle = 0,
             ParentWindow = HwndMessage

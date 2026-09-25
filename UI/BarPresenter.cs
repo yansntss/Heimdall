@@ -1,7 +1,7 @@
-using InfoBar.Config;
-using InfoBar.Services;
+using Heimdall.Config;
+using Heimdall.Services;
 
-namespace InfoBar.UI;
+namespace Heimdall.UI;
 
 /// <summary>
 /// Dono das duas janelas de um monitor — a <see cref="BarWindow"/> (modo normal, AppBar)

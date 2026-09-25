@@ -1,7 +1,7 @@
-using InfoBar.Config;
-using InfoBar.Services;
+using Heimdall.Config;
+using Heimdall.Services;
 
-namespace InfoBar.Native;
+namespace Heimdall.Native;
 
 /// <summary>Aplica backdrop (Acrílico/Mica/Translúcido) e cantos arredondados via DWM numa janela não-layered.</summary>
 internal static class DwmVisuals

@@ -1,4 +1,4 @@
-namespace InfoBar.Config;
+namespace Heimdall.Config;
 
 public enum ReminderKind { Fixed, Scheduled }
 

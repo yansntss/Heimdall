@@ -1,6 +1,6 @@
-using InfoBar.Config;
+using Heimdall.Config;
 
-namespace InfoBar.Widgets;
+namespace Heimdall.Widgets;
 
 public static class WidgetFactory
 {

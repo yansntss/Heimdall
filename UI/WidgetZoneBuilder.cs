@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
-using InfoBar.Config;
-using InfoBar.Widgets;
+using Heimdall.Config;
+using Heimdall.Widgets;
 
-namespace InfoBar.UI;
+namespace Heimdall.UI;
 
 /// <summary>Monta as 3 zonas (início/centro/fim) de widgets — usado pela BarWindow e pela OverlayWindow.</summary>
 internal static class WidgetZoneBuilder

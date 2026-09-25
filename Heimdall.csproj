@@ -7,8 +7,8 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>InfoBar</RootNamespace>
-    <AssemblyName>InfoBar</AssemblyName>
+    <RootNamespace>Heimdall</RootNamespace>
+    <AssemblyName>Heimdall</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>AppIcon.ico</ApplicationIcon>
   </PropertyGroup>

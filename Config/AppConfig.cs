@@ -1,4 +1,4 @@
-namespace InfoBar.Config;
+namespace Heimdall.Config;
 
 public enum BarEdge { Top, Bottom, Left, Right }
 
@@ -26,7 +26,7 @@ public sealed class AppConfig
 
     public bool StartWithWindows { get; set; }
 
-    /// <summary>Nome de um tema embutido ou de %AppData%\InfoBar\themes\*.json.</summary>
+    /// <summary>Nome de um tema embutido ou de %AppData%\Heimdall\themes\*.json.</summary>
     public string Theme { get; set; } = "Escuro";
 }
 
