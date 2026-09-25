@@ -19,7 +19,6 @@ namespace Heimdall.Widgets;
 public sealed class ReminderWidget : IWidget
 {
     private static readonly TimeSpan HighlightDuration = TimeSpan.FromSeconds(6);
-    private static readonly Brush HighlightBrush = new SolidColorBrush(Color.FromArgb(0xCC, 0xFF, 0xC1, 0x07));
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
     private const string GlyphCheck = "";
 
@@ -130,7 +129,7 @@ public sealed class ReminderWidget : IWidget
         _highlighting = true;
         var reminder = _pendingScheduled.Dequeue();
         _activeScheduledChip = CreateChip(reminder, isFixed: false);
-        _activeScheduledChip.Background = HighlightBrush;
+        _activeScheduledChip.Background = CreatePulsingBrush();
         _root.Children.Insert(0, _activeScheduledChip);
         _root.Visibility = Visibility.Visible;
 
@@ -247,6 +246,22 @@ public sealed class ReminderWidget : IWidget
     {
         var brush = new SolidColorBrush(color);
         brush.Freeze();
+        return brush;
+    }
+
+    /// <summary>Fundo do chip ao disparar: pulsa com a cor de destaque do tema por alguns segundos.</summary>
+    private Brush CreatePulsingBrush()
+    {
+        var brush = new SolidColorBrush(_accent);
+        var animation = new DoubleAnimation
+        {
+            From = 0.25,
+            To = 0.85,
+            Duration = TimeSpan.FromMilliseconds(600),
+            AutoReverse = true,
+            RepeatBehavior = new RepeatBehavior(3)
+        };
+        brush.BeginAnimation(Brush.OpacityProperty, animation);
         return brush;
     }
 

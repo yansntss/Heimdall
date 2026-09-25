@@ -34,7 +34,7 @@
 - [ ] "Personalizado" expande seletores de data/hora
 - [ ] "Mais opções" recolhido por padrão: recorrência (Única/Diária/Dias da semana) + toggle de som
 - [ ] Salvar direto no `config.json` e atualizar a barra sem recarregar tudo
-- [ ] Ao disparar, lembrete pulsa com a cor de destaque do tema por alguns segundos
+- [x] Ao disparar, lembrete pulsa com a cor de destaque do tema por alguns segundos
 - [ ] Badge com contador de lembretes pendentes quando houver mais de um
 
 ## Etapa 4 — Detalhes visuais
