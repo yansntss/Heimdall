@@ -205,8 +205,17 @@ internal sealed class QuickAddReminderWindow : Window
         // Fechar já dispara Deactivated de novo como parte do próprio fechamento — sem a
         // guarda, isso chama Close() reentrante e o WPF derruba o app (VerifyNotClosing).
         Closing += (_, _) => _closing = true;
-        Deactivated += (_, _) => { if (!_closing) Close(); };
-        PreviewKeyDown += OnPreviewKeyDown;
+        // Salva (não só fecha) ao perder o foco: o calendário do DatePicker é um popup à
+        // parte, e clicar nele já dispara Deactivated na janela — sem isso, escolher uma
+        // data e clicar nela perdia a edição inteira sem salvar nada. Esc continua
+        // cancelando de verdade (Close() direto, sem passar por Save()).
+        Deactivated += (_, _) => { if (!_closing) Save(); };
+        // KeyDown (bubble) + handledEventsToo: Enter precisa chegar primeiro no
+        // DatePicker em foco pra ele confirmar a data digitada/selecionada —
+        // interceptar antes disso (Preview/tunneling) fazia o Save() ler o valor antigo
+        // do campo. handledEventsToo garante que a gente ainda recebe o Enter mesmo se o
+        // DatePicker já tiver marcado o evento como tratado ao confirmar a data.
+        AddHandler(KeyDownEvent, new KeyEventHandler(OnKeyDown), handledEventsToo: true);
         Loaded += (_, _) =>
         {
             _textBox.Focus();
@@ -271,22 +280,27 @@ internal sealed class QuickAddReminderWindow : Window
         _customPanel.Visibility = _chipCustom.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    private void OnKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
-            e.Handled = true;
             Close();
         }
-        else if (e.Key == Key.Enter && e.OriginalSource is not DatePicker)
+        else if (e.Key == Key.Enter)
         {
-            e.Handled = true;
             Save();
         }
     }
 
     private void Save()
     {
+        // O DatePicker só converte o texto digitado em SelectedDate quando o próprio
+        // controle perde o foco — desativar a janela inteira (Alt+Tab, clicar fora) não
+        // dispara isso, então uma data digitada e nunca "confirmada" com Tab/clique em
+        // outro campo se perdia mesmo com o Deactivated chamando Save(). Tirar o foco
+        // força esse commit antes de ler _startDatePicker/_endDatePicker abaixo.
+        Keyboard.ClearFocus();
+
         var text = _textBox.Text.Trim();
         if (string.IsNullOrEmpty(text))
         {
