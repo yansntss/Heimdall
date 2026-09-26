@@ -22,6 +22,7 @@
                 </MenuItem>
                 <MenuItem Header="Adicionar separador" Click="AddSeparator_Click" />
                 <MenuItem Header="Tema" x:Name="ThemeMenu" />
+                <MenuItem x:Name="GamingModeMenuItem" IsCheckable="True" Click="GamingMode_Click" />
                 <MenuItem Header="Recarregar" Click="Reload_Click" />
                 <MenuItem Header="Monitores detectados" Click="Monitors_Click" />
                 <Separator />

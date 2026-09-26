@@ -11,13 +11,17 @@ namespace Heimdall.UI;
 /// </summary>
 internal sealed class BarPresenter
 {
+    private readonly AppConfig _cfg;
     private readonly BarWindow _bar;
     private readonly OverlayWindow _overlay;
     private readonly MonitorInfo _monitor;
-    private bool _inOverlay;
+
+    /// <summary>true enquanto a barra normal está fora do ar por causa de tela cheia — seja em overlay (GamingMode) ou só escondida.</summary>
+    private bool _fullscreenActive;
 
     public BarPresenter(AppConfig cfg, MonitorInfo monitor)
     {
+        _cfg = cfg;
         _monitor = monitor;
         _bar = new BarWindow(cfg, monitor);
         _overlay = new OverlayWindow(cfg, monitor);
@@ -35,19 +39,30 @@ internal sealed class BarPresenter
     /// <summary>Esconde/mostra a janela ativa no momento (bar ou overlay) — usado pelo hotkey global.</summary>
     public void SetHidden(bool hidden)
     {
-        var active = _inOverlay ? (System.Windows.Window)_overlay : _bar;
+        var active = ActiveWindow();
         active.Visibility = hidden ? System.Windows.Visibility.Hidden : System.Windows.Visibility.Visible;
     }
 
-    public bool IsVisible => (_inOverlay ? (System.Windows.Window)_overlay : _bar).Visibility == System.Windows.Visibility.Visible;
+    public bool IsVisible => ActiveWindow().Visibility == System.Windows.Visibility.Visible;
+
+    /// <summary>Janela "de verdade" no momento: overlay se o GamingMode estiver ativo e a tela cheia tiver disparado; a própria barra caso contrário (inclusive quando ela está só escondida, sem GamingMode).</summary>
+    private System.Windows.Window ActiveWindow() =>
+        _fullscreenActive && _cfg.GamingMode ? _overlay : _bar;
 
     private const int FadeMs = 200;
 
     private void OnFullscreenChanged(bool fullscreen)
     {
-        if (fullscreen == _inOverlay) return;
-        _inOverlay = fullscreen;
+        if (fullscreen == _fullscreenActive) return;
+        _fullscreenActive = fullscreen;
 
+        if (_cfg.GamingMode) OnFullscreenChangedGaming(fullscreen);
+        else OnFullscreenChangedPlain(fullscreen);
+    }
+
+    /// <summary>GamingMode = true (comportamento original): overlay transparente com clique atravessando.</summary>
+    private void OnFullscreenChangedGaming(bool fullscreen)
+    {
         if (fullscreen)
         {
             FadeOut(_bar, () =>
@@ -67,6 +82,25 @@ internal sealed class BarPresenter
                 _bar.AppBar?.Register();
                 FadeIn(_bar);
             });
+        }
+    }
+
+    /// <summary>GamingMode = false: a barra simplesmente some — sem overlay, sem transparência, sem clique atravessando.</summary>
+    private void OnFullscreenChangedPlain(bool fullscreen)
+    {
+        if (fullscreen)
+        {
+            FadeOut(_bar, () =>
+            {
+                _bar.AppBar?.Unregister();
+                _bar.Hide();
+            });
+        }
+        else
+        {
+            _bar.Show();
+            _bar.AppBar?.Register();
+            FadeIn(_bar);
         }
     }
 

@@ -45,6 +45,7 @@ public partial class SettingsWindow : Window
 
         MonitorModeCombo.SelectedItem = _cfg.MonitorMode;
         StartWithWindowsCheck.IsChecked = _cfg.StartWithWindows;
+        GamingModeCheck.IsChecked = _cfg.GamingMode;
 
         // Aparência
         ThemeCombo.ItemsSource = ThemeService.GetAllThemeNames();
@@ -289,6 +290,7 @@ public partial class SettingsWindow : Window
         bool startWithWindows = StartWithWindowsCheck.IsChecked == true;
         if (startWithWindows != _cfg.StartWithWindows) StartupService.SetEnabled(startWithWindows);
         _cfg.StartWithWindows = startWithWindows;
+        _cfg.GamingMode = GamingModeCheck.IsChecked == true;
 
         ConfigService.Save(_cfg);
         ((App)Application.Current).Reload();

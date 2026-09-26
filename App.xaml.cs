@@ -173,6 +173,15 @@ public partial class App : Application
         Reload();
     }
 
+    /// <summary>Atalho rápido do menu de clique direito — inverte GamingMode e salva na hora, sem precisar abrir Configurações.</summary>
+    public void ToggleGamingMode()
+    {
+        var cfg = ConfigService.Load();
+        cfg.GamingMode = !cfg.GamingMode;
+        ConfigService.Save(cfg);
+        Reload();
+    }
+
     public void OpenSettings()
     {
         if (_settingsWindow is not null)

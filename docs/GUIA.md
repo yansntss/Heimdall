@@ -17,6 +17,7 @@ Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução).
   "MonitorMode": "Primary",     // Primary | Specific | All
   "MonitorDevice": "DISPLAY2",  // usado em Specific (ver "Monitores detectados")
   "Theme": "Escuro",            // nome de um tema embutido ou salvo em .../themes/*.json
+  "GamingMode": true,           // true = overlay transparente em tela cheia; false = a barra só some
   "Style": {                    // overrides opcionais por cima do tema — null usa o tema
     "Background": null,
     "Foreground": null,
@@ -58,7 +59,7 @@ Clique direito na barra → **Configurações...** abre uma janela com abas — 
 editar o `config.json` na mão pro dia a dia:
 
 - **Geral**: borda, espessura, modo flutuante (+ margem), modo/escolha de monitor,
-  "Iniciar com o Windows".
+  "Iniciar com o Windows", modo gaming (ver "Modo overlay" abaixo).
 - **Aparência**: dropdown com os temas (embutidos + os seus, salvos em
   `%AppData%\Heimdall\themes\*.json` — ver "Temas" abaixo), e overrides opcionais de
   cor de fundo/texto (com seletor nativo), fonte e tamanho por cima do tema escolhido.
@@ -162,10 +163,18 @@ respiro visual é respeitado mesmo sem a barra tocar a borda física da tela.
 ## Modo overlay (jogos em tela cheia)
 
 Quando um app entra em tela cheia (detectado via notificação do shell e, como reforço,
-comparando o retângulo da janela em primeiro plano com o monitor), a barra normal some e
-um overlay discreto assume: sem interceptar clique (`WS_EX_TRANSPARENT`), sem os botões
-interativos dos widgets — só texto/ícones informativos, com contorno pra ler sobre
-qualquer fundo. A troca entre os dois modos é um fade de 200 ms, não um corte seco.
+comparando o retângulo da janela em primeiro plano com o monitor), o que acontece depende
+de `GamingMode` (padrão `true`):
+
+- **`true`** — a barra normal some e um overlay discreto assume: sem interceptar clique
+  (`WS_EX_TRANSPARENT`), sem os botões interativos dos widgets — só texto/ícones
+  informativos, com contorno pra ler sobre qualquer fundo.
+- **`false`** — a barra simplesmente some (sem overlay, sem transparência, sem clique
+  atravessando) e volta a aparecer normal ao sair da tela cheia.
+
+Em qualquer um dos dois, a troca é um fade de 200 ms, não um corte seco. Alternar rápido
+pelo clique direito na barra → **Modo gaming: Ativado/Desativado**, ou pela aba Geral das
+Configurações.
 
 ## Widgets em detalhe
 

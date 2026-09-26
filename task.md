@@ -223,3 +223,25 @@ Separar persistência de reconstrução — ao soltar um widget:
       `BeginDrag` procurava o `Entry` na lista da zona antiga, não achava (`IndexOf < 0`)
       e desistia em silêncio. Corrigido atualizando `slot.ZoneIndex = drag.CurrentZone`
       ao concluir uma troca de zona.
+
+# Fase 10 — Toggle do modo overlay (gaming)
+
+## Objetivo
+Tornar opcional o comportamento de overlay em tela cheia (fase 2): quando desativado, a
+barra simplesmente some ao entrar em tela cheia, em vez de virar overlay transparente.
+
+- [x] `AppConfig.GamingMode` (`bool`, padrão `true`)
+- [x] `GamingMode: true` — comportamento original, sem mudança: overlay transparente,
+      `WS_EX_TRANSPARENT`, AppBar removido
+- [x] `GamingMode: false` — ao detectar tela cheia, só `Hide()` a `BarWindow` (sem
+      overlay, sem transparência, sem click-through); ao sair, `Show()` + `AppBar.Register()`
+- [x] Detecção de tela cheia em si (`FullscreenChanged`, fallback de retângulo) não foi
+      tocada — só o que acontece quando o evento dispara, baseado no novo flag
+- [x] Toggle na aba Geral das Configurações, com a descrição curta pedida
+- [x] Atalho rápido no menu de clique direito da barra ("Modo gaming: Ativado/Desativado"),
+      salva no config e recarrega na hora, sem precisar abrir Configurações
+
+> Implementado em `BarPresenter`: `OnFullscreenChanged` agora bifurca em
+> `OnFullscreenChangedGaming` (código original, intocado) e `OnFullscreenChangedPlain`
+> (novo — só Hide/Show da BarWindow). `_inOverlay` virou `_fullscreenActive` pra cobrir os
+> dois casos (overlay ou só escondida) no guard de "já está nesse estado, ignora".

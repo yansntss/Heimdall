@@ -36,6 +36,13 @@ public sealed class AppConfig
 
     /// <summary>Nome de um tema embutido ou de %AppData%\Heimdall\themes\*.json.</summary>
     public string Theme { get; set; } = "Escuro";
+
+    /// <summary>
+    /// true (padrão) = ao detectar tela cheia, a barra vira overlay transparente com
+    /// clique atravessando. false = a barra simplesmente some (Hide) e volta ao sair,
+    /// sem overlay nenhum.
+    /// </summary>
+    public bool GamingMode { get; set; } = true;
 }
 
 /// <summary>

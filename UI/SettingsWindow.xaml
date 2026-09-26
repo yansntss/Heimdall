@@ -38,6 +38,10 @@
                     <ComboBox x:Name="MonitorCombo" Margin="0,4,0,12"/>
 
                     <CheckBox x:Name="StartWithWindowsCheck" Content="Iniciar com o Windows" Margin="0,8,0,0"/>
+
+                    <CheckBox x:Name="GamingModeCheck" Content="Ativar modo gaming (overlay em tela cheia)" Margin="0,16,0,2"/>
+                    <TextBlock Text="Quando desativado, a barra some ao abrir um jogo em tela cheia, em vez de virar overlay transparente."
+                               TextWrapping="Wrap" Foreground="Gray" FontSize="11" Margin="20,0,0,0"/>
                 </StackPanel>
             </TabItem>
 

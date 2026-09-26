@@ -45,6 +45,7 @@ public partial class BarWindow : Window
         ApplyStyle();
         BuildWidgets();
         BuildThemeMenu();
+        UpdateGamingModeMenuItem();
 
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
@@ -129,6 +130,14 @@ public partial class BarWindow : Window
             ThemeMenu.Items.Add(item);
         }
     }
+
+    private void UpdateGamingModeMenuItem()
+    {
+        GamingModeMenuItem.Header = _cfg.GamingMode ? "Modo gaming: Ativado" : "Modo gaming: Desativado";
+        GamingModeMenuItem.IsChecked = _cfg.GamingMode;
+    }
+
+    private void GamingMode_Click(object sender, RoutedEventArgs e) => CurrentApp.ToggleGamingMode();
 
     private void OpenSettings_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenSettings();
 
