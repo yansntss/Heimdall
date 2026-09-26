@@ -47,7 +47,7 @@
 - [x] Animação de fade (200 ms) na troca entre modo barra e overlay
 
 ## Outros
-- [ ] Atualizar `README.md` — ainda descreve a Aparência antiga (3 presets de cor) em vez do sistema de 9 temas + dropdown + temas de usuário já implementado
+- [x] Atualizar `README.md` — ainda descreve a Aparência antiga (3 presets de cor) em vez do sistema de 9 temas + dropdown + temas de usuário já implementado
 
 # Fase 6 — Widget de atalhos (launcher)
 
