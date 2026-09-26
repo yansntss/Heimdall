@@ -42,7 +42,7 @@ internal static class WidgetZoneBuilder
         // e o clique atravessa, então nem entra na jogada.
         WidgetDragController? drag = isOverlay
             ? null
-            : new WidgetDragController(cfg, zones, vertical, () => ((App)Application.Current).Reload());
+            : new WidgetDragController(cfg, zones, vertical, () => CreateSeparator(orientation, separatorBrush));
         drag?.RegisterZone(start, cfg.Widgets.Start);
         drag?.RegisterZone(center, cfg.Widgets.Center);
         drag?.RegisterZone(end, cfg.Widgets.End);

@@ -60,9 +60,10 @@ internal sealed class WidgetDragController
     private readonly AppConfig _cfg;
     private readonly FrameworkElement _zonesRoot;
     private readonly bool _vertical;
-    private readonly Action _reload;
+    private readonly Func<FrameworkElement> _createSeparator;
     private readonly List<ZoneInfo> _zones = new();
     private readonly HashSet<FrameworkElement> _wrappers = new();
+    private readonly Dictionary<WidgetEntry, FrameworkElement> _wrapperByEntry = new();
 
     // Esc só é lido de dentro do PreviewMouseMove/timer, igual ao arraste do launcher —
     // a barra é WS_EX_NOACTIVATE e não recebe foco de teclado de verdade.
@@ -72,12 +73,18 @@ internal sealed class WidgetDragController
     private SlotInfo? _pressSlot;
     private DragState? _drag;
 
-    public WidgetDragController(AppConfig cfg, FrameworkElement zonesRoot, bool vertical, Action reload)
+    /// <summary>
+    /// <paramref name="createSeparator"/> é o mesmo factory de separador do
+    /// WidgetZoneBuilder — usado só pra reconstruir os separadores de uma zona depois de
+    /// mover um widget nela, sem precisar de <c>App.Reload()</c> (que destruiria e
+    /// recriaria a janela inteira, reiniciando timers e reconectando o SMTC à toa).
+    /// </summary>
+    public WidgetDragController(AppConfig cfg, FrameworkElement zonesRoot, bool vertical, Func<FrameworkElement> createSeparator)
     {
         _cfg = cfg;
         _zonesRoot = zonesRoot;
         _vertical = vertical;
-        _reload = reload;
+        _createSeparator = createSeparator;
         _escapeWatchTimer.Tick += (_, _) =>
         {
             if (_drag is not null && (NativeMethods.GetAsyncKeyState(NativeMethods.VK_ESCAPE) & 0x8000) != 0)
@@ -93,6 +100,7 @@ internal sealed class WidgetDragController
     {
         var slot = new SlotInfo { Wrapper = wrapper, Entry = entry, ZoneIndex = zoneIndex };
         _wrappers.Add(wrapper);
+        _wrapperByEntry[entry] = wrapper;
 
         wrapper.PreviewMouseLeftButtonDown += (_, e) =>
         {
@@ -286,7 +294,13 @@ internal sealed class WidgetDragController
                 int insertAt = Math.Clamp(drag.CurrentTarget, 0, destEntries.Count);
                 destEntries.Insert(insertAt, drag.Slot.Entry);
                 ConfigService.Save(_cfg);
-                _reload();
+
+                // Só reordena os elementos já existentes nas zonas afetadas — nada de
+                // App.Reload() aqui, que destruiria e recriaria a BarWindow inteira (e
+                // com ela os IWidget, reiniciando o DispatcherTimer do relógio, a sessão
+                // do SMTC do widget de mídia, etc.) só pra mover um widget de lugar.
+                RebuildZoneChildren(drag.OriginZone);
+                if (drag.CurrentZone != drag.OriginZone) RebuildZoneChildren(drag.CurrentZone);
             });
             return;
         }
@@ -300,7 +314,38 @@ internal sealed class WidgetDragController
         });
     }
 
-    /// <summary>Centro de tela de onde o item vai parar se soltar agora — pro fantasma "voar" até lá antes do reload.</summary>
+    /// <summary>
+    /// Reconstrói a ordem dos filhos de uma zona a partir da lista de entradas já
+    /// atualizada — remove tudo e recoloca os mesmos wrappers (nunca cria um IWidget
+    /// novo) com separadores frescos entre eles. Zona Start ganha um separador extra no
+    /// fim (voltado pro centro) e End um no começo, igual ao WidgetZoneBuilder.Build();
+    /// Center não tem separador de zona.
+    /// </summary>
+    private void RebuildZoneChildren(int zoneIndex)
+    {
+        var zone = _zones[zoneIndex];
+        zone.Panel.Children.Clear();
+
+        bool hasAny = zone.Entries.Count > 0;
+        bool leadingBoundary = zoneIndex == 2; // End
+        bool trailingBoundary = zoneIndex == 0; // Start
+
+        if (leadingBoundary && hasAny) zone.Panel.Children.Add(_createSeparator());
+
+        for (int i = 0; i < zone.Entries.Count; i++)
+        {
+            if (i > 0) zone.Panel.Children.Add(_createSeparator());
+
+            var wrapper = _wrapperByEntry[zone.Entries[i]];
+            wrapper.RenderTransform = null;
+            wrapper.Opacity = 1;
+            zone.Panel.Children.Add(wrapper);
+        }
+
+        if (trailingBoundary && hasAny) zone.Panel.Children.Add(_createSeparator());
+    }
+
+    /// <summary>Centro de tela de onde o item vai parar se soltar agora — pro fantasma "voar" até lá antes de reordenar.</summary>
     private Point ComputeTargetScreenCenter(DragState drag)
     {
         var panel = _zones[drag.CurrentZone].Panel;

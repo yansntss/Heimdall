@@ -160,3 +160,34 @@
 - [x] Fora de escopo: `SetWinEventHook`, `DwmRegisterThumbnail`, peek de miniaturas, jump list, fechar janela pelo menu, ícones temporários pra apps não fixados
 
 > Isso substitui o indicador de "app aberto" simples da Fase 7 (que só comparava caminho de processo e não conseguia focar a janela) por uma versão que também enumera janelas de topo e permite focar/restaurar ao clicar.
+
+# Fase 9 — Corrigir reload ao arrastar widgets
+
+## Problema
+Ao arrastar um widget na barra pra reordenar e soltar, o app dá um reload completo
+(pisca/reconstrói a janela), porque o fluxo de soltar chama o mesmo caminho do botão
+"Recarregar" (`App.Reload()`), que destrói e recria todas as `BarWindow`
+(`CloseBars()` + `BuildBars()`).
+
+## Correção
+Separar persistência de reconstrução — ao soltar um widget:
+
+- [x] Atualizar a lista em memória (`WidgetLayout.Start/Center/End`) na ordem/zona nova
+- [x] Persistir no `config.json` via `ConfigService.Save()`
+- [x] **Não** chamar `App.Reload()` — só reordenar os `UIElement` já existentes dentro do
+      `StackPanel` da zona (mover/reinserir na posição certa), sem recriar os widgets
+      (`IWidget`) nem suas `View`
+- [x] Trocar de zona (ex: tirar do centro e jogar pro início) segue a mesma lógica:
+      remover o `FrameworkElement` do `StackPanel` de origem e adicionar ao de destino,
+      sem recriar o `IWidget` por trás — preservando seu estado interno (ex: o
+      `DispatcherTimer` do relógio continua rodando, sessão do SMTC do widget de mídia
+      não reconecta à toa, etc.)
+- [x] `Reload()` continua existindo só pros casos que realmente exigem reconstrução:
+      mudar borda/monitor/espessura pela tela de Configurações, ou o botão manual
+      "Recarregar" do menu — esses não foram tocados por essa correção
+
+> Implementado em `WidgetDragController` (`RebuildZoneChildren`): ao soltar, atualiza as
+> listas, salva e reordena/move os `FrameworkElement` já existentes nas zonas afetadas,
+> recriando só os separadores (linha fina entre widgets e a de fronteira entre zonas).
+> Validado por build limpo e revisão de código; a interação de arrastar em si (mouse
+> down/move/up ao vivo) não foi testada de ponta a ponta pelo Claude — vale um teste manual.
