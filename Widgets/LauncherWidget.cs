@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI;
 
 namespace Heimdall.Widgets;
 
@@ -91,9 +92,119 @@ public sealed class LauncherWidget : IWidget
         border.MouseLeave += (_, _) =>
             background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
 
-        border.MouseLeftButtonUp += (_, _) => Launch(launcher);
+        border.MouseLeftButtonUp += (_, _) => Launch(launcher, forceAdmin: false);
+
+        SetupDrag(border, launcher);
+        border.ContextMenu = BuildContextMenu(launcher, border);
 
         return border;
+    }
+
+    // ---------- Menu de clique direito ----------
+
+    private ContextMenu BuildContextMenu(LauncherConfig launcher, Border icon)
+    {
+        var runAsAdmin = new MenuItem { Header = "Executar como administrador" };
+        runAsAdmin.Click += (_, _) => Launch(launcher, forceAdmin: true);
+
+        var openLocation = new MenuItem { Header = "Abrir local do arquivo" };
+        openLocation.Click += (_, _) => OpenFileLocation(launcher);
+
+        var rename = new MenuItem { Header = "Renomear..." };
+        rename.Click += (_, _) => RenameLauncher(launcher, icon);
+
+        var remove = new MenuItem { Header = "Remover" };
+        remove.Click += (_, _) => RemoveLauncher(launcher);
+
+        return new ContextMenu { Items = { runAsAdmin, openLocation, rename, remove } };
+    }
+
+    private void RenameLauncher(LauncherConfig launcher, Border icon)
+    {
+        var prompt = new RenamePromptWindow(_style, launcher.Name);
+        prompt.AnchorTo(icon);
+        prompt.Confirmed += newName =>
+        {
+            launcher.Name = newName;
+            ConfigService.Save(_cfg);
+            Rebuild();
+        };
+        prompt.Show();
+        prompt.Activate();
+    }
+
+    private void RemoveLauncher(LauncherConfig launcher)
+    {
+        _cfg.Launchers.Remove(launcher);
+        ConfigService.Save(_cfg);
+        Rebuild();
+    }
+
+    private static void OpenFileLocation(LauncherConfig launcher)
+    {
+        try
+        {
+            string target = IconCacheService.ResolveTarget(launcher.Path);
+            if (File.Exists(target) || Directory.Exists(target))
+                Process.Start("explorer.exe", $"/select,\"{target}\"");
+        }
+        catch
+        {
+            // Caminho inválido pra selecionar no Explorer — sem crashar por isso.
+        }
+    }
+
+    // ---------- Arrastar pra reordenar ----------
+
+    private Point? _dragStart;
+    private LauncherConfig? _dragSource;
+
+    private void SetupDrag(Border icon, LauncherConfig launcher)
+    {
+        // _dragStart/_dragSource são campos únicos do widget (não por ícone) — sem checar
+        // _dragSource == launcher, se o cursor passasse por cima de OUTRO ícone antes de
+        // cruzar o limiar de arrasto, era o ícone errado (o que está por baixo do cursor
+        // agora, não o que recebeu o MouseDown) que iniciava o DoDragDrop.
+        icon.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            _dragStart = e.GetPosition(null);
+            _dragSource = launcher;
+            icon.CaptureMouse();
+        };
+
+        icon.PreviewMouseMove += (_, e) =>
+        {
+            if (_dragStart is null || _dragSource != launcher || e.LeftButton != MouseButtonState.Pressed) return;
+            var pos = e.GetPosition(null);
+            if (Math.Abs(pos.X - _dragStart.Value.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _dragStart.Value.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+            _dragStart = null;
+            _dragSource = null;
+            icon.ReleaseMouseCapture();
+            DragDrop.DoDragDrop(icon, launcher, DragDropEffects.Move);
+        };
+
+        icon.PreviewMouseLeftButtonUp += (_, _) =>
+        {
+            if (_dragSource == launcher) { _dragStart = null; _dragSource = null; }
+            icon.ReleaseMouseCapture();
+        };
+
+        icon.AllowDrop = true;
+        icon.Drop += (_, e) =>
+        {
+            if (e.Data.GetData(typeof(LauncherConfig)) is not LauncherConfig dragged || dragged == launcher) return;
+
+            int oldIndex = _cfg.Launchers.IndexOf(dragged);
+            int newIndex = _cfg.Launchers.IndexOf(launcher);
+            if (oldIndex < 0 || newIndex < 0) return;
+
+            _cfg.Launchers.RemoveAt(oldIndex);
+            _cfg.Launchers.Insert(newIndex, dragged);
+            ConfigService.Save(_cfg);
+            Rebuild();
+        };
     }
 
     private System.Windows.Media.Imaging.BitmapSource? ResolveIconSource(LauncherConfig launcher)
@@ -111,7 +222,7 @@ public sealed class LauncherWidget : IWidget
         return File.Exists(path) || Directory.Exists(path);
     }
 
-    private static void Launch(LauncherConfig launcher)
+    private static void Launch(LauncherConfig launcher, bool forceAdmin)
     {
         if (!PathExists(launcher.Path)) return;
 
@@ -124,7 +235,7 @@ public sealed class LauncherWidget : IWidget
             };
             if (!string.IsNullOrWhiteSpace(launcher.Arguments)) info.Arguments = launcher.Arguments;
             if (!string.IsNullOrWhiteSpace(launcher.WorkingDirectory)) info.WorkingDirectory = launcher.WorkingDirectory;
-            if (launcher.RunAsAdmin) info.Verb = "runas";
+            if (launcher.RunAsAdmin || forceAdmin) info.Verb = "runas";
 
             Process.Start(info);
         }

@@ -72,8 +72,8 @@
 ## Interação
 - [x] Clique abre via `Process.Start(UseShellExecute = true)`
 - [x] Hover: destaque leve + tooltip com o nome
-- [ ] Clique direito: Executar como administrador (`Verb = "runas"`), Abrir local do arquivo, Renomear, Remover
-- [ ] Arrastar um ícone pra reordenar
+- [x] Clique direito: Executar como administrador (`Verb = "runas"`), Abrir local do arquivo, Renomear, Remover
+- [x] Arrastar um ícone pra reordenar
 - [ ] Opcional: ponto abaixo do ícone quando o app está aberto (compara caminho dos processos a cada poucos segundos)
 
 ## Adicionar atalho
@@ -82,4 +82,4 @@
 - [ ] Clique direito na barra → "Adicionar atalho" → escolher entre apps instalados (lista de `shell:AppsFolder`, com busca)
 
 ## Erros
-- [ ] Caminho que não existe mais: ícone esmaecido, tooltip "Atalho não encontrado" (feito) — falta a opção de remover no menu de clique direito (ainda não implementado)
+- [x] Caminho que não existe mais: ícone esmaecido, tooltip "Atalho não encontrado", opção de remover
