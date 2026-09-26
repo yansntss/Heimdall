@@ -35,6 +35,9 @@ Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução).
     "Culture": "pt-BR",
     "CustomFormat": null         // formato .NET livre, só com Mode = Custom (não varia por orientação)
   },
+  "Ram": { "ShowUsedTotal": true },   // false = só a porcentagem
+  "Temp": { "ShowCpu": true, "ShowGpu": true },
+  "Fps": { "OnlyInGame": true },      // false = aparece também fora do modo overlay
   "Reminders": [
     { "Kind": "Fixed", "Text": "Beber água" },
     {
@@ -210,6 +213,30 @@ Configurações.
   um arquivo/atalho/pasta pra cima da barra, ou clique direito na barra → **Adicionar
   atalho** (escolher um arquivo, ou escolher entre os apps instalados com busca). Some no
   modo overlay.
+- **`ram`** — uso de memória física via `GlobalMemoryStatusEx` (Win32 puro, mais leve que
+  `PerformanceCounter`). `Ram.ShowUsedTotal: true` mostra "11,9 / 16 GB"; `false` (ou
+  qualquer coisa na barra vertical, que não tem espaço pros dois números) mostra só a
+  porcentagem. Atualiza a cada 2s. Funciona sempre, sem dependências externas.
+- **`temp`** — temperatura de CPU e GPU via
+  [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor)
+  (WMI/`MSAcpi_ThermalZoneTemperature` é pouco confiável em hardware moderno — essa lib
+  resolve a leitura de sensores Intel/AMD/NVIDIA de forma confiável). **Precisa do
+  Heimdall rodando como administrador** pra acessar os sensores (driver de baixo nível);
+  sem isso, o widget mostra "—" (tooltip explica o motivo) em vez de travar ou lançar
+  exceção — a checagem de elevação acontece antes de sequer tentar abrir os sensores.
+  `Temp.ShowCpu`/`Temp.ShowGpu` controlam o que aparece; na barra vertical com os dois
+  ativos, alterna entre CPU e GPU a cada 3s em vez de espremer os dois juntos. Atualiza a
+  cada 3s (sensores de hardware não precisam de mais que isso).
+- **`fps`** — FPS do processo em primeiro plano, lido da memória compartilhada que o
+  [RTSS](https://www.guru3d.com/download/rtss-rivatuner-statistics-server-download/)
+  (RivaTuner Statistics Server, o mesmo motor por trás do overlay do MSI Afterburner)
+  expõe (`RTSSSharedMemoryV2`, layout documentado publicamente, não uma API oficial).
+  **Precisa do RTSS/MSI Afterburner rodando** — sem ele (arquivo mapeado não existe), o
+  widget simplesmente não aparece, sem erro visível; também não aparece se o RTSS não
+  tiver dado pro processo em primeiro plano no momento (app ainda não renderizou frame
+  nenhum). Atualiza a cada 250ms (throttle — o RTSS atualiza a cada frame, mas repintar
+  nessa frequência só pisca à toa). `Fps.OnlyInGame: true` (padrão) só mostra no modo
+  overlay (tela cheia); `false` mostra sempre.
 
 ## Estrutura do código
 
@@ -219,12 +246,14 @@ Configurações.
 - `Services/` — `ThemeService` (temas embutidos/usuário), `MonitorService`,
   `StartupService`, `AudioVolumeService` (volume por app), `IconCacheService`,
   `InstalledAppsService` (lista de apps instalados), `ReminderHistoryService`,
-  `OpenWindowsService` (janelas de topo abertas, pro indicador do `launcher`).
+  `OpenWindowsService` (janelas de topo abertas, pro indicador do `launcher`),
+  `RamStatsService` (`GlobalMemoryStatusEx`), `TemperatureService` (LibreHardwareMonitorLib,
+  checa elevação antes de abrir), `RtssService` (memória compartilhada do RTSS).
 - `Config/` — modelo e leitura/gravação do JSON (`AppConfig`, `WidgetEntry`, `ThemeConfig`,
   `ReminderConfig`, `LauncherConfig`) — `ConfigService` também migra formatos antigos
   (`Clock` solto → `Mode`/`Style`, `Widgets.*` de string pra `{Id, Pinned}`).
 - `Widgets/` — `IWidget`, `WidgetFactory`, `ClockWidget` + `ClockFormatter`, `MediaWidget`,
-  `ReminderWidget`, `LauncherWidget`.
+  `ReminderWidget`, `LauncherWidget`, `RamWidget`, `TempWidget`, `FpsWidget`.
 - `UI/` — `BarPresenter` (troca barra↔overlay), `BarWindow`/`OverlayWindow` (3 zonas:
   início/centro/fim, via `WidgetZoneBuilder`), `WidgetDragController` (arrastar widgets
   entre zonas), `GhostIconWindow` (fantasma do arraste, reaproveitado pelo `launcher` e

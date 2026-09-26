@@ -32,6 +32,12 @@ public sealed class AppConfig
 
     public List<LauncherConfig> Launchers { get; set; } = new();
 
+    public RamConfig Ram { get; set; } = new();
+
+    public TempConfig Temp { get; set; } = new();
+
+    public FpsConfig Fps { get; set; } = new();
+
     public bool StartWithWindows { get; set; }
 
     /// <summary>Nome de um tema embutido ou de %AppData%\Heimdall\themes\*.json.</summary>
@@ -93,4 +99,22 @@ public sealed class ClockConfig
 
     /// <summary>Usado só quando Mode = Custom — formato .NET livre, sem variação por orientação.</summary>
     public string? CustomFormat { get; set; }
+}
+
+public sealed class RamConfig
+{
+    /// <summary>true = "11.2 / 32 GB"; false = só a porcentagem ("35%").</summary>
+    public bool ShowUsedTotal { get; set; } = true;
+}
+
+public sealed class TempConfig
+{
+    public bool ShowCpu { get; set; } = true;
+    public bool ShowGpu { get; set; } = true;
+}
+
+public sealed class FpsConfig
+{
+    /// <summary>true (padrão) = só aparece no modo overlay (tela cheia); false = aparece sempre.</summary>
+    public bool OnlyInGame { get; set; } = true;
 }

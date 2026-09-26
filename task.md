@@ -245,3 +245,51 @@ barra simplesmente some ao entrar em tela cheia, em vez de virar overlay transpa
 > `OnFullscreenChangedGaming` (código original, intocado) e `OnFullscreenChangedPlain`
 > (novo — só Hide/Show da BarWindow). `_inOverlay` virou `_fullscreenActive` pra cobrir os
 > dois casos (overlay ou só escondida) no guard de "já está nesse estado, ignora".
+
+# Fase 11 — Widgets de RAM, temperatura e FPS
+
+## 1) Widget de RAM
+- [x] `GlobalMemoryStatusEx` (Win32, mais leve que `PerformanceCounter`) via `RamStatsService`
+- [x] Usado/total (ex: 11,9 / 16 GB) ou só porcentagem, configurável (`Ram.ShowUsedTotal`)
+- [x] Atualiza a cada 2s
+- [x] Barra vertical: só a porcentagem (sem espaço pra "usado / total")
+
+## 2) Widget de temperatura (CPU/GPU)
+- [x] `LibreHardwareMonitorLib` (NuGet) em vez de WMI `MSAcpi_ThermalZoneTemperature`
+      (pouco confiável em hardware moderno) — `TemperatureService`
+- [x] Checa elevação (`WindowsPrincipal.IsInRole(Administrator)`) **antes** de tentar abrir
+      os sensores — sem admin, nem tenta; mostra "—" com tooltip explicando, nunca lança
+      exceção nem trava
+- [x] CPU e GPU separados (`Temp.ShowCpu`/`Temp.ShowGpu`); barra vertical com os dois
+      ativos alterna entre eles a cada tick em vez de espremer os dois juntos
+- [x] Atualiza a cada 3s
+
+## 3) Widget de FPS (via RTSS)
+- [x] `MemoryMappedFile.OpenExisting("RTSSSharedMemoryV2")` — `RtssService`
+- [x] **Validado empiricamente nesta sessão** (RTSS/MSI Afterburner estava rodando na
+      máquina de dev): assinatura, versão e offsets de
+      `dwProcessID`/`szName`/`dwFlags`/`dwTime0`/`dwTime1`/`dwFrames`/`dwFrameTime`
+      conferidos contra processos reais sendo monitorados pelo RTSS — frametime em
+      microssegundos, FPS = 1.000.000 / dwFrameTime, resultado batendo com o cálculo de
+      frames/tempo decorrido do próprio RTSS
+- [x] Acha a entrada do processo em primeiro plano comparando PID
+      (`GetForegroundWindow` + `GetWindowThreadProcessId`)
+- [x] RTSS não rodando (mapeamento não existe) → widget não aparece, sem erro visível
+      (`FileNotFoundException` capturada); qualquer outra falha também só esconde, nunca
+      derruba o app
+- [x] Atualização throttled a 4x/s (250ms) — RTSS atualiza a cada frame, repintar nessa
+      frequência só pisca à toa
+- [x] `Fps.OnlyInGame: true` (padrão) — só no modo overlay; `false` — sempre
+
+## 4) Config e registro
+- [x] `"ram"`, `"temp"` e `"fps"` registrados no `WidgetFactory` (e no catálogo da aba
+      Widgets das Configurações)
+- [x] `AppConfig.Ram/Temp/Fps` (`RamConfig`, `TempConfig`, `FpsConfig`)
+- [x] Documentado no README (tabela de widgets) e no `docs/GUIA.md` (detalhe de cada um,
+      requisito de administrador da temperatura, requisito do RTSS do FPS)
+
+> Testado ao vivo nesta sessão (não elevado): RAM mostrou dado real ("11,9 / 16 GB"),
+> Temp mostrou "—" corretamente sem travar (sem admin), FPS corretamente não apareceu
+> quando não havia dado do processo em primeiro plano no instante do teste — os três
+> comportamentos esperados confirmados. Não testado: leitura de sensores de temperatura
+> de verdade rodando como administrador (precisa do usuário elevar o Heimdall).

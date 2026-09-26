@@ -114,6 +114,9 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `media` | Controle de mídia (SMTC), volume por app, capa do álbum |
 | `reminder` | Lembretes fixos e agendados, com histórico |
 | `launcher` | Atalhos de apps, pastas, arquivos e URLs |
+| `ram` | Uso de memória — funciona sempre, sem dependências |
+| `temp` | Temperatura de CPU/GPU — **precisa do Heimdall rodando como administrador** |
+| `fps` | FPS via RTSS/MSI Afterburner — **precisa do RTSS rodando**; sem ele, o widget simplesmente não aparece |
 
 ## Stack
 
@@ -122,6 +125,8 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
   detecção de tela cheia, extração de ícones e backdrops (Acrílico/Mica)
 - **SMTC** (System Media Transport Controls) para controle de mídia
 - **NAudio.Wasapi** para volume por aplicativo
+- **LibreHardwareMonitorLib** para sensores de temperatura de CPU/GPU (widget `temp`,
+  precisa de administrador)
 
 ## Contribuindo
 

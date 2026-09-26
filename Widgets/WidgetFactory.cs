@@ -13,6 +13,11 @@ public static class WidgetFactory
         // Oculto no overlay: lançar um app clicando em cima do jogo não faz sentido ali.
         "launcher" => isOverlay ? null : new LauncherWidget(config),
         "separator" => new SeparatorWidget(config),
+        "ram" => new RamWidget(config.Ram),
+        "temp" => new TempWidget(config.Temp),
+        // Sem sentido fora de jogo por padrão (Fps.OnlyInGame) — nem cria o widget na
+        // barra normal nesse caso, só no overlay.
+        "fps" => config.Fps.OnlyInGame && !isOverlay ? null : new FpsWidget(),
         _ => null
     };
 }

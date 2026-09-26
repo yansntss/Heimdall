@@ -26,6 +26,8 @@
   <ItemGroup>
     <!-- Só a Core Audio API (volume por app do widget de mídia) — evita puxar Midi/Asio/Dmo/WinMM/WinForms do pacote NAudio completo. -->
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <!-- Sensores de temperatura de CPU/GPU (widget "temp") — WMI/MSAcpi_ThermalZoneTemperature é pouco confiável em hardware moderno. -->
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.4" />
   </ItemGroup>
 
 </Project>
