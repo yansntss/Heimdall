@@ -127,9 +127,23 @@
 > pra reproduzir com segurança): o `GhostIconWindow`, opaco e ~1.15x maior que o ícone
 > (`PickupScale`), cobre por completo o vizinho por baixo enquanto o cursor passa perto
 > dele — parece "sumir" mas é só oclusão visual do fantasma, não um bug de visibilidade.
-> Mitigação aplicada: `GhostIconWindow` ganhou `Opacity = 0.85` — deixa o que está atrás
-> minimamente visível sem perder a sensação de "sólido"/pego na mão. Precisa de
-> confirmação visual manual.
+> Mitigação aplicada (não era a causa raiz, mas continua válida como ajuste visual):
+> `GhostIconWindow` ganhou `Opacity = 0.85`.
+>
+> **Causa raiz encontrada** (confirmada pelo usuário: acontecia com qualquer ícone,
+> mesmo na build com a mitigação acima): o `WidgetDragController` (Fase 8, arrasta
+> widgets inteiros entre zonas) escuta `PreviewMouseLeftButtonDown/Move/Up` (túnel) no
+> wrapper que envolve o `LauncherWidget` inteiro. Túnel dispara de fora pra dentro, ou
+> seja, ANTES da própria interação de arrastar ícone do `LauncherWidget` (numa Border
+> aninhada bem mais fundo). Como nada marcava `e.Handled`, um clique num ícone também
+> era visto pelo `WidgetDragController`, que começava a arrastar o LAUNCHER INTEIRO como
+> widget — e isso faz `wrapper.Opacity = 0` no wrapper que envolve TODOS os ícones,
+> escondendo todo mundo junto (não só o ícone que o usuário queria mover).
+> Corrigido em duas pontas: `LauncherWidget.SetupItemInteraction` marca
+> `e.Handled = true` no `PreviewMouseLeftButtonDown` do ícone, e `WidgetDragController`
+> passou a escutar a fase de bolha (`MouseLeftButtonDown/Move/Up`) em vez de túnel — bolha
+> dispara de dentro pra fora, então o `Handled` do ícone (que roda primeiro) corretamente
+> impede o wrapper do widget de agir.
 
 # Fase 8 — Logo, mais modelos de relógio, widgets móveis/fixáveis
 

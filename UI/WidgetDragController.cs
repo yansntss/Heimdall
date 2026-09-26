@@ -102,7 +102,16 @@ internal sealed class WidgetDragController
         _wrappers.Add(wrapper);
         _wrapperByEntry[entry] = wrapper;
 
-        wrapper.PreviewMouseLeftButtonDown += (_, e) =>
+        // Bolha (MouseLeftButtonDown/Move/Up), não túnel (Preview...): widgets como o
+        // launcher têm sua PRÓPRIA interação interna (arrastar um ícone específico) numa
+        // Border aninhada dentro deste wrapper, e marcam e.Handled = true nela quando é o
+        // caso. Eventos de túnel disparam de fora pra dentro (esse wrapper ANTES do
+        // ícone), então Handled setado lá dentro não teria efeito nenhum aqui; de bolha
+        // (dentro pra fora) é o contrário — o ícone marca Handled primeiro, e esse
+        // wrapper corretamente nunca chega a agir. Sem isso, arrastar um ícone do
+        // launcher também disparava o arraste do widget inteiro por baixo, escondendo
+        // (Opacity 0) o wrapper inteiro — e com ele, todos os outros ícones juntos.
+        wrapper.MouseLeftButtonDown += (_, e) =>
         {
             if (entry.Pinned)
             {
@@ -115,7 +124,7 @@ internal sealed class WidgetDragController
             wrapper.CaptureMouse();
         };
 
-        wrapper.PreviewMouseMove += (_, e) =>
+        wrapper.MouseMove += (_, e) =>
         {
             if (_drag is not null && _drag.Slot == slot)
             {
@@ -133,7 +142,7 @@ internal sealed class WidgetDragController
             BeginDrag(slot);
         };
 
-        wrapper.PreviewMouseLeftButtonUp += (_, _) =>
+        wrapper.MouseLeftButtonUp += (_, _) =>
         {
             _pressPoint = null;
             _pressSlot = null;

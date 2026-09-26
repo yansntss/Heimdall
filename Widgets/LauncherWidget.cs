@@ -389,6 +389,16 @@ public sealed class LauncherWidget : IWidget
             _pressPoint = e.GetPosition(null);
             _pressSource = item;
             element.CaptureMouse();
+
+            // Essencial: o WidgetDragController escuta o wrapper que envolve o
+            // LauncherWidget inteiro (pra poder arrastar o launcher como widget, entre
+            // zonas) na fase de bolha (MouseLeftButtonDown, não Preview) — marcar
+            // Handled aqui impede que ESSE clique (que é sobre um ícone específico, não
+            // sobre o launcher como um todo) borbulhe até lá e dispare os dois arrastes
+            // ao mesmo tempo. Sem isso, arrastar um ícone também começava um arraste do
+            // widget inteiro por baixo, que escondia (Opacity 0) o wrapper inteiro — daí
+            // os outros ícones "sumirem" junto.
+            e.Handled = true;
         };
 
         element.PreviewMouseMove += (_, e) =>
