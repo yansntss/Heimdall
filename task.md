@@ -189,5 +189,10 @@ Separar persistência de reconstrução — ao soltar um widget:
 > Implementado em `WidgetDragController` (`RebuildZoneChildren`): ao soltar, atualiza as
 > listas, salva e reordena/move os `FrameworkElement` já existentes nas zonas afetadas,
 > recriando só os separadores (linha fina entre widgets e a de fronteira entre zonas).
-> Validado por build limpo e revisão de código; a interação de arrastar em si (mouse
-> down/move/up ao vivo) não foi testada de ponta a ponta pelo Claude — vale um teste manual.
+
+- [x] **Bug encontrado no teste manual:** depois de mover um widget pra outra zona, ele
+      não conseguia mais ser arrastado de novo — `SlotInfo.ZoneIndex` (a zona onde o
+      widget foi registrado) nunca era atualizado após uma troca de zona, então o próximo
+      `BeginDrag` procurava o `Entry` na lista da zona antiga, não achava (`IndexOf < 0`)
+      e desistia em silêncio. Corrigido atualizando `slot.ZoneIndex = drag.CurrentZone`
+      ao concluir uma troca de zona.

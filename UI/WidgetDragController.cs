@@ -295,6 +295,12 @@ internal sealed class WidgetDragController
                 destEntries.Insert(insertAt, drag.Slot.Entry);
                 ConfigService.Save(_cfg);
 
+                // Crítico numa troca de zona: sem isso, o SlotInfo desse widget continua
+                // achando que pertence à zona antiga, e o próximo BeginDrag procura o
+                // Entry na lista errada (IndexOf < 0) e desiste em silêncio — o widget
+                // simplesmente para de poder ser arrastado de novo.
+                drag.Slot.ZoneIndex = drag.CurrentZone;
+
                 // Só reordena os elementos já existentes nas zonas afetadas — nada de
                 // App.Reload() aqui, que destruiria e recriaria a BarWindow inteira (e
                 // com ela os IWidget, reiniciando o DispatcherTimer do relógio, a sessão
