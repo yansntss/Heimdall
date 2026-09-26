@@ -131,6 +131,16 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
+    // ---------- Tecla Esc durante arraste ----------
+    // A barra é WS_EX_NOACTIVATE — nada nela recebe foco de teclado de verdade, então um
+    // KeyDown normal não serve pra cancelar um arraste. GetAsyncKeyState funciona
+    // independente de foco/janela ativa.
+
+    public const int VK_ESCAPE = 0x1B;
+
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+
     // ---------- Hotkey global ----------
 
     public const int WM_HOTKEY = 0x0312;

@@ -95,12 +95,12 @@
 - [x] Clique direito no separador → trocar estilo ou remover
 
 ## Arrastar com animação (depois, mais trabalhoso)
-- [ ] Arraste manual com `CaptureMouse` pra reordenar dentro da barra — não usar `DragDrop.DoDragDrop` (bloqueia a thread, cursor padrão do Windows, sem dar pra animar); OLE drag-drop continua só pra receber arquivos de fora (Explorer)
-- [ ] Só inicia o arraste depois de mover alguns pixels (`SystemParameters.MinimumHorizontalDragDistance`), pra não confundir com clique
-- [ ] Ao pegar: ícone original vira espaço vazio (opacidade 0); um "fantasma" (janela pequena, transparente, topmost, click-through) segue o cursor, crescendo a ~115% com sombra suave em ~120ms; leve inclinação conforme a direção do movimento (opcional)
-- [ ] Durante o arraste: ícones vizinhos deslizam (~180ms, `CubicEase EaseOut`) só via `RenderTransform`/`TranslateTransform`, sem mexer no layout; posição de destino pelo centro de cada ícone
-- [ ] Ao soltar: fantasma "voa" até a posição final e volta ao tamanho normal (~200ms, `BackEase`); só então aplica a nova ordem na lista e salva
-- [ ] Esc cancela o arraste — ícone volta animado pra posição original
-- [ ] Opcional: arrastar pra longe da barra mostra indicador de remoção (ícone esmaecido com "×"); soltar fora remove o atalho com animação de sumir (escala pra 0 + fade)
-- [ ] Respeita `SystemParameters.ClientAreaAnimation` (animações do Windows desligadas = trocas sem animação)
-- [ ] Durações de animação centralizadas em constantes num só lugar
+- [x] Arraste manual com `CaptureMouse` pra reordenar dentro da barra — não usar `DragDrop.DoDragDrop` (bloqueia a thread, cursor padrão do Windows, sem dar pra animar); OLE drag-drop continua só pra receber arquivos de fora (Explorer)
+- [x] Só inicia o arraste depois de mover alguns pixels (`SystemParameters.MinimumHorizontalDragDistance`), pra não confundir com clique
+- [x] Ao pegar: ícone original vira espaço vazio (opacidade 0); um "fantasma" (janela pequena, transparente, topmost, click-through) segue o cursor, crescendo a ~115% com sombra suave em ~120ms (inclinação por direção não implementada — opcional, ficou de fora)
+- [x] Durante o arraste: ícones vizinhos deslizam (~180ms, `CubicEase EaseOut`) só via `RenderTransform`/`TranslateTransform`, sem mexer no layout; posição de destino pelo centro de cada ícone
+- [x] Ao soltar: fantasma "voa" até a posição final e volta ao tamanho normal (~200ms, `BackEase`); só então aplica a nova ordem na lista e salva
+- [x] Esc cancela o arraste — ícone volta animado pra posição original (checagem por `GetAsyncKeyState`, já que a barra é `WS_EX_NOACTIVATE` e não recebe foco de teclado — corrigido um bug onde só era lida dentro do `PreviewMouseMove`, então segurar parado e apertar Esc nunca cancelava; agora também tem um timer de 40ms como watchdog)
+- [x] Arrastar pra longe da barra mostra indicador de remoção (ícone esmaecido com "×"); soltar fora remove o atalho com animação de sumir (escala pra 0 + fade)
+- [x] Respeita `SystemParameters.ClientAreaAnimation` (animações do Windows desligadas = trocas sem animação)
+- [x] Durações de animação centralizadas em constantes num só lugar (`LauncherDragAnimations`)
