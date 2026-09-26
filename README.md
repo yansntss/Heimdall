@@ -134,8 +134,8 @@ contribuição é bem-vinda.
 O Heimdall é gratuito e desenvolvido nas horas livres. Se ele foi útil para você e
 quiser retribuir, um Pix é muito bem-vindo para manter o projeto vivo:
 
-**Chave Pix:** `SUA_CHAVE_PIX_AQUI`
-<!-- Substitua pela sua chave Pix (e-mail, celular, CPF ou chave aleatória). -->
+**Chave Pix:** `c85cc18b-19b3-4d94-82ad-c68fa3dc8721`
+
 
 Nenhuma doação é necessária para usar, sugerir ou contribuir com o projeto — é apenas uma
 forma de agradecer, caso queira.
