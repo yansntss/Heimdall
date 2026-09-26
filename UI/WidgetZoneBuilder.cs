@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Heimdall.Config;
 using Heimdall.Services;
 using Heimdall.Widgets;
@@ -10,25 +11,28 @@ namespace Heimdall.UI;
 /// <summary>Monta as 3 zonas (início/centro/fim) de widgets — usado pela BarWindow e pela OverlayWindow.</summary>
 internal static class WidgetZoneBuilder
 {
+    private const int HoverTransitionMs = 150;
+
     public static List<IWidget> Build(AppConfig cfg, bool vertical, Grid zones, StackPanel start, StackPanel center, StackPanel end, bool isOverlay = false)
     {
         var widgets = new List<IWidget>();
         var orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
-        var separatorBrush = new SolidColorBrush(ThemeService.GetEffectiveStyle(cfg).Border);
+        var style = ThemeService.GetEffectiveStyle(cfg);
+        var separatorBrush = new SolidColorBrush(style.Border);
         separatorBrush.Freeze();
 
         zones.Margin = vertical ? new Thickness(0, 8, 0, 8) : new Thickness(8, 0, 8, 0);
 
         SetupZone(widgets, cfg, start, cfg.Widgets.Start, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left,
-            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush);
+            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover);
 
         SetupZone(widgets, cfg, center, cfg.Widgets.Center, orientation,
-            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush);
+            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover);
 
         SetupZone(widgets, cfg, end, cfg.Widgets.End, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Right,
-            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush);
+            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover);
 
         // Separador entre zona e centro, do lado que fica voltado pro centro: último
         // filho de Start (mais próximo do centro, já que Start é alinhado à esquerda/topo)
@@ -40,7 +44,7 @@ internal static class WidgetZoneBuilder
     }
 
     private static void SetupZone(List<IWidget> widgets, AppConfig cfg, StackPanel zone, IEnumerable<string>? ids,
-        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush)
+        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush, Color hoverColor)
     {
         zone.Orientation = orientation;
         zone.HorizontalAlignment = horizontal;
@@ -54,16 +58,50 @@ internal static class WidgetZoneBuilder
             if (widget is null) continue;
 
             widget.ApplyOrientation(orientation);
-            widget.View.Margin = orientation == Orientation.Vertical
-                ? new Thickness(0, 4, 0, 4)
-                : new Thickness(8, 0, 8, 0);
 
             if (zone.Children.Count > 0) zone.Children.Add(CreateSeparator(orientation, separatorBrush));
 
-            zone.Children.Add(widget.View);
+            // Overlay é só informativo e clique atravessa — sem destaque de hover ali.
+            zone.Children.Add(isOverlay ? WrapWithMargin(widget.View, orientation) : WrapWithHover(widget.View, orientation, hoverColor));
             widgets.Add(widget);
             widget.Start();
         }
+    }
+
+    private static FrameworkElement WrapWithMargin(FrameworkElement view, Orientation orientation)
+    {
+        view.Margin = orientation == Orientation.Vertical
+            ? new Thickness(0, 4, 0, 4)
+            : new Thickness(8, 0, 8, 0);
+        return view;
+    }
+
+    /// <summary>Envolve o widget num Border que acende sutilmente (cor "Hover" do tema) ao passar o mouse, com transição de 150 ms.</summary>
+    private static Border WrapWithHover(FrameworkElement view, Orientation orientation, Color hoverColor)
+    {
+        var background = new SolidColorBrush(Colors.Transparent);
+        var wrapper = new Border
+        {
+            Child = view,
+            CornerRadius = new CornerRadius(4),
+            Background = background,
+            Margin = orientation == Orientation.Vertical
+                ? new Thickness(0, 4, 0, 4)
+                : new Thickness(8, 0, 8, 0),
+            Padding = new Thickness(4, 2, 4, 2)
+        };
+        view.Margin = new Thickness(0);
+
+        wrapper.MouseEnter += (_, _) => AnimateHover(background, hoverColor);
+        wrapper.MouseLeave += (_, _) => AnimateHover(background, Colors.Transparent);
+
+        return wrapper;
+    }
+
+    private static void AnimateHover(SolidColorBrush brush, Color target)
+    {
+        var animation = new ColorAnimation(target, TimeSpan.FromMilliseconds(HoverTransitionMs));
+        brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
     }
 
     /// <summary>Linha fina (1px) usando a cor de contorno do tema — some sozinha em overlays sem tema aplicado.</summary>
