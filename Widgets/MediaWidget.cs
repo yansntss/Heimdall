@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.IO;
 using Heimdall.Config;
@@ -66,6 +67,21 @@ public sealed class MediaWidget : IWidget
     {
         VerticalAlignment = VerticalAlignment.Center
     };
+
+    private const double EqBarMinHeight = 3;
+    private const double EqBarMaxHeight = 11;
+    private readonly Rectangle _eqBar1 = new() { Width = 2, VerticalAlignment = VerticalAlignment.Bottom, Height = EqBarMinHeight, Margin = new Thickness(0, 0, 1, 0) };
+    private readonly Rectangle _eqBar2 = new() { Width = 2, VerticalAlignment = VerticalAlignment.Bottom, Height = EqBarMaxHeight, Margin = new Thickness(0, 0, 1, 0) };
+    private readonly Rectangle _eqBar3 = new() { Width = 2, VerticalAlignment = VerticalAlignment.Bottom, Height = EqBarMinHeight };
+    private readonly StackPanel _equalizer = new()
+    {
+        Orientation = Orientation.Horizontal,
+        Height = EqBarMaxHeight,
+        VerticalAlignment = VerticalAlignment.Center,
+        Margin = new Thickness(0, 0, 4, 0),
+        Visibility = Visibility.Collapsed
+    };
+    private bool _equalizerRunning;
 
     private readonly Border _progressFill = new() { Height = 2, HorizontalAlignment = HorizontalAlignment.Left, Width = 0 };
     private readonly Grid _progressBar = new()
@@ -140,6 +156,14 @@ public sealed class MediaWidget : IWidget
         _progressFill.Background = FrozenBrush(style.Accent);
         _progressBar.Children.Add(_progressFill);
 
+        var accentBrush = FrozenBrush(style.Accent);
+        _eqBar1.Fill = accentBrush;
+        _eqBar2.Fill = accentBrush;
+        _eqBar3.Fill = accentBrush;
+        _equalizer.Children.Add(_eqBar1);
+        _equalizer.Children.Add(_eqBar2);
+        _equalizer.Children.Add(_eqBar3);
+
         _text.RenderTransform = _textScroll;
         _textStack.Children.Add(_text);
         _textStack.Children.Add(_progressBar);
@@ -148,6 +172,7 @@ public sealed class MediaWidget : IWidget
         _textClip.MouseLeave += OnTextMouseLeave;
 
         _root.Children.Add(_thumbnail);
+        _root.Children.Add(_equalizer);
         _root.Children.Add(_textClip);
 
         // No overlay (jogo em tela cheia) a janela é click-through — botões nunca seriam
@@ -249,12 +274,47 @@ public sealed class MediaWidget : IWidget
         SetEnabled(_next, controls?.IsNextEnabled ?? false);
         SetEnabled(_playPause, (controls?.IsPlayEnabled ?? false) || (controls?.IsPauseEnabled ?? false));
 
-        _playPauseIcon.Text = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
-            ? GlyphPause
-            : GlyphPlay;
+        bool playing = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+        _playPauseIcon.Text = playing ? GlyphPause : GlyphPlay;
+
+        if (playing) StartEqualizer(); else StopEqualizer();
 
         RefreshVolumeIcon();
         UpdateProgress();
+    }
+
+    // ---------- Ícone de equalizador (animado enquanto a faixa está tocando) ----------
+
+    private void StartEqualizer()
+    {
+        _equalizer.Visibility = Visibility.Visible;
+        if (_equalizerRunning) return;
+        _equalizerRunning = true;
+
+        AnimateBar(_eqBar1, 0.42, TimeSpan.Zero);
+        AnimateBar(_eqBar2, 0.36, TimeSpan.FromMilliseconds(120));
+        AnimateBar(_eqBar3, 0.5, TimeSpan.FromMilliseconds(60));
+    }
+
+    private void StopEqualizer()
+    {
+        _equalizerRunning = false;
+        _equalizer.Visibility = Visibility.Collapsed;
+        _eqBar1.BeginAnimation(FrameworkElement.HeightProperty, null);
+        _eqBar2.BeginAnimation(FrameworkElement.HeightProperty, null);
+        _eqBar3.BeginAnimation(FrameworkElement.HeightProperty, null);
+    }
+
+    private static void AnimateBar(Rectangle bar, double seconds, TimeSpan beginTime)
+    {
+        var animation = new DoubleAnimation(EqBarMinHeight, EqBarMaxHeight, TimeSpan.FromSeconds(seconds))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            BeginTime = beginTime,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        bar.BeginAnimation(FrameworkElement.HeightProperty, animation);
     }
 
     /// <summary>
@@ -579,6 +639,7 @@ public sealed class MediaWidget : IWidget
         _feedbackTimer.Stop();
         _progressTimer.Stop();
         StopMarquee();
+        StopEqualizer();
         _volumePopup.IsOpen = false;
         _feedbackPopup.IsOpen = false;
 
