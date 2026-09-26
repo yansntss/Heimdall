@@ -1,60 +1,61 @@
-# Heimdall
+<p align="center">
+  <img src="docs/assets/banner.webp" alt="Heimdall" width="720">
+</p>
 
-**Uma barra de sistema para Windows que faz o que a barra de tarefas deveria fazer.**
+<h1 align="center">Heimdall</h1>
 
-Fixa numa borda da tela (ou flutuando, com cantos arredondados) — relógio, controle de
-mídia, lembretes e atalhos dos seus apps favoritos, tudo num só lugar, com o visual que
-você escolher. E some sozinha, discretamente, assim que você abre um jogo em tela cheia.
+<p align="center">Uma barra de sistema para Windows que faz o que a barra de tarefas deveria fazer.</p>
 
-![Plataforma](https://img.shields.io/badge/plataforma-Windows%2010%20%2F%2011-0078D6)
-![.NET](https://img.shields.io/badge/.NET-10-512BD4)
-![Licença](https://img.shields.io/badge/licença-MIT-green)
+<p align="center">
+  <img alt="Plataforma" src="https://img.shields.io/badge/plataforma-Windows%2010%20%2F%2011-0078D6">
+  <img alt=".NET" src="https://img.shields.io/badge/.NET-10-512BD4">
+  <img alt="Licença" src="https://img.shields.io/badge/licença-MIT-green">
+</p>
 
 ---
 
-## ✨ Por que usar
+Fixa numa borda da tela (ou flutuando, com cantos arredondados), reunindo relógio,
+controle de mídia, lembretes e atalhos dos seus apps num só lugar, com o visual que você
+escolher. Ela se recolhe automaticamente para um overlay discreto quando um jogo em tela
+cheia é aberto, e volta ao normal quando ele fecha.
+
+## Por que usar
 
 - **Relógio sempre visível**, no formato e fuso que você quiser.
-- **Controle de mídia** pra Spotify, YouTube ou qualquer player — play/pause, próxima
+- **Controle de mídia** para Spotify, YouTube ou qualquer player — play/pause, próxima
   faixa, capa do álbum, progresso e volume por app, sem precisar abrir a janela.
-- **Lembretes** rápidos ou agendados (com recorrência), que avisam pulsando na barra e
-  ficam registrados num histórico.
-- **Atalhos dos seus apps** direto na barra — arraste um arquivo, uma pasta ou escolha
-  entre os apps instalados.
+- **Lembretes** rápidos ou agendados, com recorrência, aviso visual na barra e histórico.
+- **Atalhos de apps** direto na barra — arraste um arquivo, uma pasta ou escolha entre os
+  apps instalados.
 - **9 temas prontos** (Escuro, Claro, Acrílico, Mica, Vidro, Destaque do Windows, Auto...)
-  e suporte a temas próprios em JSON.
+  com suporte a temas próprios em JSON.
 - **Modo overlay automático**: em jogos e apps de tela cheia, a barra normal some e um
-  overlay discreto e informativo assume o lugar — sem atrapalhar, sem interceptar clique.
-- **Leve**: não é Electron, não é serviço em segundo plano consumindo RAM — é WPF nativo.
+  overlay discreto e somente informativo assume o lugar, sem interceptar clique.
+- **Leve e nativo**: WPF puro, sem Electron e sem serviço em segundo plano consumindo RAM.
 
----
+## Baixar e instalar
 
-## 📥 Baixar e instalar
+Não é necessário compilar nada — baixe o executável já pronto:
 
-Não precisa compilar nada. Baixe o executável já pronto na página de releases:
-
-### [⬇️ Baixar a última versão](https://github.com/yansntss/Heimdall/releases/latest)
-
-**Como instalar:**
+**[Baixar a última versão](https://github.com/yansntss/Heimdall/releases/latest)**
 
 1. Baixe o `.zip` (ou `.exe`) da versão mais recente no link acima.
 2. Extraia (se for `.zip`) numa pasta de sua preferência.
-3. Rode o `Heimdall.exe`.
-4. (Opcional) Clique direito na barra → **Configurações...** → aba **Geral** → marque
-   **"Iniciar com o Windows"** pra ela abrir sozinha sempre que você ligar o PC.
+3. Execute o `Heimdall.exe`.
+4. Opcional: clique direito na barra → **Configurações...** → aba **Geral** → marque
+   **"Iniciar com o Windows"** para que ela abra automaticamente ao ligar o PC.
 
-> **Requisito:** Windows 10 ou 11. Se baixar a versão "leve" (menor), é necessário ter o
-> [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) instalado.
-> A versão "self-contained" já vem com tudo embutido e roda sem instalar nada extra.
+> Requer Windows 10 ou 11. A versão "leve" precisa do
+> [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) instalado
+> na máquina; a versão "self-contained" já traz tudo embutido e roda sem instalar nada
+> extra.
 >
-> Ainda não há releases publicados? Veja a seção [Rodar localmente](#-rodar-localmente)
-> abaixo pra compilar você mesmo enquanto isso.
+> Ainda não há releases publicados? Veja [Rodar localmente](#rodar-localmente) para
+> compilar a partir do código-fonte.
 
----
+## Rodar localmente
 
-## 🚀 Rodar localmente
-
-Pra quem quer testar em modo desenvolvimento ou contribuir com código.
+Para quem quer testar em modo desenvolvimento ou contribuir com código.
 
 **Pré-requisitos:**
 - Windows 10/11
@@ -68,12 +69,12 @@ cd Heimdall
 dotnet run
 ```
 
-Pronto — a barra deve aparecer na borda da tela.
+A barra deve aparecer na borda da tela.
 
-### Gerando seu próprio build
+**Gerando seu próprio build:**
 
 ```bash
-# Leve (precisa do .NET 10 Desktop Runtime instalado na máquina que for rodar)
+# Leve (requer o .NET 10 Desktop Runtime instalado na máquina que for rodar)
 dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 
 # Self-contained (maior, mas roda em qualquer PC Windows sem instalar nada)
@@ -82,15 +83,14 @@ dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=
 
 O executável final fica em `bin/Release/net10.0-windows.../win-x64/publish/`.
 
----
-
-## ⚙️ Configuração
+## Configuração
 
 Tudo pode ser ajustado pela interface: clique direito na barra → **Configurações...**
-abre uma janela com abas de borda/tamanho, aparência/temas, widgets e lembretes —
-"Salvar e recarregar" aplica na hora, sem reiniciar o app.
+abre uma janela com abas de borda/tamanho, aparência/temas, widgets e lembretes.
+"Salvar e recarregar" aplica as mudanças na hora, sem reiniciar o app.
 
-Quem preferir, pode editar o JSON direto em `%AppData%\Heimdall\config.json`:
+Quem preferir também pode editar o JSON diretamente em
+`%AppData%\Heimdall\config.json`:
 
 ```jsonc
 {
@@ -106,9 +106,7 @@ Quem preferir, pode editar o JSON direto em `%AppData%\Heimdall\config.json`:
 Detalhes completos de cada opção, dos widgets, temas customizados e da estrutura interna
 do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 
----
-
-## 🧩 Widgets disponíveis
+## Widgets disponíveis
 
 | Widget | O que faz |
 |---|---|
@@ -117,37 +115,31 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `reminder` | Lembretes fixos e agendados, com histórico |
 | `launcher` | Atalhos de apps, pastas, arquivos e URLs |
 
----
+## Stack
 
-## 🛠️ Stack
-
-- **.NET 10** + **WPF** (interface nativa, sem Electron)
-- **P/Invoke** direto no Windows Shell/DWM pra reserva de espaço na tela (AppBar),
+- **.NET 10** + **WPF** — interface nativa, sem Electron
+- **P/Invoke** direto no Windows Shell/DWM para reserva de espaço na tela (AppBar),
   detecção de tela cheia, extração de ícones e backdrops (Acrílico/Mica)
-- **SMTC** (System Media Transport Controls) pro controle de mídia
-- **NAudio.Wasapi** pro volume por aplicativo
+- **SMTC** (System Media Transport Controls) para controle de mídia
+- **NAudio.Wasapi** para volume por aplicativo
 
----
+## Contribuindo
 
-## 🤝 Contribuindo
-
-Encontrou um bug, quer sugerir uma ideia ou mandar um PR? Abra uma
+Encontrou um bug ou quer sugerir uma ideia? Abra uma
 [issue](https://github.com/yansntss/Heimdall/issues) ou um pull request — toda
 contribuição é bem-vinda.
 
-## 💜 Apoie o projeto
+## Apoie o projeto
 
-O Heimdall é gratuito e feito nas horas livres. Se ele te ajudou e você quiser retribuir,
-um Pix (de qualquer valor) é muito bem-vindo pra manter o projeto vivo:
+O Heimdall é gratuito e desenvolvido nas horas livres. Se ele foi útil para você e
+quiser retribuir, um Pix é muito bem-vindo para manter o projeto vivo:
 
 **Chave Pix:** `SUA_CHAVE_PIX_AQUI`
 <!-- Substitua pela sua chave Pix (e-mail, celular, CPF ou chave aleatória). -->
 
-Nenhuma doação é obrigatória pra usar, sugerir ou contribuir com o projeto — é só uma
-forma de dizer obrigado, se você quiser. 🙂
+Nenhuma doação é necessária para usar, sugerir ou contribuir com o projeto — é apenas uma
+forma de agradecer, caso queira.
 
----
+## Licença
 
-## 📄 Licença
-
-MIT — veja [LICENSE](LICENSE) para mais detalhes.
+Distribuído sob a licença MIT — veja [LICENSE](LICENSE) para mais detalhes.
