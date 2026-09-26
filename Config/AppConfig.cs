@@ -30,6 +30,8 @@ public sealed class AppConfig
 
     public List<ReminderConfig> Reminders { get; set; } = new();
 
+    public List<LauncherConfig> Launchers { get; set; } = new();
+
     public bool StartWithWindows { get; set; }
 
     /// <summary>Nome de um tema embutido ou de %AppData%\Heimdall\themes\*.json.</summary>

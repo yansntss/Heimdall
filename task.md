@@ -52,26 +52,26 @@
 # Fase 6 — Widget de atalhos (launcher)
 
 ## O que pode ser um atalho
-- [ ] Executáveis (.exe) e atalhos (.lnk) — resolver o .lnk pro destino real pra pegar o ícone certo
-- [ ] Apps da Microsoft Store (UWP) via `shell:AppsFolder\<AppUserModelId>`
-- [ ] Pastas, arquivos e URLs, abertos com o programa padrão do Windows
+- [x] Executáveis (.exe) e atalhos (.lnk) — resolver o .lnk pro destino real pra pegar o ícone certo
+- [ ] Apps da Microsoft Store (UWP) via `shell:AppsFolder\<AppUserModelId>` (extração de ícone já funciona via shell item; falta testar/expor no fluxo de adicionar)
+- [x] Pastas, arquivos e URLs, abertos com o programa padrão do Windows
 
 ## Configuração
-- [ ] `AppConfig.Launchers`: lista de itens com `Name`, `Path`, `Arguments`, `WorkingDirectory`, `IconPath`, `RunAsAdmin`
+- [x] `AppConfig.Launchers`: lista de itens com `Name`, `Path`, `Arguments`, `WorkingDirectory`, `IconPath`, `RunAsAdmin`
 
 ## Ícones
-- [ ] Extração em alta resolução via `IShellItemImageFactory` (Shell API) — funciona pra .exe, .lnk, pastas e apps da Store (nada de `Icon.ExtractAssociatedIcon`, que só dá 32px e depende de WinForms)
-- [ ] Cache em PNG em `%AppData%\Heimdall\cache\icons\` pra não extrair de novo a cada inicialização
-- [ ] Tamanho do ícone acompanha a espessura da barra, com margem
+- [x] Extração em alta resolução via `IShellItemImageFactory` (Shell API) — funciona pra .exe, .lnk, pastas e apps da Store (nada de `Icon.ExtractAssociatedIcon`, que só dá 32px e depende de WinForms)
+- [x] Cache em PNG em `%AppData%\Heimdall\cache\icons\` pra não extrair de novo a cada inicialização
+- [x] Tamanho do ícone acompanha a espessura da barra, com margem
 
 ## Widget base
-- [ ] `LauncherWidget` mostrando os ícones da lista, horizontal (lado a lado) ou vertical (empilhado) conforme a borda
-- [ ] Funciona em qualquer zona (início/centro/fim), como os outros widgets
-- [ ] Oculto no modo overlay
+- [x] `LauncherWidget` mostrando os ícones da lista, horizontal (lado a lado) ou vertical (empilhado) conforme a borda
+- [x] Funciona em qualquer zona (início/centro/fim), como os outros widgets
+- [x] Oculto no modo overlay
 
 ## Interação
-- [ ] Clique abre via `Process.Start(UseShellExecute = true)`
-- [ ] Hover: destaque leve + tooltip com o nome
+- [x] Clique abre via `Process.Start(UseShellExecute = true)`
+- [x] Hover: destaque leve + tooltip com o nome
 - [ ] Clique direito: Executar como administrador (`Verb = "runas"`), Abrir local do arquivo, Renomear, Remover
 - [ ] Arrastar um ícone pra reordenar
 - [ ] Opcional: ponto abaixo do ícone quando o app está aberto (compara caminho dos processos a cada poucos segundos)
@@ -82,4 +82,4 @@
 - [ ] Clique direito na barra → "Adicionar atalho" → escolher entre apps instalados (lista de `shell:AppsFolder`, com busca)
 
 ## Erros
-- [ ] Caminho que não existe mais: ícone esmaecido, tooltip "Atalho não encontrado", opção de remover
+- [ ] Caminho que não existe mais: ícone esmaecido, tooltip "Atalho não encontrado" (feito) — falta a opção de remover no menu de clique direito (ainda não implementado)
