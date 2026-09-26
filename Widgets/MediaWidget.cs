@@ -231,7 +231,7 @@ public sealed class MediaWidget : IWidget
         try
         {
             _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-            _manager.CurrentSessionChanged += (_, _) => _dispatcher.BeginInvoke(new Action(HookSession));
+            _manager.CurrentSessionChanged += OnCurrentSessionChanged;
             HookSession();
         }
         catch
@@ -239,6 +239,9 @@ public sealed class MediaWidget : IWidget
             // SMTC indisponível: widget fica oculto, sem derrubar o app.
         }
     }
+
+    private void OnCurrentSessionChanged(GlobalSystemMediaTransportControlsSessionManager sender, CurrentSessionChangedEventArgs args) =>
+        _dispatcher.BeginInvoke(new Action(HookSession));
 
     private void HookSession()
     {
@@ -652,6 +655,13 @@ public sealed class MediaWidget : IWidget
         StopEqualizer();
         _volumePopup.IsOpen = false;
         _feedbackPopup.IsOpen = false;
+
+        // Sem isso, o GlobalSystemMediaTransportControlsSessionManager (que sobrevive além
+        // do widget, gerenciado pelo próprio SO) mantém viva a inscrição — e com ela, esse
+        // MediaWidget inteiro (StackPanel, timers já parados mas ainda referenciados, etc.)
+        // — um "zumbi" que nunca é coletado pelo GC a cada Reload() com o widget de mídia
+        // configurado.
+        if (_manager is not null) _manager.CurrentSessionChanged -= OnCurrentSessionChanged;
 
         if (_session is not null)
         {

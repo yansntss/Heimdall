@@ -19,7 +19,6 @@ public partial class App : Application
     private HotkeyManager? _hotkeys;
     private SettingsWindow? _settingsWindow;
     private ReminderHistoryWindow? _historyWindow;
-    private GlobalSystemMediaTransportControlsSessionManager? _mediaManager;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -47,7 +46,6 @@ public partial class App : Application
         RegisterMediaHotkeys();
         _hotkeys.Register(NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, NativeMethods.VK_R,
             () => Widgets.ReminderWidget.Primary?.OpenQuickAdd());
-        _ = InitMediaManagerAsync();
 
         BuildBars();
     }
@@ -66,21 +64,35 @@ public partial class App : Application
         _hotkeys.Register(mod, NativeMethods.VK_DOWN, () => AdjustMediaVolume(-0.05f));
     }
 
-    private async Task InitMediaManagerAsync()
+    // GlobalSystemMediaTransportControlsSessionManager.RequestAsync() puxa ~45MB de DLLs de
+    // projeção WinRT (Microsoft.Windows.SDK.NET.dll sozinha já são 24MB, mais
+    // windows.storage.dll, OneCoreUAPCommonProxyStub.dll etc.) — custo real medido, não só
+    // teórico. Antes isso rodava sempre no OnStartup, mesmo pra quem não usa nem o widget
+    // "media" nem os atalhos. Agora só inicializa na primeira vez que um atalho de mídia é
+    // de fato apertado — quem nunca usa mídia nunca paga esse custo. O widget "media" (se
+    // configurado) continua com sua própria instância independente, inicializada só quando
+    // o widget existe de verdade.
+    private Task<GlobalSystemMediaTransportControlsSessionManager?>? _mediaManagerTask;
+
+    private Task<GlobalSystemMediaTransportControlsSessionManager?> GetMediaManagerAsync() =>
+        _mediaManagerTask ??= RequestMediaManagerAsync();
+
+    private static async Task<GlobalSystemMediaTransportControlsSessionManager?> RequestMediaManagerAsync()
     {
-        try { _mediaManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync(); }
-        catch { /* SMTC indisponível: atalhos de mídia viram no-op */ }
+        try { return await GlobalSystemMediaTransportControlsSessionManager.RequestAsync(); }
+        catch { return null; } // SMTC indisponível: atalhos de mídia viram no-op
     }
 
-    private void MediaPlayPause() => _ = _mediaManager?.GetCurrentSession()?.TryTogglePlayPauseAsync();
+    private async void MediaPlayPause() => _ = (await GetMediaManagerAsync())?.GetCurrentSession()?.TryTogglePlayPauseAsync();
 
-    private void MediaPrevious() => _ = _mediaManager?.GetCurrentSession()?.TrySkipPreviousAsync();
+    private async void MediaPrevious() => _ = (await GetMediaManagerAsync())?.GetCurrentSession()?.TrySkipPreviousAsync();
 
-    private void MediaNext() => _ = _mediaManager?.GetCurrentSession()?.TrySkipNextAsync();
+    private async void MediaNext() => _ = (await GetMediaManagerAsync())?.GetCurrentSession()?.TrySkipNextAsync();
 
-    private void AdjustMediaVolume(float delta)
+    private async void AdjustMediaVolume(float delta)
     {
-        string? app = _mediaManager?.GetCurrentSession()?.SourceAppUserModelId;
+        var manager = await GetMediaManagerAsync();
+        string? app = manager?.GetCurrentSession()?.SourceAppUserModelId;
         float current = AudioVolumeService.GetVolume(app);
         AudioVolumeService.SetVolume(app, Math.Clamp(current + delta, 0f, 1f));
     }

@@ -293,3 +293,60 @@ barra simplesmente some ao entrar em tela cheia, em vez de virar overlay transpa
 > quando não havia dado do processo em primeiro plano no instante do teste — os três
 > comportamentos esperados confirmados. Não testado: leitura de sensores de temperatura
 > de verdade rodando como administrador (precisa do usuário elevar o Heimdall).
+
+# Fase 12 — Diagnóstico e redução de consumo de RAM
+
+## Diagnóstico (antes de otimizar às cegas)
+Medido com `dotnet-counters`/`Get-Process -Module` (sem Visual Studio no ambiente),
+isolando config (1 monitor, sem overlay) e comparando antes/depois:
+
+- **Achado #1 (confirmado, maior impacto):** `App.OnStartup` chamava
+  `GlobalSystemMediaTransportControlsSessionManager.RequestAsync()`
+  incondicionalmente, mesmo sem o widget `media` configurado e sem nunca apertar um
+  atalho de mídia. Isso carrega `Microsoft.Windows.SDK.NET.dll` (23,74 MB sozinha) +
+  `windows.storage.dll` + `OneCoreUAPCommonProxyStub.dll` + `Windows.Media.MediaControl.dll`
+  — **~30 MB confirmados via `Get-Process -Module`** antes/depois da correção, só de
+  projeção WinRT que ninguém pediu.
+- **Achado #2 (confirmado, leak real):** `MediaWidget` inscrevia
+  `_manager.CurrentSessionChanged` mas nunca desinscrevia no `Dispose()` — como o
+  `GlobalSystemMediaTransportControlsSessionManager` é gerenciado pelo SO e sobrevive
+  além do widget, isso mantinha o `MediaWidget` inteiro (árvore visual, timers já
+  parados mas ainda referenciados) vivo pra sempre a cada `Reload()` com o widget de
+  mídia configurado — um "zumbi" que se acumula a cada troca de tema, cada
+  `AddLauncher`, cada save nas Configurações.
+- **Descartado (não é o problema):** cache de ícones (`IconCacheService`) já lê do PNG
+  em disco corretamente antes de reextrair, e libera o `HBITMAP` nativo via
+  `DeleteObject` num `finally`. `LibreHardwareMonitorLib` só é aberta se o processo
+  estiver elevado (`TemperatureService.IsElevated()` checado **antes** de `new
+  Computer()`) — sem admin, o custo é só a DLL em si (0,7 MB), não o driver de
+  sensores. O arrastar/mover widget (Fase 9) não cria `IWidget` novo — confirmado via
+  grep que `WidgetFactory.Create` só é chamado em `WidgetZoneBuilder`, nunca em
+  `WidgetDragController`.
+- **Fora do controle do Heimdall:** `AMDXN64.DLL` (38,89 MB, driver de GPU AMD, puxado
+  pelo D3D do WPF — aconteceria com qualquer app WPF nesta máquina) e `RTSSHooks64.dll`
+  (injetado pelo próprio RTSS em processos que usam D3D, não é o Heimdall carregando).
+- **Nota de metodologia:** conectar `dotnet-counters`/profiler no processo por si só
+  infla o working set em ~30 MB (sessão de diagnóstico/EventPipe fica retida) — medir
+  primeiro com Task Manager/`tasklist` antes de anexar qualquer profiler, senão o
+  número reportado já vem inflado pela própria ferramenta de medição.
+
+## Correções aplicadas
+- [x] `App.xaml.cs`: `RequestAsync()` do SMTC virou lazy (`GetMediaManagerAsync`),
+      inicializada só no primeiro atalho de mídia de fato usado
+- [x] `MediaWidget.Dispose()`: desinscreve `_manager.CurrentSessionChanged` (handler
+      nomeado `OnCurrentSessionChanged`, antes era uma lambda anônima impossível de
+      desinscrever)
+
+## Resultado medido (tasklist limpo, sem profiler anexado)
+- Baseline (`clock` só, 1 monitor): **~164 MB → ~151 MB**
+- Config completa (media+launcher+reminder+ram+temp+fps, sem elevação): **~198–207 MB**
+  — o `media` widget legitimamente carrega o SMTC de novo (~30 MB), então o alvo
+  original de 40–70 MB citado no plano era calibrado sem contar o custo inerente de
+  WPF com aceleração de hardware nesta máquina (GPU AMD: ~39 MB só de driver, mais
+  ~70–90 MB de infraestrutura básica .NET/WPF) — não é algo que dê pra cortar sem
+  desligar aceleração de hardware (troca ruim pra uma barra que precisa ser fluida).
+
+## Não verificado
+- Consumo de `LibreHardwareMonitorLib` **rodando elevado de verdade** (com o driver de
+  sensores aberto) — precisa do usuário elevar o Heimdall pra medir; sem elevação
+  (caso mais comum) o custo já está confirmado como desprezível.
