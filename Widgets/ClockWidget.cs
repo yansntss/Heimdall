@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -9,7 +8,6 @@ namespace Heimdall.Widgets;
 public sealed class ClockWidget : IWidget
 {
     private readonly ClockConfig _cfg;
-    private readonly CultureInfo _culture;
     private readonly DispatcherTimer _timer = new();
     private readonly TextBlock _text = new()
     {
@@ -24,9 +22,6 @@ public sealed class ClockWidget : IWidget
     public ClockWidget(ClockConfig cfg)
     {
         _cfg = cfg;
-        try { _culture = CultureInfo.GetCultureInfo(cfg.Culture); }
-        catch (CultureNotFoundException) { _culture = CultureInfo.CurrentCulture; }
-
         _timer.Tick += (_, _) => Update();
     }
 
@@ -45,24 +40,11 @@ public sealed class ClockWidget : IWidget
     private void Update()
     {
         var now = DateTime.Now;
-
-        _text.Text = _vertical
-            ? Join("\n", Format(now, _cfg.TimeFormat), Format(now, _cfg.VerticalDateFormat))
-            : Join("   ", Format(now, _cfg.DateFormat), Format(now, _cfg.TimeFormat));
+        _text.Text = ClockFormatter.Format(_cfg, now, _vertical);
 
         // Alinha o próximo tick à virada do segundo
         _timer.Interval = TimeSpan.FromMilliseconds(1000 - now.Millisecond + 10);
     }
-
-    private string Format(DateTime value, string? format)
-    {
-        if (string.IsNullOrWhiteSpace(format)) return string.Empty;
-        try { return value.ToString(format, _culture); }
-        catch (FormatException) { return "?"; }
-    }
-
-    private static string Join(string separator, params string[] parts) =>
-        string.Join(separator, parts.Where(p => p.Length > 0));
 
     public void Dispose() => _timer.Stop();
 }

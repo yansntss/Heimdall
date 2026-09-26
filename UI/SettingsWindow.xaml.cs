@@ -3,8 +3,10 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.Widgets;
 
 namespace Heimdall.UI;
 
@@ -14,6 +16,7 @@ public partial class SettingsWindow : Window
 
     private readonly AppConfig _cfg;
     private readonly ObservableCollection<ReminderRow> _reminders;
+    private readonly DispatcherTimer _clockPreviewTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
     public SettingsWindow()
     {
@@ -52,19 +55,67 @@ public partial class SettingsWindow : Window
         FontFamilyCombo.Text = _cfg.Style.FontFamily;
         FontSizeBox.Text = _cfg.Style.FontSize?.ToString(CultureInfo.InvariantCulture) ?? "";
 
+        // Relógio
+        ClockModeCombo.ItemsSource = Enum.GetValues(typeof(ClockMode));
+        ClockModeCombo.SelectedItem = _cfg.Clock.Mode;
+        ClockStyleCombo.ItemsSource = Enum.GetValues(typeof(ClockStyle));
+        ClockStyleCombo.SelectedItem = _cfg.Clock.Style;
+        ClockCultureBox.Text = _cfg.Clock.Culture;
+        ClockCustomFormatBox.Text = _cfg.Clock.CustomFormat;
+        UpdateClockModeUi();
+        UpdateClockPreview();
+        _clockPreviewTimer.Tick += (_, _) => UpdateClockPreview();
+        _clockPreviewTimer.Start();
+        Closed += (_, _) => _clockPreviewTimer.Stop();
+
         // Widgets
         StartCatalog.ItemsSource = WidgetCatalog;
         CenterCatalog.ItemsSource = WidgetCatalog;
         EndCatalog.ItemsSource = WidgetCatalog;
-        foreach (var id in _cfg.Widgets.Start) StartList.Items.Add(id);
-        foreach (var id in _cfg.Widgets.Center) CenterList.Items.Add(id);
-        foreach (var id in _cfg.Widgets.End) EndList.Items.Add(id);
+        foreach (var entry in _cfg.Widgets.Start) StartList.Items.Add(WidgetRow.From(entry));
+        foreach (var entry in _cfg.Widgets.Center) CenterList.Items.Add(WidgetRow.From(entry));
+        foreach (var entry in _cfg.Widgets.End) EndList.Items.Add(WidgetRow.From(entry));
 
         // Lembretes
         KindColumn.ItemsSource = Enum.GetValues(typeof(ReminderKind));
         RecurrenceColumn.ItemsSource = Enum.GetValues(typeof(ReminderRecurrence));
         _reminders = new ObservableCollection<ReminderRow>(_cfg.Reminders.Select(ReminderRow.From));
         RemindersGrid.ItemsSource = _reminders;
+    }
+
+    // ---------- Relógio ----------
+
+    private void ClockModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateClockModeUi();
+        UpdateClockPreview();
+    }
+
+    private void ClockStyleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateClockPreview();
+
+    private void ClockCultureBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateClockPreview();
+
+    private void ClockCustomFormatBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateClockPreview();
+
+    private void UpdateClockModeUi()
+    {
+        bool custom = ClockModeCombo.SelectedItem is ClockMode.Custom;
+        ClockStyleCombo.IsEnabled = !custom;
+        ClockCustomFormatBox.IsEnabled = custom;
+    }
+
+    private void UpdateClockPreview()
+    {
+        var preview = new ClockConfig
+        {
+            Mode = ClockModeCombo.SelectedItem is ClockMode mode ? mode : ClockMode.Both,
+            Style = ClockStyleCombo.SelectedItem is ClockStyle style ? style : ClockStyle.Classic,
+            Culture = ClockCultureBox.Text,
+            CustomFormat = ClockCustomFormatBox.Text
+        };
+        var now = DateTime.Now;
+        ClockPreviewHorizontal.Text = ClockFormatter.Format(preview, now, vertical: false);
+        ClockPreviewVertical.Text = ClockFormatter.Format(preview, now, vertical: true).Replace("\n", "   /   ");
     }
 
     // ---------- Geral ----------
@@ -150,8 +201,15 @@ public partial class SettingsWindow : Window
 
     private static void AddWidget(ListBox list, ComboBox catalog)
     {
-        if (catalog.SelectedItem is string id && !list.Items.Contains(id))
-            list.Items.Add(id);
+        if (catalog.SelectedItem is string id && !list.Items.Cast<WidgetRow>().Any(r => r.Id == id))
+            list.Items.Add(new WidgetRow { Id = id });
+    }
+
+    private void TogglePin_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is not ListBox list || list.SelectedItem is not WidgetRow row) return;
+        row.Pinned = !row.Pinned;
+        list.Items.Refresh();
     }
 
     // ---------- Lembretes ----------
@@ -219,9 +277,13 @@ public partial class SettingsWindow : Window
         _cfg.Style.Foreground = string.IsNullOrWhiteSpace(ForegroundHexBox.Text) ? null : ForegroundHexBox.Text;
         _cfg.Style.FontFamily = string.IsNullOrWhiteSpace(FontFamilyCombo.Text) ? null : FontFamilyCombo.Text;
         _cfg.Style.FontSize = fontSize;
-        _cfg.Widgets.Start = StartList.Items.Cast<string>().ToList();
-        _cfg.Widgets.Center = CenterList.Items.Cast<string>().ToList();
-        _cfg.Widgets.End = EndList.Items.Cast<string>().ToList();
+        _cfg.Widgets.Start = StartList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
+        _cfg.Widgets.Center = CenterList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
+        _cfg.Widgets.End = EndList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
+        _cfg.Clock.Mode = (ClockMode)ClockModeCombo.SelectedItem;
+        _cfg.Clock.Style = (ClockStyle)ClockStyleCombo.SelectedItem;
+        _cfg.Clock.Culture = string.IsNullOrWhiteSpace(ClockCultureBox.Text) ? "pt-BR" : ClockCultureBox.Text;
+        _cfg.Clock.CustomFormat = string.IsNullOrWhiteSpace(ClockCustomFormatBox.Text) ? null : ClockCustomFormatBox.Text;
         _cfg.Reminders = _reminders.Select(r => r.ToConfig()).ToList();
 
         bool startWithWindows = StartWithWindowsCheck.IsChecked == true;
@@ -237,6 +299,18 @@ public partial class SettingsWindow : Window
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
 
     private sealed record MonitorOption(string Device, string Label);
+
+    private sealed class WidgetRow
+    {
+        public string Id { get; set; } = "";
+        public bool Pinned { get; set; }
+
+        public static WidgetRow From(WidgetEntry entry) => new() { Id = entry.Id, Pinned = entry.Pinned };
+
+        public WidgetEntry ToEntry() => new(Id, Pinned);
+
+        public override string ToString() => Pinned ? $"📌 {Id}" : Id;
+    }
 
     private sealed class ReminderRow
     {

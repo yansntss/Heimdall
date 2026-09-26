@@ -19,7 +19,10 @@ internal sealed class GhostIconWindow : Window
     private readonly Border _host;
     private readonly Border _removalBadge;
 
-    public GhostIconWindow(FrameworkElement visual, double size)
+    public GhostIconWindow(FrameworkElement visual, double size) : this(visual, size, size) { }
+
+    /// <summary>Largura/altura independentes — widgets (relógio, mídia...) não são quadrados como os ícones do launcher.</summary>
+    public GhostIconWindow(FrameworkElement visual, double width, double height)
     {
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -27,13 +30,13 @@ internal sealed class GhostIconWindow : Window
         ShowInTaskbar = false;
         Topmost = true;
         ResizeMode = ResizeMode.NoResize;
-        Width = size;
-        Height = size;
+        Width = width;
+        Height = height;
 
         _host = new Border
         {
-            Width = size,
-            Height = size,
+            Width = width,
+            Height = height,
             Child = visual,
             RenderTransformOrigin = new Point(0.5, 0.5),
             RenderTransform = _scale

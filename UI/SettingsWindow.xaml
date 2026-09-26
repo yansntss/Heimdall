@@ -75,6 +75,41 @@
                 </StackPanel>
             </TabItem>
 
+            <!-- ================= RELÓGIO ================= -->
+            <TabItem Header="Relógio">
+                <StackPanel Margin="12">
+                    <TextBlock Text="Modo" FontWeight="Bold"/>
+                    <ComboBox x:Name="ClockModeCombo" Margin="0,4,0,12" HorizontalAlignment="Left" Width="160"
+                              SelectionChanged="ClockModeCombo_SelectionChanged"/>
+
+                    <TextBlock Text="Estilo" FontWeight="Bold"/>
+                    <ComboBox x:Name="ClockStyleCombo" Margin="0,4,0,12" HorizontalAlignment="Left" Width="160"
+                              SelectionChanged="ClockStyleCombo_SelectionChanged"/>
+
+                    <TextBlock Text="Cultura (ex.: pt-BR, en-US)" FontWeight="Bold"/>
+                    <TextBox x:Name="ClockCultureBox" Margin="0,4,0,12" Width="160" HorizontalAlignment="Left"
+                             TextChanged="ClockCultureBox_TextChanged"/>
+
+                    <TextBlock Text="Formato personalizado (.NET) — só com Modo = Custom" FontWeight="Bold"/>
+                    <TextBox x:Name="ClockCustomFormatBox" Margin="0,4,0,12" Width="280" HorizontalAlignment="Left"
+                             TextChanged="ClockCustomFormatBox_TextChanged"/>
+
+                    <TextBlock Text="Pré-visualização" FontWeight="Bold" Margin="0,8,0,4"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" Padding="10" HorizontalAlignment="Left">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Barra horizontal:  " FontWeight="SemiBold"/>
+                                <TextBlock x:Name="ClockPreviewHorizontal"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Text="Barra vertical:  " FontWeight="SemiBold"/>
+                                <TextBlock x:Name="ClockPreviewVertical"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </TabItem>
+
             <!-- ================= WIDGETS ================= -->
             <TabItem Header="Widgets">
                 <Grid Margin="12">
@@ -90,6 +125,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                             <Button Content="▲" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveUp_Click" ToolTip="Mover para cima"/>
                             <Button Content="▼" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveDown_Click" ToolTip="Mover para baixo"/>
+                            <Button Content="📌" Width="26" Tag="{Binding ElementName=StartList}" Click="TogglePin_Click" ToolTip="Fixar/desafixar"/>
                             <Button Content="Remover" Tag="{Binding ElementName=StartList}" Click="Remove_Click"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -104,6 +140,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                             <Button Content="▲" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveUp_Click" ToolTip="Mover para cima"/>
                             <Button Content="▼" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveDown_Click" ToolTip="Mover para baixo"/>
+                            <Button Content="📌" Width="26" Tag="{Binding ElementName=CenterList}" Click="TogglePin_Click" ToolTip="Fixar/desafixar"/>
                             <Button Content="Remover" Tag="{Binding ElementName=CenterList}" Click="Remove_Click"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -118,6 +155,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                             <Button Content="▲" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveUp_Click" ToolTip="Mover para cima"/>
                             <Button Content="▼" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveDown_Click" ToolTip="Mover para baixo"/>
+                            <Button Content="📌" Width="26" Tag="{Binding ElementName=EndList}" Click="TogglePin_Click" ToolTip="Fixar/desafixar"/>
                             <Button Content="Remover" Tag="{Binding ElementName=EndList}" Click="Remove_Click"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">

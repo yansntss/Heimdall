@@ -217,10 +217,10 @@ public partial class App : Application
 
     private static void EnsureLauncherWidgetVisible(AppConfig cfg)
     {
-        bool alreadyVisible = cfg.Widgets.Start.Contains("launcher")
-            || cfg.Widgets.Center.Contains("launcher")
-            || cfg.Widgets.End.Contains("launcher");
-        if (!alreadyVisible) cfg.Widgets.End.Add("launcher");
+        bool alreadyVisible = cfg.Widgets.Start.Any(w => w.Id == "launcher")
+            || cfg.Widgets.Center.Any(w => w.Id == "launcher")
+            || cfg.Widgets.End.Any(w => w.Id == "launcher");
+        if (!alreadyVisible) cfg.Widgets.End.Add(new WidgetEntry("launcher"));
     }
 
     public void OpenReminderHistory()

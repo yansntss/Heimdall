@@ -51,19 +51,39 @@ public sealed class BarStyle
     public double? FontSize { get; set; }
 }
 
+/// <summary>Uma entrada de widget numa zona: qual widget e se está fixado (não se move nem é movido por arraste).</summary>
+public sealed class WidgetEntry
+{
+    public string Id { get; set; } = "";
+    public bool Pinned { get; set; }
+
+    public WidgetEntry() { }
+
+    public WidgetEntry(string id, bool pinned = false)
+    {
+        Id = id;
+        Pinned = pinned;
+    }
+}
+
 /// <summary>Três zonas: início (esq./topo), centro e fim (dir./base).</summary>
 public sealed class WidgetLayout
 {
-    public List<string> Start { get; set; } = new();
-    public List<string> Center { get; set; } = new() { "clock" };
-    public List<string> End { get; set; } = new();
+    public List<WidgetEntry> Start { get; set; } = new();
+    public List<WidgetEntry> Center { get; set; } = new() { new WidgetEntry("clock") };
+    public List<WidgetEntry> End { get; set; } = new();
 }
+
+public enum ClockMode { TimeOnly, DateOnly, Both, Custom }
+
+public enum ClockStyle { Classic, Compact, Verbose, ISO }
 
 public sealed class ClockConfig
 {
-    public string TimeFormat { get; set; } = "HH:mm";
-    public string DateFormat { get; set; } = "ddd, dd/MM/yyyy";
-    /// <summary>Formato da data quando a barra está na lateral (espaço menor).</summary>
-    public string VerticalDateFormat { get; set; } = "dd/MM";
+    public ClockMode Mode { get; set; } = ClockMode.Both;
+    public ClockStyle Style { get; set; } = ClockStyle.Classic;
     public string Culture { get; set; } = "pt-BR";
+
+    /// <summary>Usado só quando Mode = Custom — formato .NET livre, sem variação por orientação.</summary>
+    public string? CustomFormat { get; set; }
 }

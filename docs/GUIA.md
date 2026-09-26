@@ -23,12 +23,16 @@ Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução).
     "FontFamily": null,
     "FontSize": null
   },
-  "Widgets": { "Start": [], "Center": ["clock"], "End": ["media", "reminder", "launcher"] },
+  "Widgets": {                  // cada item é {Id, Pinned} — Pinned não se move nem é movido no arraste
+    "Start": [],
+    "Center": [{ "Id": "clock", "Pinned": false }],
+    "End": [{ "Id": "media" }, { "Id": "reminder" }, { "Id": "launcher" }]
+  },
   "Clock": {
-    "TimeFormat": "HH:mm:ss",
-    "DateFormat": "ddd, dd/MM/yyyy",
-    "VerticalDateFormat": "dd/MM",
-    "Culture": "pt-BR"
+    "Mode": "Both",              // TimeOnly | DateOnly | Both | Custom
+    "Style": "Classic",          // Classic | Compact | Verbose | ISO — ignorado com Mode = Custom
+    "Culture": "pt-BR",
+    "CustomFormat": null         // formato .NET livre, só com Mode = Custom (não varia por orientação)
   },
   "Reminders": [
     { "Kind": "Fixed", "Text": "Beber água" },
@@ -50,7 +54,7 @@ Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução).
 
 ## Configurações pela interface
 
-Clique direito na barra → **Configurações...** abre uma janela com 4 abas — não precisa
+Clique direito na barra → **Configurações...** abre uma janela com abas — não precisa
 editar o `config.json` na mão pro dia a dia:
 
 - **Geral**: borda, espessura, modo flutuante (+ margem), modo/escolha de monitor,
@@ -58,9 +62,13 @@ editar o `config.json` na mão pro dia a dia:
 - **Aparência**: dropdown com os temas (embutidos + os seus, salvos em
   `%AppData%\Heimdall\themes\*.json` — ver "Temas" abaixo), e overrides opcionais de
   cor de fundo/texto (com seletor nativo), fonte e tamanho por cima do tema escolhido.
-- **Widgets**: reordena/adiciona/remove os widgets de cada zona (início/centro/fim).
-  `launcher` (atalhos) entra aqui como qualquer outro — os itens em si (`Launchers`) são
-  geridos direto pela barra, não por essa tela (ver "Widget: launcher").
+- **Relógio**: dropdown de Modo e Estilo, cultura e formato personalizado, com
+  pré-visualização ao vivo (horizontal e vertical) — ver "Relógio" abaixo.
+- **Widgets**: reordena/adiciona/remove os widgets de cada zona (início/centro/fim), e o
+  botão 📌 fixa/desafixa o selecionado. `launcher` (atalhos) entra aqui como qualquer
+  outro — os itens em si (`Launchers`) são geridos direto pela barra, não por essa tela
+  (ver "Widget: launcher"). Arrastar direto na barra faz a mesma coisa sem abrir essa tela
+  (ver "Arrastar e fixar widgets" abaixo).
 - **Lembretes**: grid pra adicionar/editar/remover os itens de `Reminders`.
 
 "Salvar e recarregar" grava o `config.json` e aplica na hora, sem reiniciar o app. Quem
@@ -75,6 +83,45 @@ que está rodando *no momento em que você salva*. Em `dotnet run`/debug isso é
 de debug; assim que você rodar a partir do `.exe` publicado, é só reativar o checkbox uma
 vez pra apontar pro caminho certo. Se mover ou republicar o app pra outra pasta, reative
 de novo.
+
+## Relógio
+
+`Clock.Mode` decide o que mostra: `TimeOnly` (só hora), `DateOnly` (só data), `Both` (os
+dois) ou `Custom` (formato .NET livre em `CustomFormat`, ignora `Style`). Com `Both` ou
+`DateOnly`, `Clock.Style` escolhe o formato:
+
+| Style | Exemplo (horizontal) | Exemplo (vertical) |
+|---|---|---|
+| `Classic` | `qui, 25/09/2026   14:30` | `14:30` / `25/09` |
+| `Compact` | `25/09 14:30` | `14:30` / `25/09` |
+| `Verbose` | `quinta-feira, 25 de setembro   14:30:45` | `14:30:45` / `25/09` |
+| `ISO` | `2026-09-25 14:30:45` | `2026-09-25` / `14:30:45` |
+
+Na barra vertical (laterais), a data sempre usa a variante curta de cada estilo — não é
+um campo solto, faz parte da definição do `Style`. `Clock.Culture` (`pt-BR`, `en-US`, ...)
+controla nomes de dia/mês e formatos regionais. A aba **Relógio** das Configurações tem
+dropdown de Modo/Estilo e uma pré-visualização ao vivo dos dois formatos antes de salvar.
+
+Configs antigos com `TimeFormat`/`DateFormat`/`VerticalDateFormat` são migrados
+automaticamente pro `Mode: "Custom"` na primeira leitura, preservando o formato exato que
+já estava configurado (só perde a variante vertical, que no `Custom` novo não varia por
+orientação — dá pra trocar pra um `Style` pronto depois se quiser).
+
+## Arrastar e fixar widgets
+
+Qualquer widget (`clock`, `media`, `reminder`, `launcher`, `separator`) pode ser
+arrastado — pressione e mova alguns pixels pra pegar. Um fantasma (miniatura do próprio
+widget) segue o cursor, os vizinhos deslizam pra abrir espaço, e ele "voa" até o lugar
+certo ao soltar — a mesma mecânica do arraste de ícones do `launcher`, só que pra widgets
+inteiros, inclusive entre zonas (início/centro/fim). Esc cancela e volta tudo pro lugar.
+A ordem e o alvo são salvos no `config.json` (e a barra recarrega) direto ao soltar, sem
+precisar abrir as Configurações.
+
+Clique direito num widget (numa área sem menu próprio, como o texto do relógio ou o fundo
+do widget de mídia) → **Fixar posição** trava ele: não se move quando outros são
+arrastados por perto, e ele mesmo não pode ser arrastado (o cursor mostra "bloqueado" ao
+tentar). Um alfinete discreto aparece no canto ao passar o mouse por cima pra lembrar que
+está fixado. **Desafixar** no mesmo menu libera de novo.
 
 ## Temas
 
@@ -144,12 +191,16 @@ qualquer fundo. A troca entre os dois modos é um fade de 200 ms, não um corte 
   `shell:AppsFolder\{AppUserModelId}`). Ícones extraídos em alta resolução (cache em
   `%AppData%\Heimdall\cache\icons\`) e escalados pela espessura da barra. Clique abre;
   clique direito dá "Executar como administrador", "Abrir local do arquivo",
-  "Renomear..." e "Remover"; um ícone é arrastável pra reordenar; um ponto embaixo
-  indica que o app já está aberto (só funciona pra atalhos que apontam direto pro `.exe`
-  real — alguns como `calc.exe`/`notepad.exe` no Windows 11 são stubs que redirecionam
-  pro app moderno noutro caminho). Pra adicionar: arraste um arquivo/atalho/pasta pra
-  cima da barra, ou clique direito na barra → **Adicionar atalho** (escolher um arquivo,
-  ou escolher entre os apps instalados com busca). Some no modo overlay.
+  "Renomear..." e "Remover"; um ícone é arrastável pra reordenar; um traço embaixo indica
+  que o app já está aberto (varre as janelas de topo reais a cada poucos segundos via
+  `EnumWindows`, comparando o executável dono com o `Path` do atalho — só funciona pra
+  atalhos locais, não pra apps da Store/URLs). Clicar num ícone com o traço foca a janela
+  em vez de abrir outra instância (restaura se estiver minimizada); se o app estiver
+  elevado e o Heimdall não, `SetForegroundWindow` falha e o clique não faz nada — é uma
+  limitação do Windows, sem contorno sem elevar o Heimdall também. Pra adicionar: arraste
+  um arquivo/atalho/pasta pra cima da barra, ou clique direito na barra → **Adicionar
+  atalho** (escolher um arquivo, ou escolher entre os apps instalados com busca). Some no
+  modo overlay.
 
 ## Estrutura do código
 
@@ -158,11 +209,15 @@ qualquer fundo. A troca entre os dois modos é um fade de 200 ms, não um corte 
   globais), `ShellInterop` (extração de ícone e resolução de `.lnk`).
 - `Services/` — `ThemeService` (temas embutidos/usuário), `MonitorService`,
   `StartupService`, `AudioVolumeService` (volume por app), `IconCacheService`,
-  `InstalledAppsService` (lista de apps instalados), `ReminderHistoryService`.
-- `Config/` — modelo e leitura/gravação do JSON (`AppConfig`, `ThemeConfig`,
-  `ReminderConfig`, `LauncherConfig`).
-- `Widgets/` — `IWidget`, `WidgetFactory`, `ClockWidget`, `MediaWidget`,
+  `InstalledAppsService` (lista de apps instalados), `ReminderHistoryService`,
+  `OpenWindowsService` (janelas de topo abertas, pro indicador do `launcher`).
+- `Config/` — modelo e leitura/gravação do JSON (`AppConfig`, `WidgetEntry`, `ThemeConfig`,
+  `ReminderConfig`, `LauncherConfig`) — `ConfigService` também migra formatos antigos
+  (`Clock` solto → `Mode`/`Style`, `Widgets.*` de string pra `{Id, Pinned}`).
+- `Widgets/` — `IWidget`, `WidgetFactory`, `ClockWidget` + `ClockFormatter`, `MediaWidget`,
   `ReminderWidget`, `LauncherWidget`.
 - `UI/` — `BarPresenter` (troca barra↔overlay), `BarWindow`/`OverlayWindow` (3 zonas:
-  início/centro/fim, via `WidgetZoneBuilder`), `SettingsWindow`, `QuickAddReminderWindow`,
+  início/centro/fim, via `WidgetZoneBuilder`), `WidgetDragController` (arrastar widgets
+  entre zonas), `GhostIconWindow` (fantasma do arraste, reaproveitado pelo `launcher` e
+  pelo `WidgetDragController`), `SettingsWindow`, `QuickAddReminderWindow`,
   `ReminderHistoryWindow`, `RenamePromptWindow`, `InstalledAppPickerWindow`.

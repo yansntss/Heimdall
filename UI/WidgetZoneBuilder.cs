@@ -38,16 +38,25 @@ internal static class WidgetZoneBuilder
 
         zones.Margin = vertical ? new Thickness(0, 8, 0, 8) : new Thickness(8, 0, 8, 0);
 
-        SetupZone(widgets, cfg, start, cfg.Widgets.Start, orientation,
+        // Arrastar/fixar só fazem sentido na barra de verdade — no overlay é só informativo
+        // e o clique atravessa, então nem entra na jogada.
+        WidgetDragController? drag = isOverlay
+            ? null
+            : new WidgetDragController(cfg, zones, vertical, () => ((App)Application.Current).Reload());
+        drag?.RegisterZone(start, cfg.Widgets.Start);
+        drag?.RegisterZone(center, cfg.Widgets.Center);
+        drag?.RegisterZone(end, cfg.Widgets.End);
+
+        SetupZone(widgets, cfg, start, cfg.Widgets.Start, 0, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left,
-            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor);
+            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor, drag);
 
-        SetupZone(widgets, cfg, center, cfg.Widgets.Center, orientation,
-            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor);
+        SetupZone(widgets, cfg, center, cfg.Widgets.Center, 1, orientation,
+            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor, drag);
 
-        SetupZone(widgets, cfg, end, cfg.Widgets.End, orientation,
+        SetupZone(widgets, cfg, end, cfg.Widgets.End, 2, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Right,
-            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor);
+            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor, drag);
 
         // Separador entre zona e centro, do lado que fica voltado pro centro: último
         // filho de Start (mais próximo do centro, já que Start é alinhado à esquerda/topo)
@@ -58,32 +67,53 @@ internal static class WidgetZoneBuilder
         return widgets;
     }
 
-    private static void SetupZone(List<IWidget> widgets, AppConfig cfg, StackPanel zone, IEnumerable<string>? ids,
-        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush, Color hoverColor, Color outlineColor)
+    private static void SetupZone(List<IWidget> widgets, AppConfig cfg, StackPanel zone, List<WidgetEntry> entries, int zoneIndex,
+        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush,
+        Color hoverColor, Color outlineColor, WidgetDragController? drag)
     {
         zone.Orientation = orientation;
         zone.HorizontalAlignment = horizontal;
         zone.VerticalAlignment = vertical;
 
-        if (ids is null) return;
-
-        foreach (var id in ids)
+        foreach (var entry in entries)
         {
-            var widget = WidgetFactory.Create(id, cfg, isOverlay);
+            var widget = WidgetFactory.Create(entry.Id, cfg, isOverlay);
             if (widget is null) continue;
 
             widget.ApplyOrientation(orientation);
 
             if (zone.Children.Count > 0) zone.Children.Add(CreateSeparator(orientation, separatorBrush));
 
-            // Overlay é só informativo e clique atravessa — sem destaque de hover ali,
-            // mas com contorno no texto pra ler sobre qualquer fundo de jogo.
-            zone.Children.Add(isOverlay
-                ? WrapWithMargin(WrapWithOutline(widget.View, outlineColor), orientation)
-                : WrapWithHover(widget.View, orientation, hoverColor));
+            if (isOverlay)
+            {
+                // Overlay é só informativo e clique atravessa — sem destaque de hover, sem
+                // arrastar/fixar, só o contorno no texto pra ler sobre qualquer fundo de jogo.
+                zone.Children.Add(WrapWithMargin(WrapWithOutline(widget.View, outlineColor), orientation));
+            }
+            else
+            {
+                var wrapper = WrapWithHover(widget.View, orientation, hoverColor, entry.Pinned);
+                wrapper.ContextMenu = BuildWidgetContextMenu(cfg, entry);
+                drag?.RegisterSlot(wrapper, entry, zoneIndex);
+                zone.Children.Add(wrapper);
+            }
+
             widgets.Add(widget);
             widget.Start();
         }
+    }
+
+    /// <summary>Fixar/desafixar um widget inteiro (clique direito em qualquer parte dele que não tenha o próprio menu, como o ícone de um atalho).</summary>
+    private static ContextMenu BuildWidgetContextMenu(AppConfig cfg, WidgetEntry entry)
+    {
+        var toggle = new MenuItem { Header = entry.Pinned ? "Desafixar" : "Fixar posição" };
+        toggle.Click += (_, _) =>
+        {
+            entry.Pinned = !entry.Pinned;
+            ConfigService.Save(cfg);
+            ((App)Application.Current).Reload();
+        };
+        return new ContextMenu { Items = { toggle } };
     }
 
     private static FrameworkElement WrapWithMargin(FrameworkElement view, Orientation orientation)
@@ -121,13 +151,38 @@ internal static class WidgetZoneBuilder
         return grid;
     }
 
-    /// <summary>Envolve o widget num Border que acende sutilmente (cor "Hover" do tema) ao passar o mouse, com transição de 150 ms.</summary>
-    private static Border WrapWithHover(FrameworkElement view, Orientation orientation, Color hoverColor)
+    /// <summary>
+    /// Envolve o widget num Border que acende sutilmente (cor "Hover" do tema) ao passar o
+    /// mouse, com transição de 150 ms. Quando fixado, mostra um alfinete discreto no canto
+    /// que só aparece no hover (mesmo fade de 150 ms).
+    /// </summary>
+    private static Border WrapWithHover(FrameworkElement view, Orientation orientation, Color hoverColor, bool pinned)
     {
         var background = new SolidColorBrush(Colors.Transparent);
+        FrameworkElement content = view;
+        TextBlock? pinIcon = null;
+
+        if (pinned)
+        {
+            pinIcon = new TextBlock
+            {
+                Text = "📌",
+                FontSize = 9,
+                Opacity = 0,
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, -3, -3, 0)
+            };
+            var grid = new Grid();
+            grid.Children.Add(view);
+            grid.Children.Add(pinIcon);
+            content = grid;
+        }
+
         var wrapper = new Border
         {
-            Child = view,
+            Child = content,
             CornerRadius = new CornerRadius(4),
             Background = background,
             Margin = orientation == Orientation.Vertical
@@ -137,8 +192,16 @@ internal static class WidgetZoneBuilder
         };
         view.Margin = new Thickness(0);
 
-        wrapper.MouseEnter += (_, _) => AnimateHover(background, hoverColor);
-        wrapper.MouseLeave += (_, _) => AnimateHover(background, Colors.Transparent);
+        wrapper.MouseEnter += (_, _) =>
+        {
+            AnimateHover(background, hoverColor);
+            pinIcon?.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(HoverTransitionMs)));
+        };
+        wrapper.MouseLeave += (_, _) =>
+        {
+            AnimateHover(background, Colors.Transparent);
+            pinIcon?.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(HoverTransitionMs)));
+        };
 
         return wrapper;
     }

@@ -29,7 +29,10 @@ public sealed class LauncherWidget : IWidget
     private readonly int _iconSize;
     private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center };
     private readonly DispatcherTimer _runningTimer = new() { Interval = TimeSpan.FromSeconds(3) };
-    private readonly List<(string TargetPath, Ellipse Dot)> _runningIndicators = new();
+    private readonly List<(string TargetPath, Ellipse Dot, LauncherConfig Launcher)> _runningIndicators = new();
+
+    /// <summary>Launcher → HWND da janela aberta encontrada na última varredura — usado pro clique focar em vez de abrir de novo.</summary>
+    private readonly Dictionary<LauncherConfig, IntPtr> _openWindows = new();
     // Esc só é lido de dentro do PreviewMouseMove (via UpdateDrag) — sem isso, segurar o
     // mouse parado e apertar Esc nunca cancelava, já que nada disparava a checagem.
     private readonly DispatcherTimer _escapeWatchTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
@@ -62,6 +65,7 @@ public sealed class LauncherWidget : IWidget
     {
         _root.Children.Clear();
         _runningIndicators.Clear();
+        _openWindows.Clear();
         foreach (var launcher in _cfg.Launchers)
             _root.Children.Add(launcher.Type == LauncherItemType.Separator ? CreateSeparatorItem(launcher) : CreateIcon(launcher));
     }
@@ -87,30 +91,29 @@ public sealed class LauncherWidget : IWidget
 
     // ---------- Ponto indicando que o app já está aberto ----------
 
-    /// <summary>Compara com os processos em execução a cada poucos segundos — só pra atalhos locais (exe/.lnk), não dá pra checar apps da Store/URLs assim.</summary>
+    /// <summary>
+    /// Varre as janelas de topo "reais" a cada poucos segundos — só pra atalhos locais
+    /// (exe/.lnk), não dá pra checar apps da Store/URLs assim. Guarda o HWND encontrado
+    /// pra cada launcher, usado pelo clique focar em vez de abrir de novo.
+    /// </summary>
     private void CheckRunning()
     {
         if (_runningIndicators.Count == 0) return;
 
-        var runningPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var process in Process.GetProcesses())
+        var openWindows = OpenWindowsService.Snapshot();
+        foreach (var (targetPath, dot, launcher) in _runningIndicators)
         {
-            try
+            if (openWindows.TryGetValue(targetPath, out var hwnd))
             {
-                if (process.MainModule?.FileName is { } path) runningPaths.Add(path);
+                _openWindows[launcher] = hwnd;
+                dot.Visibility = Visibility.Visible;
             }
-            catch
+            else
             {
-                // Processo elevado/do sistema sem permissão de leitura — ignora e segue.
-            }
-            finally
-            {
-                process.Dispose();
+                _openWindows.Remove(launcher);
+                dot.Visibility = Visibility.Collapsed;
             }
         }
-
-        foreach (var (targetPath, dot) in _runningIndicators)
-            dot.Visibility = runningPaths.Contains(targetPath) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>Só o visual do ícone (imagem ou glifo de fallback) — reaproveitado pelo ícone real e pelo fantasma do arraste.</summary>
@@ -167,7 +170,7 @@ public sealed class LauncherWidget : IWidget
             withDot.Children.Add(content);
             withDot.Children.Add(dot);
             content = withDot;
-            _runningIndicators.Add((targetPath, dot));
+            _runningIndicators.Add((targetPath, dot, launcher));
         }
 
         var background = new SolidColorBrush(Colors.Transparent);
@@ -188,7 +191,11 @@ public sealed class LauncherWidget : IWidget
         border.MouseLeave += (_, _) =>
             background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
 
-        border.MouseLeftButtonUp += (_, _) => Launch(launcher, forceAdmin: false);
+        border.MouseLeftButtonUp += (_, _) =>
+        {
+            if (_openWindows.TryGetValue(launcher, out var hwnd)) OpenWindowsService.FocusOrRestore(hwnd);
+            else Launch(launcher, forceAdmin: false);
+        };
 
         SetupItemInteraction(border, launcher);
         border.ContextMenu = BuildContextMenu(launcher, border);

@@ -99,7 +99,7 @@ Quem preferir também pode editar o JSON diretamente em
   "FloatingMode": false,        // true = barra flutuante (margem + cantos arredondados)
   "MonitorMode": "Primary",     // Primary | Specific | All
   "Theme": "Escuro",            // tema embutido ou salvo em .../themes/*.json
-  "Widgets": { "Start": [], "Center": ["clock"], "End": ["media", "reminder", "launcher"] }
+  "Widgets": { "Start": [], "Center": [{ "Id": "clock" }], "End": [{ "Id": "media" }, { "Id": "reminder" }, { "Id": "launcher" }] }
 }
 ```
 

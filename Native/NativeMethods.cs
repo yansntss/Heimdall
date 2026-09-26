@@ -92,13 +92,13 @@ internal static class NativeMethods
     [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
     private static extern int SetWindowLong32(IntPtr hWnd, int nIndex, int value);
 
+    public static long GetExStyle(IntPtr hwnd) => IntPtr.Size == 8
+        ? GetWindowLongPtr64(hwnd, GWL_EXSTYLE).ToInt64()
+        : GetWindowLong32(hwnd, GWL_EXSTYLE);
+
     public static void SetExStyle(IntPtr hwnd, long add = 0, long remove = 0)
     {
-        long style = IntPtr.Size == 8
-            ? GetWindowLongPtr64(hwnd, GWL_EXSTYLE).ToInt64()
-            : GetWindowLong32(hwnd, GWL_EXSTYLE);
-
-        style = (style | add) & ~remove;
+        long style = (GetExStyle(hwnd) | add) & ~remove;
 
         if (IntPtr.Size == 8) SetWindowLongPtr64(hwnd, GWL_EXSTYLE, new IntPtr(style));
         else SetWindowLong32(hwnd, GWL_EXSTYLE, (int)style);
@@ -188,4 +188,43 @@ internal static class NativeMethods
 
     [DllImport("dwmapi.dll")]
     public static extern int DwmGetColorizationColor(out uint pcrColorization, [MarshalAs(UnmanagedType.Bool)] out bool pfOpaqueBlend);
+
+    // ---------- Janelas de topo abertas (indicador de app aberto do launcher) ----------
+
+    public const int GW_OWNER = 4;
+    public const int SW_RESTORE = 9;
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+    [DllImport("user32.dll")]
+    public static extern int GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool CloseHandle(IntPtr hObject);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, System.Text.StringBuilder lpExeName, ref uint lpdwSize);
+
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
 }

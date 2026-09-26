@@ -128,35 +128,35 @@
 - [x] Trocar qualquer referência a "InfoBar" por "Heimdall" (títulos de janela, README, etc.) — checado: não achei nenhuma sobrando
 
 ## 2) Mais modelos de relógio
-- [ ] `ClockConfig` troca campos fixos por `Mode` (`TimeOnly`/`DateOnly`/`Both`/`Custom`) + `Style` (`Classic`/`Compact`/`Verbose`/`ISO`) + `Culture` + `CustomFormat`
-- [ ] 4 estilos com formatos próprios (ver exemplos na mensagem original), aplicáveis a qualquer modo
-- [ ] Diferença de formato pra barra vertical vira parte de cada estilo, não um campo solto
-- [ ] Migração automática do config antigo (`TimeFormat`/`DateFormat`) pra `Mode: "Custom"`, preservando o formato exato já configurado
-- [ ] Dropdown de Modo e Estilo com preview ao vivo na tela de Configurações
+- [x] `ClockConfig` troca campos fixos por `Mode` (`TimeOnly`/`DateOnly`/`Both`/`Custom`) + `Style` (`Classic`/`Compact`/`Verbose`/`ISO`) + `Culture` + `CustomFormat`
+- [x] 4 estilos com formatos próprios, aplicáveis a qualquer modo
+- [x] Diferença de formato pra barra vertical vira parte de cada estilo, não um campo solto
+- [x] Migração automática do config antigo (`TimeFormat`/`DateFormat`) pra `Mode: "Custom"`, preservando o formato exato já configurado
+- [x] Dropdown de Modo e Estilo com preview ao vivo na tela de Configurações
 
 ## 3) Widgets móveis, fixáveis e com indicador de app aberto
 
 ### Arrastar para reordenar (generalizado pra todo widget)
-- [ ] Todo widget (`clock`, `media`, `reminder`, `launcher`, `separator`) arrastável e solto em qualquer posição, entre zonas inclusive
-- [ ] Reaproveita a mecânica de arraste com animação já feita pro launcher (fantasma seguindo o cursor, vizinhos deslizando, soltar com quique) — generalizada, não só pra ícones de atalho
+- [x] Todo widget (`clock`, `media`, `reminder`, `launcher`, `separator`) arrastável e solto em qualquer posição, entre zonas inclusive
+- [x] Reaproveita a mecânica de arraste com animação já feita pro launcher (fantasma seguindo o cursor, vizinhos deslizando, soltar com quique) — generalizada, não só pra ícones de atalho. Diferença necessária: como as 3 zonas ficam sobrepostas na mesma célula (não em colunas próprias), o fantasma segue o cursor livremente e a barra é dividida em 3 terços pra decidir a zona-alvo (senão uma zona vazia não teria área própria pra receber o cursor); dentro da zona, os vizinhos deslizam igual ao launcher. O fantasma é um snapshot renderizado do widget (`RenderTargetBitmap`), não uma recriação do visual, já que cada widget tem uma aparência diferente
 
 ### Fixar (pin) via botão direito
-- [ ] Clique direito em qualquer widget → "Fixar posição" / "Desafixar"
-- [ ] Widget fixado não se move ao arrastar os outros ao redor, e ele mesmo não pode ser arrastado (cursor bloqueado ao tentar)
-- [ ] Indicador visual: ícone de alfinete discreto no canto, visível no hover
+- [x] Clique direito em qualquer widget → "Fixar posição" / "Desafixar"
+- [x] Widget fixado não se move ao arrastar os outros ao redor, e ele mesmo não pode ser arrastado (cursor bloqueado ao tentar)
+- [x] Indicador visual: ícone de alfinete discreto no canto, visível no hover
 
 ### Persistência
-- [ ] Cada entrada em `Widgets.Start/Center/End` passa de `string` pra objeto `{ "Id": "clock", "Pinned": false }`
-- [ ] Migração automática do formato antigo (lista de strings) pro novo
-- [ ] Salva ordem e estado de fixado no `config.json` assim que o item for solto, sem precisar abrir a tela de Configurações
+- [x] Cada entrada em `Widgets.Start/Center/End` passa de `string` pra objeto `{ "Id": "clock", "Pinned": false }`
+- [x] Migração automática do formato antigo (lista de strings) pro novo
+- [x] Salva ordem e estado de fixado no `config.json` assim que o item for solto, sem precisar abrir a tela de Configurações
 
 ## 4) Indicador de app aberto no launcher (por cima da mecânica de arraste)
-- [ ] A cada poucos segundos, `EnumWindows` filtrando pelas visíveis na taskbar real (`IsWindowVisible`, sem `WS_EX_TOOLWINDOW`, sem dono via `GetWindow(GW_OWNER)`)
-- [ ] Pra cada uma, pega o executável dono (`GetWindowThreadProcessId` + `QueryFullProcessImageName`) e compara com o `Path` de cada `Launcher`
-- [ ] Guarda por launcher: se está aberto, e o HWND da primeira janela encontrada (não trata múltiplas janelas do mesmo app)
-- [ ] Indicador visual: traço/ponto discreto sob o ícone quando aberto — sem contador, sem distinção de foco
-- [ ] Clique no ícone: não aberto → `Process.Start` (atual); aberto → `ShowWindow(SW_RESTORE)` + `SetForegroundWindow`
-- [ ] Se `SetForegroundWindow` falhar (app elevado, Heimdall não), ignora silenciosamente — limitação conhecida, documentar no README
-- [ ] Fora de escopo: `SetWinEventHook`, `DwmRegisterThumbnail`, peek de miniaturas, jump list, fechar janela pelo menu, ícones temporários pra apps não fixados
+- [x] A cada poucos segundos, `EnumWindows` filtrando pelas visíveis na taskbar real (`IsWindowVisible`, sem `WS_EX_TOOLWINDOW`, sem dono via `GetWindow(GW_OWNER)`)
+- [x] Pra cada uma, pega o executável dono (`GetWindowThreadProcessId` + `QueryFullProcessImageName`) e compara com o `Path` de cada `Launcher`
+- [x] Guarda por launcher: se está aberto, e o HWND da primeira janela encontrada (não trata múltiplas janelas do mesmo app)
+- [x] Indicador visual: traço/ponto discreto sob o ícone quando aberto — sem contador, sem distinção de foco
+- [x] Clique no ícone: não aberto → `Process.Start` (atual); aberto → `ShowWindow(SW_RESTORE)` + `SetForegroundWindow`
+- [x] Se `SetForegroundWindow` falhar (app elevado, Heimdall não), ignora silenciosamente — limitação conhecida, documentada no `docs/GUIA.md`
+- [x] Fora de escopo: `SetWinEventHook`, `DwmRegisterThumbnail`, peek de miniaturas, jump list, fechar janela pelo menu, ícones temporários pra apps não fixados
 
 > Isso substitui o indicador de "app aberto" simples da Fase 7 (que só comparava caminho de processo e não conseguia focar a janela) por uma versão que também enumera janelas de topo e permite focar/restaurar ao clicar.
