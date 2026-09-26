@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Shapes;
 using Heimdall.Config;
 using Heimdall.Services;
 using Heimdall.Widgets;
@@ -13,6 +14,14 @@ internal static class WidgetZoneBuilder
 {
     private const int HoverTransitionMs = 150;
 
+    // 8 direções ao redor, 1px cada — dá um contorno fechado sem depender de blur (DropShadowEffect).
+    private static readonly (double dx, double dy)[] OutlineOffsets =
+    {
+        (-1, -1), (0, -1), (1, -1),
+        (-1, 0), (1, 0),
+        (-1, 1), (0, 1), (1, 1)
+    };
+
     public static List<IWidget> Build(AppConfig cfg, bool vertical, Grid zones, StackPanel start, StackPanel center, StackPanel end, bool isOverlay = false)
     {
         var widgets = new List<IWidget>();
@@ -21,18 +30,24 @@ internal static class WidgetZoneBuilder
         var separatorBrush = new SolidColorBrush(style.Border);
         separatorBrush.Freeze();
 
+        // Contorno sempre no extremo oposto da luminância do texto: garante contraste
+        // do contorno contra o próprio texto (e por consequência contra qualquer fundo
+        // do jogo por trás), sem precisar saber a cor do que está atrás no overlay.
+        double luminance = 0.299 * style.Foreground.R + 0.587 * style.Foreground.G + 0.114 * style.Foreground.B;
+        var outlineColor = luminance > 128 ? Colors.Black : Colors.White;
+
         zones.Margin = vertical ? new Thickness(0, 8, 0, 8) : new Thickness(8, 0, 8, 0);
 
         SetupZone(widgets, cfg, start, cfg.Widgets.Start, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left,
-            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover);
+            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor);
 
         SetupZone(widgets, cfg, center, cfg.Widgets.Center, orientation,
-            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover);
+            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor);
 
         SetupZone(widgets, cfg, end, cfg.Widgets.End, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Right,
-            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover);
+            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor);
 
         // Separador entre zona e centro, do lado que fica voltado pro centro: último
         // filho de Start (mais próximo do centro, já que Start é alinhado à esquerda/topo)
@@ -44,7 +59,7 @@ internal static class WidgetZoneBuilder
     }
 
     private static void SetupZone(List<IWidget> widgets, AppConfig cfg, StackPanel zone, IEnumerable<string>? ids,
-        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush, Color hoverColor)
+        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush, Color hoverColor, Color outlineColor)
     {
         zone.Orientation = orientation;
         zone.HorizontalAlignment = horizontal;
@@ -61,8 +76,11 @@ internal static class WidgetZoneBuilder
 
             if (zone.Children.Count > 0) zone.Children.Add(CreateSeparator(orientation, separatorBrush));
 
-            // Overlay é só informativo e clique atravessa — sem destaque de hover ali.
-            zone.Children.Add(isOverlay ? WrapWithMargin(widget.View, orientation) : WrapWithHover(widget.View, orientation, hoverColor));
+            // Overlay é só informativo e clique atravessa — sem destaque de hover ali,
+            // mas com contorno no texto pra ler sobre qualquer fundo de jogo.
+            zone.Children.Add(isOverlay
+                ? WrapWithMargin(WrapWithOutline(widget.View, outlineColor), orientation)
+                : WrapWithHover(widget.View, orientation, hoverColor));
             widgets.Add(widget);
             widget.Start();
         }
@@ -74,6 +92,33 @@ internal static class WidgetZoneBuilder
             ? new Thickness(0, 4, 0, 4)
             : new Thickness(8, 0, 8, 0);
         return view;
+    }
+
+    /// <summary>
+    /// Contorno via texto/ícone duplicado 8x deslocado 1px (não DropShadowEffect, que borra
+    /// em vez de dar um traço definido): cada cópia usa a máscara de opacidade do próprio
+    /// conteúdo (silhueta), preenchida com a cor de contorno, atrás do conteúdo real —
+    /// funciona pra qualquer visual (texto, ícones), não só TextBlock.
+    /// </summary>
+    private static FrameworkElement WrapWithOutline(FrameworkElement view, Color outlineColor)
+    {
+        var outlineBrush = new SolidColorBrush(outlineColor);
+        outlineBrush.Freeze();
+        var mask = new VisualBrush(view) { Stretch = Stretch.None };
+
+        var grid = new Grid();
+        foreach (var (dx, dy) in OutlineOffsets)
+        {
+            grid.Children.Add(new Rectangle
+            {
+                Fill = outlineBrush,
+                OpacityMask = mask,
+                IsHitTestVisible = false,
+                RenderTransform = new TranslateTransform(dx, dy)
+            });
+        }
+        grid.Children.Add(view);
+        return grid;
     }
 
     /// <summary>Envolve o widget num Border que acende sutilmente (cor "Hover" do tema) ao passar o mouse, com transição de 150 ms.</summary>

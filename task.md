@@ -43,7 +43,7 @@
 - [x] Hover com fundo levemente destacado e transição de 150 ms
 - [x] Ícone animado de equalizador ao lado da faixa quando estiver tocando
 - [x] Tooltips em todos os botões
-- [ ] Contorno leve no texto do overlay pra legibilidade sobre qualquer fundo (texto duplicado deslocado, não `DropShadowEffect`)
+- [x] Contorno leve no texto do overlay pra legibilidade sobre qualquer fundo (texto duplicado deslocado, não `DropShadowEffect`)
 - [ ] Animação de fade (200 ms) na troca entre modo barra e overlay
 
 ## Outros
