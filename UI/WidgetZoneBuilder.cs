@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Heimdall.Config;
+using Heimdall.Services;
 using Heimdall.Widgets;
 
 namespace Heimdall.UI;
@@ -12,25 +14,33 @@ internal static class WidgetZoneBuilder
     {
         var widgets = new List<IWidget>();
         var orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
+        var separatorBrush = new SolidColorBrush(ThemeService.GetEffectiveStyle(cfg).Border);
+        separatorBrush.Freeze();
 
         zones.Margin = vertical ? new Thickness(0, 8, 0, 8) : new Thickness(8, 0, 8, 0);
 
         SetupZone(widgets, cfg, start, cfg.Widgets.Start, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left,
-            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay);
+            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush);
 
         SetupZone(widgets, cfg, center, cfg.Widgets.Center, orientation,
-            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay);
+            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush);
 
         SetupZone(widgets, cfg, end, cfg.Widgets.End, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Right,
-            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay);
+            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush);
+
+        // Separador entre zona e centro, do lado que fica voltado pro centro: último
+        // filho de Start (mais próximo do centro, já que Start é alinhado à esquerda/topo)
+        // e primeiro filho de End (idem, alinhado à direita/base).
+        if (start.Children.Count > 0) start.Children.Add(CreateSeparator(orientation, separatorBrush));
+        if (end.Children.Count > 0) end.Children.Insert(0, CreateSeparator(orientation, separatorBrush));
 
         return widgets;
     }
 
     private static void SetupZone(List<IWidget> widgets, AppConfig cfg, StackPanel zone, IEnumerable<string>? ids,
-        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay)
+        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush)
     {
         zone.Orientation = orientation;
         zone.HorizontalAlignment = horizontal;
@@ -48,9 +58,16 @@ internal static class WidgetZoneBuilder
                 ? new Thickness(0, 4, 0, 4)
                 : new Thickness(8, 0, 8, 0);
 
+            if (zone.Children.Count > 0) zone.Children.Add(CreateSeparator(orientation, separatorBrush));
+
             zone.Children.Add(widget.View);
             widgets.Add(widget);
             widget.Start();
         }
     }
+
+    /// <summary>Linha fina (1px) usando a cor de contorno do tema — some sozinha em overlays sem tema aplicado.</summary>
+    private static Border CreateSeparator(Orientation orientation, Brush brush) => orientation == Orientation.Vertical
+        ? new Border { Background = brush, Height = 1, Margin = new Thickness(0, 2, 0, 2), HorizontalAlignment = HorizontalAlignment.Stretch }
+        : new Border { Background = brush, Width = 1, Margin = new Thickness(0, 4, 0, 4), VerticalAlignment = VerticalAlignment.Stretch };
 }

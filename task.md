@@ -39,7 +39,7 @@
 
 ## Etapa 4 — Detalhes visuais
 - [x] Modo flutuante opcional: margem das bordas da tela + cantos arredondados, espaço do AppBar incluindo a margem
-- [ ] Separadores sutis entre widgets e entre zonas (início/centro/fim)
+- [x] Separadores sutis entre widgets e entre zonas (início/centro/fim)
 - [ ] Hover com fundo levemente destacado e transição de 150 ms
 - [ ] Ícone animado de equalizador ao lado da faixa quando estiver tocando
 - [ ] Tooltips em todos os botões
