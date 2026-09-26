@@ -5,6 +5,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Shapes;
+using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
 using Heimdall.UI;
@@ -22,6 +24,8 @@ public sealed class LauncherWidget : IWidget
     private readonly EffectiveStyle _style;
     private readonly int _iconSize;
     private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center };
+    private readonly DispatcherTimer _runningTimer = new() { Interval = TimeSpan.FromSeconds(3) };
+    private readonly List<(string TargetPath, Ellipse Dot)> _runningIndicators = new();
 
     public FrameworkElement View => _root;
 
@@ -30,17 +34,52 @@ public sealed class LauncherWidget : IWidget
         _cfg = cfg;
         _style = ThemeService.GetEffectiveStyle(cfg);
         _iconSize = Math.Clamp(cfg.Thickness - IconMargin * 2, MinIconSize, MaxIconSize);
+        _runningTimer.Tick += (_, _) => CheckRunning();
     }
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
 
-    public void Start() => Rebuild();
+    public void Start()
+    {
+        Rebuild();
+        _runningTimer.Start();
+        CheckRunning();
+    }
 
     private void Rebuild()
     {
         _root.Children.Clear();
+        _runningIndicators.Clear();
         foreach (var launcher in _cfg.Launchers)
             _root.Children.Add(CreateIcon(launcher));
+    }
+
+    // ---------- Ponto indicando que o app já está aberto ----------
+
+    /// <summary>Compara com os processos em execução a cada poucos segundos — só pra atalhos locais (exe/.lnk), não dá pra checar apps da Store/URLs assim.</summary>
+    private void CheckRunning()
+    {
+        if (_runningIndicators.Count == 0) return;
+
+        var runningPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var process in Process.GetProcesses())
+        {
+            try
+            {
+                if (process.MainModule?.FileName is { } path) runningPaths.Add(path);
+            }
+            catch
+            {
+                // Processo elevado/do sistema sem permissão de leitura — ignora e segue.
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        foreach (var (targetPath, dot) in _runningIndicators)
+            dot.Visibility = runningPaths.Contains(targetPath) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private Border CreateIcon(LauncherConfig launcher)
@@ -72,6 +111,25 @@ public sealed class LauncherWidget : IWidget
             TextOptions.SetTextRenderingMode(glyph, TextRenderingMode.Grayscale);
             TextOptions.SetTextFormattingMode(glyph, TextFormattingMode.Display);
             content = glyph;
+        }
+
+        if (TryGetLocalTargetPath(launcher) is { } targetPath)
+        {
+            var dot = new Ellipse
+            {
+                Width = 4,
+                Height = 4,
+                Fill = new SolidColorBrush(_style.Accent),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(0, 0, 0, 1),
+                Visibility = Visibility.Collapsed
+            };
+            var withDot = new Grid();
+            withDot.Children.Add(content);
+            withDot.Children.Add(dot);
+            content = withDot;
+            _runningIndicators.Add((targetPath, dot));
         }
 
         var background = new SolidColorBrush(Colors.Transparent);
@@ -222,6 +280,19 @@ public sealed class LauncherWidget : IWidget
         return File.Exists(path) || Directory.Exists(path);
     }
 
+    /// <summary>Caminho de um .exe local pra comparar com processos em execução — nulo pra apps da Store/URLs/pastas, que não dá pra checar assim.</summary>
+    private static string? TryGetLocalTargetPath(LauncherConfig launcher)
+    {
+        string path = launcher.Path;
+        if (string.IsNullOrWhiteSpace(path) || path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase)) return null;
+        if (Uri.TryCreate(path, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) return null;
+
+        string target = IconCacheService.ResolveTarget(path);
+        return File.Exists(target) && string.Equals(System.IO.Path.GetExtension(target), ".exe", StringComparison.OrdinalIgnoreCase)
+            ? target
+            : null;
+    }
+
     private static void Launch(LauncherConfig launcher, bool forceAdmin)
     {
         if (!PathExists(launcher.Path)) return;
@@ -245,5 +316,5 @@ public sealed class LauncherWidget : IWidget
         }
     }
 
-    public void Dispose() { }
+    public void Dispose() => _runningTimer.Stop();
 }

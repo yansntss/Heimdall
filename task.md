@@ -74,7 +74,7 @@
 - [x] Hover: destaque leve + tooltip com o nome
 - [x] Clique direito: Executar como administrador (`Verb = "runas"`), Abrir local do arquivo, Renomear, Remover
 - [x] Arrastar um ícone pra reordenar
-- [ ] Opcional: ponto abaixo do ícone quando o app está aberto (compara caminho dos processos a cada poucos segundos)
+- [x] Opcional: ponto abaixo do ícone quando o app está aberto (compara caminho dos processos a cada poucos segundos) — só funciona pra atalhos apontando direto pro .exe real: `calc.exe`/`notepad.exe` no Windows 11 são stubs que redirecionam pro app moderno em outro caminho (`WindowsApps\...`), então não batem na comparação; testado e confirmado com um .exe que não redireciona
 
 ## Adicionar atalho
 - [x] Arrastar e soltar um arquivo/atalho/pasta na barra (`AllowDrop` na zona do widget) — implementado; não validado ponta a ponta (drag do Explorer entre processos é frágil demais pra automatizar com segurança, mas o handler é o mesmo `AddLaunchers` já testado pelos outros dois fluxos)
