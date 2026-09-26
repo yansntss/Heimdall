@@ -16,6 +16,7 @@ internal sealed class AppBarManager : IDisposable
     private readonly MonitorInfo _monitor;
     private readonly BarEdge _edge;
     private readonly int _thicknessDip;
+    private readonly int _floatingMarginDip;
     private readonly int _callbackMsg;
     private readonly int _taskbarCreatedMsg;
     private readonly DispatcherTimer _fallbackTimer;
@@ -29,12 +30,13 @@ internal sealed class AppBarManager : IDisposable
     /// <summary>Quando false, reposiciona sem forçar "sempre no topo".</summary>
     public bool KeepTopmost { get; set; } = true;
 
-    public AppBarManager(IntPtr hwnd, MonitorInfo monitor, BarEdge edge, int thicknessDip)
+    public AppBarManager(IntPtr hwnd, MonitorInfo monitor, BarEdge edge, int thicknessDip, int floatingMarginDip = 0)
     {
         _hwnd = hwnd;
         _monitor = monitor;
         _edge = edge;
         _thicknessDip = thicknessDip;
+        _floatingMarginDip = floatingMarginDip;
         _callbackMsg = (int)RegisterWindowMessage("Heimdall.AppBarCallback");
         // Enviada quando o Explorer reinicia: registros de AppBar são perdidos
         _taskbarCreatedMsg = (int)RegisterWindowMessage("TaskbarCreated");
@@ -65,26 +67,59 @@ internal sealed class AppBarManager : IDisposable
         _positioning = true;
         try
         {
-            int thickness = (int)Math.Round(_thicknessDip * GetScale());
+            double scale = GetScale();
+            int thickness = (int)Math.Round(_thicknessDip * scale);
+            int margin = (int)Math.Round(_floatingMarginDip * scale);
+            int reserved = thickness + margin;
 
             var abd = NewData();
             abd.uEdge = ToAbe(_edge);
             abd.rc = _monitor.Bounds;
-            ApplyThickness(ref abd.rc, thickness);
+            ApplyThickness(ref abd.rc, reserved);
 
             // Sistema ajusta o retângulo considerando taskbar/outras AppBars
             SHAppBarMessage(ABM_QUERYPOS, ref abd);
-            ApplyThickness(ref abd.rc, thickness);
+            ApplyThickness(ref abd.rc, reserved);
             SHAppBarMessage(ABM_SETPOS, ref abd);
+
+            // No modo flutuante a área reservada inclui a margem, mas a janela
+            // visível fica menor (com respiro nos 4 lados) dentro dela.
+            var visible = margin > 0 ? Inset(abd.rc, margin, thickness) : abd.rc;
 
             uint flags = SWP_NOACTIVATE | (KeepTopmost ? 0 : SWP_NOZORDER);
             SetWindowPos(_hwnd, KeepTopmost ? HWND_TOPMOST : IntPtr.Zero,
-                abd.rc.Left, abd.rc.Top, abd.rc.Width, abd.rc.Height, flags);
+                visible.Left, visible.Top, visible.Width, visible.Height, flags);
         }
         finally
         {
             _positioning = false;
         }
+    }
+
+    /// <summary>Encolhe o retângulo reservado (borda + margem) pra janela flutuante com respiro nos 4 lados.</summary>
+    private RECT Inset(RECT reserved, int margin, int thickness)
+    {
+        var r = reserved;
+        switch (_edge)
+        {
+            case BarEdge.Top:
+                r.Top += margin; r.Bottom = r.Top + thickness;
+                r.Left += margin; r.Right -= margin;
+                break;
+            case BarEdge.Bottom:
+                r.Bottom -= margin; r.Top = r.Bottom - thickness;
+                r.Left += margin; r.Right -= margin;
+                break;
+            case BarEdge.Left:
+                r.Left += margin; r.Right = r.Left + thickness;
+                r.Top += margin; r.Bottom -= margin;
+                break;
+            case BarEdge.Right:
+                r.Right -= margin; r.Left = r.Right - thickness;
+                r.Top += margin; r.Bottom -= margin;
+                break;
+        }
+        return r;
     }
 
     public IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

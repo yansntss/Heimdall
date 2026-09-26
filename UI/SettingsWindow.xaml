@@ -23,6 +23,12 @@
                     <TextBlock Text="Espessura (DIPs)" FontWeight="Bold"/>
                     <TextBox x:Name="ThicknessBox" Margin="0,4,0,12" Width="100" HorizontalAlignment="Left"/>
 
+                    <CheckBox x:Name="FloatingModeCheck" Content="Modo flutuante (margem das bordas + cantos arredondados)"
+                              Margin="0,0,0,8" Checked="FloatingModeCheck_Changed" Unchecked="FloatingModeCheck_Changed"/>
+
+                    <TextBlock Text="Margem flutuante (DIPs)" FontWeight="Bold"/>
+                    <TextBox x:Name="FloatingMarginBox" Margin="0,4,0,12" Width="100" HorizontalAlignment="Left"/>
+
                     <TextBlock Text="Modo de monitor" FontWeight="Bold"/>
                     <ComboBox x:Name="MonitorModeCombo" Margin="0,4,0,8" HorizontalAlignment="Left" Width="160"
                               SelectionChanged="MonitorModeCombo_SelectionChanged"/>

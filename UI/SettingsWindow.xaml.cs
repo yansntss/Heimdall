@@ -24,6 +24,9 @@ public partial class SettingsWindow : Window
         EdgeCombo.ItemsSource = Enum.GetValues(typeof(BarEdge));
         EdgeCombo.SelectedItem = _cfg.Edge;
         ThicknessBox.Text = _cfg.Thickness.ToString(CultureInfo.InvariantCulture);
+        FloatingModeCheck.IsChecked = _cfg.FloatingMode;
+        FloatingMarginBox.Text = _cfg.FloatingMargin.ToString(CultureInfo.InvariantCulture);
+        FloatingMarginBox.IsEnabled = _cfg.FloatingMode;
 
         MonitorModeCombo.ItemsSource = Enum.GetValues(typeof(MonitorMode));
 
@@ -68,6 +71,9 @@ public partial class SettingsWindow : Window
 
     private void MonitorModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
         MonitorCombo.IsEnabled = MonitorModeCombo.SelectedItem is MonitorMode.Specific;
+
+    private void FloatingModeCheck_Changed(object sender, RoutedEventArgs e) =>
+        FloatingMarginBox.IsEnabled = FloatingModeCheck.IsChecked == true;
 
     // ---------- Aparência ----------
 
@@ -171,6 +177,13 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        if (!int.TryParse(FloatingMarginBox.Text, out int floatingMargin) || floatingMargin < 0 || floatingMargin > 100)
+        {
+            MessageBox.Show(this, "Margem flutuante inválida — use um valor entre 0 e 100.", "Heimdall",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         double? fontSize = null;
         if (!string.IsNullOrWhiteSpace(FontSizeBox.Text))
         {
@@ -197,6 +210,8 @@ public partial class SettingsWindow : Window
 
         _cfg.Edge = (BarEdge)EdgeCombo.SelectedItem;
         _cfg.Thickness = thickness;
+        _cfg.FloatingMode = FloatingModeCheck.IsChecked == true;
+        _cfg.FloatingMargin = floatingMargin;
         _cfg.MonitorMode = (MonitorMode)MonitorModeCombo.SelectedItem;
         _cfg.MonitorDevice = (MonitorCombo.SelectedItem as MonitorOption)?.Device;
         _cfg.Theme = (string)ThemeCombo.SelectedItem;

@@ -11,6 +11,12 @@ public sealed class AppConfig
     /// <summary>Altura (Top/Bottom) ou largura (Left/Right) em DIPs. Sugestão: 28 horizontal, 72 vertical.</summary>
     public int Thickness { get; set; } = 28;
 
+    /// <summary>Modo flutuante: barra com margem das bordas da tela e cantos arredondados.</summary>
+    public bool FloatingMode { get; set; }
+
+    /// <summary>Margem em DIPs ao redor da barra quando <see cref="FloatingMode"/> está ativo.</summary>
+    public int FloatingMargin { get; set; } = 8;
+
     public MonitorMode MonitorMode { get; set; } = MonitorMode.Primary;
 
     /// <summary>Ex.: "DISPLAY2". Usado quando MonitorMode = Specific.</summary>

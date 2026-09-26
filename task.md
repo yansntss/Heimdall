@@ -38,7 +38,7 @@
 - [x] Badge com contador de lembretes pendentes quando houver mais de um
 
 ## Etapa 4 — Detalhes visuais
-- [ ] Modo flutuante opcional: margem das bordas da tela + cantos arredondados, espaço do AppBar incluindo a margem
+- [x] Modo flutuante opcional: margem das bordas da tela + cantos arredondados, espaço do AppBar incluindo a margem
 - [ ] Separadores sutis entre widgets e entre zonas (início/centro/fim)
 - [ ] Hover com fundo levemente destacado e transição de 150 ms
 - [ ] Ícone animado de equalizador ao lado da faixa quando estiver tocando

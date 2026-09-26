@@ -9,9 +9,9 @@ internal static class DwmVisuals
     // Acrylic/Mica via DWMWA_SYSTEMBACKDROP_TYPE só é confiável a partir do Win11 22H2.
     private static readonly bool SupportsSystemBackdrop = Environment.OSVersion.Version.Build >= 22621;
 
-    public static void Apply(IntPtr hwnd, EffectiveStyle style)
+    public static void Apply(IntPtr hwnd, EffectiveStyle style, bool forceRoundedCorners = false)
     {
-        ApplyCornerPreference(hwnd, style.CornerRadius > 0);
+        ApplyCornerPreference(hwnd, forceRoundedCorners || style.CornerRadius > 0);
 
         // "Solid" fica 100% fora do DWM (renderização opaca comum) — extend-frame
         // sem um backdrop de verdade pode deixar a janela inteira invisível.

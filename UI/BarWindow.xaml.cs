@@ -55,9 +55,10 @@ public partial class BarWindow : Window
             add: NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOACTIVATE,
             remove: NativeMethods.WS_EX_APPWINDOW);
 
-        DwmVisuals.Apply(hwnd, ThemeService.GetEffectiveStyle(_cfg));
+        DwmVisuals.Apply(hwnd, ThemeService.GetEffectiveStyle(_cfg), forceRoundedCorners: _cfg.FloatingMode);
 
-        AppBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, Math.Clamp(_cfg.Thickness, 16, 400));
+        int floatingMargin = _cfg.FloatingMode ? Math.Clamp(_cfg.FloatingMargin, 0, 100) : 0;
+        AppBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, Math.Clamp(_cfg.Thickness, 16, 400), floatingMargin);
         AppBar.FullscreenChanged += fullscreen => FullscreenChanged?.Invoke(fullscreen);
 
         HwndSource.FromHwnd(hwnd)?.AddHook(AppBar.WndProc);
