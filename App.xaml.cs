@@ -192,6 +192,24 @@ public partial class App : Application
         Process.Start(new ProcessStartInfo("notepad.exe", $"\"{ConfigService.ConfigPath}\"") { UseShellExecute = true });
     }
 
+    /// <summary>Adiciona um atalho ao config e recarrega — garante que o widget "launcher" apareça em algum lugar da barra.</summary>
+    public void AddLauncher(LauncherConfig launcher) => AddLaunchers(new[] { launcher });
+
+    /// <summary>Mesma coisa, em lote — evita recarregar a barra uma vez por item ao soltar vários arquivos de uma vez.</summary>
+    public void AddLaunchers(IEnumerable<LauncherConfig> launchers)
+    {
+        var cfg = ConfigService.Load();
+        cfg.Launchers.AddRange(launchers);
+
+        bool alreadyVisible = cfg.Widgets.Start.Contains("launcher")
+            || cfg.Widgets.Center.Contains("launcher")
+            || cfg.Widgets.End.Contains("launcher");
+        if (!alreadyVisible) cfg.Widgets.End.Add("launcher");
+
+        ConfigService.Save(cfg);
+        Reload();
+    }
+
     public void OpenReminderHistory()
     {
         if (_historyWindow is not null)

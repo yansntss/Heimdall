@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -8,6 +9,7 @@ using Heimdall.Config;
 using Heimdall.Native;
 using Heimdall.Services;
 using Heimdall.Widgets;
+using Microsoft.Win32;
 
 namespace Heimdall.UI;
 
@@ -16,6 +18,7 @@ public partial class BarWindow : Window
     private readonly AppConfig _cfg;
     private readonly MonitorInfo _monitor;
     private readonly List<IWidget> _widgets = new();
+    private InstalledAppPickerWindow? _appPicker;
 
     private bool IsVertical => _cfg.Edge is BarEdge.Left or BarEdge.Right;
 
@@ -139,4 +142,70 @@ public partial class BarWindow : Window
 
     private void Exit_Click(object sender, RoutedEventArgs e) =>
         Dispatcher.BeginInvoke(new Action(CurrentApp.ExitApp));
+
+    // ---------- Adicionar atalho ----------
+
+    private void AddLauncherFromFile_Click(object sender, RoutedEventArgs e)
+    {
+        // Nem sem owner nem com esta janela (WS_EX_NOACTIVATE) como dono o diálogo aparece
+        // de verdade: o processo nunca tem uma janela "ativa" de verdade pro Explorer usar
+        // como referência de foreground. Um Window normal (ativável) temporário como dono
+        // resolve — cria, ativa, mostra o diálogo, fecha o auxiliar.
+        var helper = new Window
+        {
+            WindowStyle = WindowStyle.None,
+            ShowInTaskbar = false,
+            Width = 0,
+            Height = 0,
+            Opacity = 0
+        };
+        helper.Show();
+        helper.Activate();
+
+        var dialog = new OpenFileDialog { Title = "Escolher arquivo ou atalho", Filter = "Todos os arquivos|*.*" };
+        bool chosen = dialog.ShowDialog(helper) == true;
+        helper.Close();
+        if (!chosen) return;
+
+        CurrentApp.AddLauncher(new LauncherConfig
+        {
+            Name = Path.GetFileNameWithoutExtension(dialog.FileName),
+            Path = dialog.FileName
+        });
+    }
+
+    private void AddLauncherFromInstalled_Click(object sender, RoutedEventArgs e)
+    {
+        if (_appPicker is not null)
+        {
+            _appPicker.Activate();
+            return;
+        }
+
+        _appPicker = new InstalledAppPickerWindow(ThemeService.GetEffectiveStyle(_cfg));
+        _appPicker.Chosen += app => CurrentApp.AddLauncher(new LauncherConfig
+        {
+            Name = app.Name,
+            Path = $"shell:AppsFolder\\{app.AppUserModelId}"
+        });
+        _appPicker.Closed += (_, _) => _appPicker = null;
+        _appPicker.Show();
+    }
+
+    private void Root_DragEnter(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Root_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths) return;
+
+        CurrentApp.AddLaunchers(paths.Select(path => new LauncherConfig
+        {
+            Name = Path.GetFileNameWithoutExtension(path.TrimEnd('\\', '/')),
+            Path = path
+        }));
+    }
 }

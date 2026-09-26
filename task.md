@@ -53,7 +53,7 @@
 
 ## O que pode ser um atalho
 - [x] Executáveis (.exe) e atalhos (.lnk) — resolver o .lnk pro destino real pra pegar o ícone certo
-- [ ] Apps da Microsoft Store (UWP) via `shell:AppsFolder\<AppUserModelId>` (extração de ícone já funciona via shell item; falta testar/expor no fluxo de adicionar)
+- [x] Apps da Microsoft Store (UWP) via `shell:AppsFolder\<AppUserModelId>`
 - [x] Pastas, arquivos e URLs, abertos com o programa padrão do Windows
 
 ## Configuração
@@ -77,9 +77,9 @@
 - [ ] Opcional: ponto abaixo do ícone quando o app está aberto (compara caminho dos processos a cada poucos segundos)
 
 ## Adicionar atalho
-- [ ] Arrastar e soltar um arquivo/atalho/pasta na barra (`AllowDrop` na zona do widget)
-- [ ] Clique direito na barra → "Adicionar atalho" → escolher arquivo (`OpenFileDialog`)
-- [ ] Clique direito na barra → "Adicionar atalho" → escolher entre apps instalados (lista de `shell:AppsFolder`, com busca)
+- [x] Arrastar e soltar um arquivo/atalho/pasta na barra (`AllowDrop` na zona do widget) — implementado; não validado ponta a ponta (drag do Explorer entre processos é frágil demais pra automatizar com segurança, mas o handler é o mesmo `AddLaunchers` já testado pelos outros dois fluxos)
+- [x] Clique direito na barra → "Adicionar atalho" → escolher arquivo (`OpenFileDialog`)
+- [x] Clique direito na barra → "Adicionar atalho" → escolher entre apps instalados (lista de `shell:AppsFolder`, com busca)
 
 ## Erros
 - [x] Caminho que não existe mais: ícone esmaecido, tooltip "Atalho não encontrado", opção de remover
