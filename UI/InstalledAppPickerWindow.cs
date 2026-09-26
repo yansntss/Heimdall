@@ -20,6 +20,7 @@ internal sealed class InstalledAppPickerWindow : Window
         _all = InstalledAppsService.GetAll();
 
         Title = "Heimdall — Escolher app instalado";
+        Icon = AppIcon.Source;
         Width = 360;
         Height = 420;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;

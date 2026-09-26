@@ -121,11 +121,11 @@
 # Fase 8 — Logo, mais modelos de relógio, widgets móveis/fixáveis
 
 ## 1) Logo do heimdall-brand
-- [ ] Copiar `ico/heimdall.ico` pra `Assets/heimdall.ico` no projeto (`Resource` no `.csproj`)
-- [ ] `<ApplicationIcon>Assets\heimdall.ico</ApplicationIcon>` no `.csproj`
-- [ ] `Icon="pack://application:,,,/Assets/heimdall.ico"` em todas as janelas (`BarWindow`, `SettingsWindow`, popup de lembrete, e as outras janelas)
-- [ ] Mesmo ícone no atalho do registro do Windows Startup (`StartupService`), se aplicável
-- [ ] Trocar qualquer referência a "InfoBar" por "Heimdall" (títulos de janela, README, etc.) — checado: não achei nenhuma sobrando
+- [x] Copiar `ico/heimdall.ico` pra `Assets/heimdall.ico` no projeto (`Resource` no `.csproj`)
+- [x] `<ApplicationIcon>Assets\heimdall.ico</ApplicationIcon>` no `.csproj`
+- [x] `Icon="pack://application:,,,/Assets/heimdall.ico"` em todas as janelas (`BarWindow`, `OverlayWindow`, `SettingsWindow`, popup de lembrete, e as outras janelas de código só — via `AppIcon.Source` compartilhado)
+- [x] Mesmo ícone no atalho do registro do Windows Startup — automático: `StartupService` aponta direto pro `.exe`, sem `.lnk` próprio, então usa o ícone embutido nele (o `ApplicationIcon` que acabou de mudar)
+- [x] Trocar qualquer referência a "InfoBar" por "Heimdall" (títulos de janela, README, etc.) — checado: não achei nenhuma sobrando
 
 ## 2) Mais modelos de relógio
 - [ ] `ClockConfig` troca campos fixos por `Mode` (`TimeOnly`/`DateOnly`/`Both`/`Custom`) + `Style` (`Classic`/`Compact`/`Verbose`/`ISO`) + `Culture` + `CustomFormat`

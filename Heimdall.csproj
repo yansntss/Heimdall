@@ -10,13 +10,17 @@
     <RootNamespace>Heimdall</RootNamespace>
     <AssemblyName>Heimdall</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>AppIcon.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\heimdall.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Só a referência (sem UseWindowsForms=true) para não colidir com os "global using"
          do WPF em Orientation/Color/TextBox/etc. Usado só pelo ColorDialog nativo. -->
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\heimdall.ico" />
   </ItemGroup>
 
   <ItemGroup>

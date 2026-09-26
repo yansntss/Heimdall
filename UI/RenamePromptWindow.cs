@@ -18,6 +18,7 @@ internal sealed class RenamePromptWindow : Window
     public RenamePromptWindow(EffectiveStyle style, string currentName)
     {
         Title = "Heimdall — Renomear";
+        Icon = AppIcon.Source;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;

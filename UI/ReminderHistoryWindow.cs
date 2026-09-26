@@ -15,6 +15,7 @@ internal sealed class ReminderHistoryWindow : Window
     public ReminderHistoryWindow()
     {
         Title = "Heimdall — Histórico de lembretes";
+        Icon = AppIcon.Source;
         Width = 420;
         Height = 480;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;

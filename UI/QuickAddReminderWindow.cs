@@ -61,6 +61,7 @@ internal sealed class QuickAddReminderWindow : Window
         _editing = editing;
 
         Title = editing is null ? "Heimdall — Novo lembrete" : "Heimdall — Editar lembrete";
+        Icon = AppIcon.Source;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
