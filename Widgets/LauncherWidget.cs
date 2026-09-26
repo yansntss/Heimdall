@@ -8,6 +8,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Heimdall.Config;
+using Heimdall.Native;
 using Heimdall.Services;
 using Heimdall.UI;
 
@@ -20,12 +21,18 @@ public sealed class LauncherWidget : IWidget
     private const int MinIconSize = 16;
     private const int MaxIconSize = 48;
 
+    /// <summary>Distância (px) além dos limites da barra pra armar o indicador de remoção ao arrastar pra longe.</summary>
+    private const double RemovalDistance = 50;
+
     private readonly AppConfig _cfg;
     private readonly EffectiveStyle _style;
     private readonly int _iconSize;
     private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center };
     private readonly DispatcherTimer _runningTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly List<(string TargetPath, Ellipse Dot)> _runningIndicators = new();
+    // Esc só é lido de dentro do PreviewMouseMove (via UpdateDrag) — sem isso, segurar o
+    // mouse parado e apertar Esc nunca cancelava, já que nada disparava a checagem.
+    private readonly DispatcherTimer _escapeWatchTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
 
     public FrameworkElement View => _root;
 
@@ -35,6 +42,11 @@ public sealed class LauncherWidget : IWidget
         _style = ThemeService.GetEffectiveStyle(cfg);
         _iconSize = Math.Clamp(cfg.Thickness - IconMargin * 2, MinIconSize, MaxIconSize);
         _runningTimer.Tick += (_, _) => CheckRunning();
+        _escapeWatchTimer.Tick += (_, _) =>
+        {
+            if (_drag is not null && (NativeMethods.GetAsyncKeyState(NativeMethods.VK_ESCAPE) & 0x8000) != 0)
+                EndDrag(commit: false);
+        };
     }
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
@@ -51,7 +63,26 @@ public sealed class LauncherWidget : IWidget
         _root.Children.Clear();
         _runningIndicators.Clear();
         foreach (var launcher in _cfg.Launchers)
-            _root.Children.Add(CreateIcon(launcher));
+            _root.Children.Add(launcher.Type == LauncherItemType.Separator ? CreateSeparatorItem(launcher) : CreateIcon(launcher));
+    }
+
+    /// <summary>Índice em <see cref="AppConfig.Launchers"/> correspondente a um ponto (nas coordenadas do <see cref="View"/>) — usado pelo "Adicionar separador" da barra pra inserir na posição do clique.</summary>
+    public int GetInsertIndex(Point pointInView)
+    {
+        double clickPos = _root.Orientation == Orientation.Horizontal ? pointInView.X : pointInView.Y;
+
+        for (int i = 0; i < _root.Children.Count; i++)
+        {
+            if (_root.Children[i] is not FrameworkElement child) continue;
+
+            var topLeft = child.TranslatePoint(new Point(0, 0), _root);
+            double center = _root.Orientation == Orientation.Horizontal
+                ? topLeft.X + child.ActualWidth / 2
+                : topLeft.Y + child.ActualHeight / 2;
+            if (clickPos < center) return i;
+        }
+
+        return _root.Children.Count;
     }
 
     // ---------- Ponto indicando que o app já está aberto ----------
@@ -82,19 +113,16 @@ public sealed class LauncherWidget : IWidget
             dot.Visibility = runningPaths.Contains(targetPath) ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private Border CreateIcon(LauncherConfig launcher)
+    /// <summary>Só o visual do ícone (imagem ou glifo de fallback) — reaproveitado pelo ícone real e pelo fantasma do arraste.</summary>
+    private FrameworkElement CreateIconVisual(LauncherConfig launcher, bool exists)
     {
-        bool exists = PathExists(launcher.Path);
         var iconSource = exists ? ResolveIconSource(launcher) : null;
 
         // Sem ícone extraído (caminho quebrado, ou falha na extração) — glifo genérico no
         // lugar da imagem em branco, senão o atalho "quebrado" fica invisível na barra.
-        FrameworkElement content;
         if (iconSource is not null)
-        {
-            content = new Image { Width = _iconSize, Height = _iconSize, Stretch = Stretch.Uniform, Source = iconSource };
-        }
-        else
+            return new Image { Width = _iconSize, Height = _iconSize, Stretch = Stretch.Uniform, Source = iconSource };
+
         {
             var glyph = new TextBlock
             {
@@ -110,8 +138,18 @@ public sealed class LauncherWidget : IWidget
             };
             TextOptions.SetTextRenderingMode(glyph, TextRenderingMode.Grayscale);
             TextOptions.SetTextFormattingMode(glyph, TextFormattingMode.Display);
-            content = glyph;
+            return glyph;
         }
+    }
+
+    /// <summary>Visual de um item (ícone de app ou traço de separador) sem moldura/interação — usado pro fantasma do arraste.</summary>
+    private FrameworkElement CreateItemVisual(LauncherConfig item) =>
+        item.Type == LauncherItemType.Separator ? CreateSeparatorVisual(item) : CreateIconVisual(item, PathExists(item.Path));
+
+    private Border CreateIcon(LauncherConfig launcher)
+    {
+        bool exists = PathExists(launcher.Path);
+        FrameworkElement content = CreateIconVisual(launcher, exists);
 
         if (TryGetLocalTargetPath(launcher) is { } targetPath)
         {
@@ -152,13 +190,102 @@ public sealed class LauncherWidget : IWidget
 
         border.MouseLeftButtonUp += (_, _) => Launch(launcher, forceAdmin: false);
 
-        SetupDrag(border, launcher);
+        SetupItemInteraction(border, launcher);
         border.ContextMenu = BuildContextMenu(launcher, border);
 
         return border;
     }
 
-    // ---------- Menu de clique direito ----------
+    // ---------- Separadores dentro da lista de atalhos ----------
+
+    private FrameworkElement CreateSeparatorVisual(LauncherConfig separator)
+    {
+        bool vertical = _root.Orientation == Orientation.Vertical;
+        double lineThickness = Math.Max(1, _cfg.Thickness * 0.6);
+        var lineBrush = new SolidColorBrush(_style.Border);
+
+        FrameworkElement visual = separator.Style switch
+        {
+            SeparatorStyle.Dot => new Ellipse
+            {
+                Width = 4,
+                Height = 4,
+                Fill = lineBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            },
+            SeparatorStyle.Space => new Border
+            {
+                Width = vertical ? lineThickness : 12,
+                Height = vertical ? 12 : lineThickness
+            },
+            _ => new Border
+            {
+                Background = lineBrush,
+                Width = vertical ? lineThickness : 1,
+                Height = vertical ? 1 : lineThickness,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+
+        return visual;
+    }
+
+    private Border CreateSeparatorItem(LauncherConfig separator)
+    {
+        bool vertical = _root.Orientation == Orientation.Vertical;
+        var visual = CreateSeparatorVisual(separator);
+
+        // Padding generoso: uma linha de 1px só, sem isso, vira um alvo minúsculo demais
+        // pra hover/clique direito confortável — a área clicável fica do tamanho de um
+        // ícone mesmo, só o traço visível no meio que é fino.
+        double pad = Math.Max(4, (_iconSize - 1) / 2.0);
+        var background = new SolidColorBrush(Colors.Transparent);
+        var container = new Border
+        {
+            Child = visual,
+            Background = background,
+            CornerRadius = new CornerRadius(4),
+            Padding = vertical ? new Thickness(4, pad, 4, pad) : new Thickness(pad, 4, pad, 4),
+            Margin = new Thickness(2, 0, 2, 0),
+            Cursor = Cursors.Arrow
+        };
+
+        container.MouseEnter += (_, _) =>
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(_style.Hover, TimeSpan.FromMilliseconds(150)));
+        container.MouseLeave += (_, _) =>
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
+
+        SetupItemInteraction(container, separator);
+        container.ContextMenu = BuildSeparatorContextMenu(separator);
+
+        return container;
+    }
+
+    private ContextMenu BuildSeparatorContextMenu(LauncherConfig separator)
+    {
+        var line = new MenuItem { Header = "Linha", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Line };
+        var space = new MenuItem { Header = "Espaço", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Space };
+        var dot = new MenuItem { Header = "Ponto", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Dot };
+        line.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Line);
+        space.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Space);
+        dot.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Dot);
+
+        var remove = new MenuItem { Header = "Remover" };
+        remove.Click += (_, _) => RemoveLauncher(separator);
+
+        return new ContextMenu { Items = { line, space, dot, new Separator(), remove } };
+    }
+
+    private void ChangeSeparatorStyle(LauncherConfig separator, SeparatorStyle style)
+    {
+        separator.Style = style;
+        ConfigService.Save(_cfg);
+        Rebuild();
+    }
+
+    // ---------- Menu de clique direito (ícones de app) ----------
 
     private ContextMenu BuildContextMenu(LauncherConfig launcher, Border icon)
     {
@@ -212,57 +339,259 @@ public sealed class LauncherWidget : IWidget
         }
     }
 
-    // ---------- Arrastar pra reordenar ----------
+    // ---------- Arrastar pra reordenar (arraste manual com fantasma animado) ----------
 
-    private Point? _dragStart;
-    private LauncherConfig? _dragSource;
-
-    private void SetupDrag(Border icon, LauncherConfig launcher)
+    private sealed class SiblingInfo
     {
-        // _dragStart/_dragSource são campos únicos do widget (não por ícone) — sem checar
-        // _dragSource == launcher, se o cursor passasse por cima de OUTRO ícone antes de
-        // cruzar o limiar de arrasto, era o ícone errado (o que está por baixo do cursor
-        // agora, não o que recebeu o MouseDown) que iniciava o DoDragDrop.
-        icon.PreviewMouseLeftButtonDown += (_, e) =>
+        public required FrameworkElement Element;
+        public required double OriginalOffset;
+        public required double Size;
+        public required TranslateTransform Transform;
+    }
+
+    private sealed class DragState
+    {
+        public required LauncherConfig Launcher;
+        public required Border SourceElement;
+        public required GhostIconWindow Ghost;
+        public required int SourceIndex;
+        public required double SlotSize;
+        public required List<SiblingInfo> Others;
+        public required Point OriginalScreenCenter;
+        public required bool Animate;
+        public required bool Vertical;
+        public int CurrentTarget;
+        public bool RemovalArmed;
+    }
+
+    private Point? _pressPoint;
+    private LauncherConfig? _pressSource;
+    private DragState? _drag;
+
+    /// <summary>
+    /// Detecta clique simples vs. arraste (limiar de alguns pixels) e, uma vez iniciado,
+    /// delega pro fantasma. _pressPoint/_pressSource são únicos do widget — sem checar
+    /// _pressSource == item, se o cursor passasse por cima de OUTRO ícone antes de cruzar
+    /// o limiar, era o ícone errado (o que está embaixo do cursor agora) que começava o
+    /// arraste.
+    /// </summary>
+    private void SetupItemInteraction(Border element, LauncherConfig item)
+    {
+        element.PreviewMouseLeftButtonDown += (_, e) =>
         {
-            _dragStart = e.GetPosition(null);
-            _dragSource = launcher;
-            icon.CaptureMouse();
+            _pressPoint = e.GetPosition(null);
+            _pressSource = item;
+            element.CaptureMouse();
         };
 
-        icon.PreviewMouseMove += (_, e) =>
+        element.PreviewMouseMove += (_, e) =>
         {
-            if (_dragStart is null || _dragSource != launcher || e.LeftButton != MouseButtonState.Pressed) return;
+            if (_drag is not null && _drag.Launcher == item)
+            {
+                UpdateDrag(e);
+                return;
+            }
+
+            if (_pressPoint is null || _pressSource != item || e.LeftButton != MouseButtonState.Pressed) return;
             var pos = e.GetPosition(null);
-            if (Math.Abs(pos.X - _dragStart.Value.X) < SystemParameters.MinimumHorizontalDragDistance &&
-                Math.Abs(pos.Y - _dragStart.Value.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            if (Math.Abs(pos.X - _pressPoint.Value.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(pos.Y - _pressPoint.Value.Y) < SystemParameters.MinimumVerticalDragDistance) return;
 
-            _dragStart = null;
-            _dragSource = null;
-            icon.ReleaseMouseCapture();
-            DragDrop.DoDragDrop(icon, launcher, DragDropEffects.Move);
+            _pressPoint = null;
+            _pressSource = null;
+            BeginDrag(element, item);
         };
 
-        icon.PreviewMouseLeftButtonUp += (_, _) =>
+        element.PreviewMouseLeftButtonUp += (_, _) =>
         {
-            if (_dragSource == launcher) { _dragStart = null; _dragSource = null; }
-            icon.ReleaseMouseCapture();
+            _pressPoint = null;
+            _pressSource = null;
+            if (_drag is not null && _drag.Launcher == item) EndDrag(commit: true);
+            element.ReleaseMouseCapture();
         };
+    }
 
-        icon.AllowDrop = true;
-        icon.Drop += (_, e) =>
+    private void BeginDrag(Border element, LauncherConfig item)
+    {
+        int sourceIndex = _cfg.Launchers.IndexOf(item);
+        if (sourceIndex < 0) return;
+
+        bool animate = SystemParameters.ClientAreaAnimation;
+        bool vertical = _root.Orientation == Orientation.Vertical;
+
+        var screenCenter = element.PointToScreen(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
+
+        // O ícone original vira um espaço vazio (opacidade 0) guardando o lugar, em vez de
+        // sumir da lista — o Rebuild() no fim do arraste que efetivamente reordena.
+        // IsHitTestVisible continua true de propósito: desligar isso no elemento que
+        // segura a captura do mouse fazia o WPF parar de rotear MouseMove pra ele — o
+        // arraste "começava" (o fantasma aparecia) mas nunca mais recebia atualização.
+        element.Opacity = 0;
+
+        double slotSize = (vertical ? element.ActualHeight : element.ActualWidth)
+            + (vertical ? element.Margin.Top + element.Margin.Bottom : element.Margin.Left + element.Margin.Right);
+
+        var others = new List<SiblingInfo>();
+        for (int i = 0; i < _root.Children.Count; i++)
         {
-            if (e.Data.GetData(typeof(LauncherConfig)) is not LauncherConfig dragged || dragged == launcher) return;
+            if (i == sourceIndex || _root.Children[i] is not FrameworkElement child) continue;
 
-            int oldIndex = _cfg.Launchers.IndexOf(dragged);
-            int newIndex = _cfg.Launchers.IndexOf(launcher);
-            if (oldIndex < 0 || newIndex < 0) return;
+            var offset = child.TranslatePoint(new Point(0, 0), _root);
+            var transform = new TranslateTransform();
+            child.RenderTransform = transform;
+            others.Add(new SiblingInfo
+            {
+                Element = child,
+                OriginalOffset = vertical ? offset.Y : offset.X,
+                Size = vertical ? child.ActualHeight : child.ActualWidth,
+                Transform = transform
+            });
+        }
 
-            _cfg.Launchers.RemoveAt(oldIndex);
-            _cfg.Launchers.Insert(newIndex, dragged);
-            ConfigService.Save(_cfg);
-            Rebuild();
+        var ghostVisual = CreateItemVisual(item);
+        var ghost = new GhostIconWindow(ghostVisual, _iconSize);
+        ghost.CenterOn(screenCenter);
+        ghost.Show();
+        ghost.AnimatePickup(animate, LauncherDragAnimations.PickupScale);
+
+        _drag = new DragState
+        {
+            Launcher = item,
+            SourceElement = element,
+            Ghost = ghost,
+            SourceIndex = sourceIndex,
+            SlotSize = slotSize,
+            Others = others,
+            OriginalScreenCenter = screenCenter,
+            Animate = animate,
+            Vertical = vertical,
+            CurrentTarget = sourceIndex
         };
+        _escapeWatchTimer.Start();
+    }
+
+    private void UpdateDrag(MouseEventArgs e)
+    {
+        if (_drag is null) return;
+        var drag = _drag;
+
+        if ((NativeMethods.GetAsyncKeyState(NativeMethods.VK_ESCAPE) & 0x8000) != 0)
+        {
+            EndDrag(commit: false);
+            return;
+        }
+
+        var screenPoint = _root.PointToScreen(e.GetPosition(_root));
+        drag.Ghost.CenterOn(screenPoint);
+
+        // Longe da barra: arma o indicador de remoção e solta os vizinhos de volta ao lugar
+        // — não faz sentido calcular posição de reordenar fora dela.
+        var rootTopLeft = _root.PointToScreen(new Point(0, 0));
+        var barBounds = new Rect(rootTopLeft, new Size(Math.Max(_root.ActualWidth, 1), Math.Max(_root.ActualHeight, 1)));
+        barBounds.Inflate(RemovalDistance, RemovalDistance);
+        bool removalArmed = !barBounds.Contains(screenPoint);
+        drag.RemovalArmed = removalArmed;
+        drag.Ghost.SetRemovalHint(removalArmed);
+
+        if (removalArmed)
+        {
+            foreach (var sibling in drag.Others) AnimateTranslate(sibling.Transform, 0, 0, drag.Animate);
+            return;
+        }
+
+        var pointInRoot = e.GetPosition(_root);
+        double clickPos = drag.Vertical ? pointInRoot.Y : pointInRoot.X;
+
+        int target = 0;
+        for (int i = 0; i < drag.Others.Count; i++)
+        {
+            var sibling = drag.Others[i];
+            if (clickPos >= sibling.OriginalOffset + sibling.Size / 2) target = i + 1;
+        }
+        drag.CurrentTarget = target;
+
+        for (int i = 0; i < drag.Others.Count; i++)
+        {
+            bool isBefore = i < drag.SourceIndex;
+            int shift = isBefore ? (i >= target ? 1 : 0) : (i >= target ? 0 : -1);
+            double offsetPx = shift * drag.SlotSize;
+            AnimateTranslate(drag.Others[i].Transform, drag.Vertical ? 0 : offsetPx, drag.Vertical ? offsetPx : 0, drag.Animate);
+        }
+    }
+
+    private void EndDrag(bool commit)
+    {
+        if (_drag is null) return;
+        var drag = _drag;
+        _drag = null;
+        _escapeWatchTimer.Stop();
+        drag.SourceElement.ReleaseMouseCapture();
+
+        if (commit && drag.RemovalArmed)
+        {
+            drag.Ghost.Vanish(drag.Animate, () =>
+            {
+                drag.Ghost.Close();
+                _cfg.Launchers.Remove(drag.Launcher);
+                ConfigService.Save(_cfg);
+                Rebuild();
+            });
+            return;
+        }
+
+        if (commit && drag.CurrentTarget != drag.SourceIndex)
+        {
+            drag.Ghost.FlyTo(ComputeTargetScreenCenter(drag), drag.Animate, () =>
+            {
+                drag.Ghost.Close();
+                _cfg.Launchers.Remove(drag.Launcher);
+                int insertAt = Math.Clamp(drag.CurrentTarget, 0, _cfg.Launchers.Count);
+                _cfg.Launchers.Insert(insertAt, drag.Launcher);
+                ConfigService.Save(_cfg);
+                Rebuild();
+            });
+            return;
+        }
+
+        // Cancelado (Esc) ou soltou sem mudar de posição: volta tudo animado pro lugar
+        // original, sem tocar no config.
+        foreach (var sibling in drag.Others) AnimateTranslate(sibling.Transform, 0, 0, drag.Animate);
+        drag.Ghost.FlyTo(drag.OriginalScreenCenter, drag.Animate, () =>
+        {
+            drag.Ghost.Close();
+            drag.SourceElement.Opacity = 1;
+        });
+    }
+
+    /// <summary>Centro de tela de onde o item vai parar se soltar agora — pro fantasma "voar" até lá antes do Rebuild().</summary>
+    private Point ComputeTargetScreenCenter(DragState drag)
+    {
+        if (drag.Others.Count == 0) return drag.OriginalScreenCenter;
+
+        double targetOffset = drag.CurrentTarget < drag.Others.Count
+            ? drag.Others[drag.CurrentTarget].OriginalOffset
+            : drag.Others[^1].OriginalOffset + drag.Others[^1].Size;
+        targetOffset += drag.SlotSize / 2;
+
+        var rootTopLeft = _root.PointToScreen(new Point(0, 0));
+        return drag.Vertical
+            ? new Point(rootTopLeft.X + _root.ActualWidth / 2, rootTopLeft.Y + targetOffset)
+            : new Point(rootTopLeft.X + targetOffset, rootTopLeft.Y + _root.ActualHeight / 2);
+    }
+
+    private static void AnimateTranslate(TranslateTransform transform, double x, double y, bool animate)
+    {
+        if (!animate)
+        {
+            transform.X = x;
+            transform.Y = y;
+            return;
+        }
+
+        var duration = TimeSpan.FromMilliseconds(LauncherDragAnimations.SlideMs);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        transform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(x, duration) { EasingFunction = ease });
+        transform.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(y, duration) { EasingFunction = ease });
     }
 
     private System.Windows.Media.Imaging.BitmapSource? ResolveIconSource(LauncherConfig launcher)
@@ -316,5 +645,9 @@ public sealed class LauncherWidget : IWidget
         }
     }
 
-    public void Dispose() => _runningTimer.Stop();
+    public void Dispose()
+    {
+        _runningTimer.Stop();
+        _escapeWatchTimer.Stop();
+    }
 }

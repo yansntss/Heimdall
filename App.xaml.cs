@@ -200,14 +200,27 @@ public partial class App : Application
     {
         var cfg = ConfigService.Load();
         cfg.Launchers.AddRange(launchers);
+        EnsureLauncherWidgetVisible(cfg);
+        ConfigService.Save(cfg);
+        Reload();
+    }
 
+    /// <summary>Insere um item (atalho ou separador) numa posição específica — usado pelo "Adicionar separador" pra cair onde o usuário clicou.</summary>
+    public void AddLauncherAt(LauncherConfig item, int index)
+    {
+        var cfg = ConfigService.Load();
+        cfg.Launchers.Insert(Math.Clamp(index, 0, cfg.Launchers.Count), item);
+        EnsureLauncherWidgetVisible(cfg);
+        ConfigService.Save(cfg);
+        Reload();
+    }
+
+    private static void EnsureLauncherWidgetVisible(AppConfig cfg)
+    {
         bool alreadyVisible = cfg.Widgets.Start.Contains("launcher")
             || cfg.Widgets.Center.Contains("launcher")
             || cfg.Widgets.End.Contains("launcher");
         if (!alreadyVisible) cfg.Widgets.End.Add("launcher");
-
-        ConfigService.Save(cfg);
-        Reload();
     }
 
     public void OpenReminderHistory()

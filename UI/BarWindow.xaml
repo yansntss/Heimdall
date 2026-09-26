@@ -8,7 +8,8 @@
         ShowActivated="False"
         Topmost="True">
 
-    <Border x:Name="Root" AllowDrop="True" DragEnter="Root_DragEnter" Drop="Root_Drop">
+    <Border x:Name="Root" AllowDrop="True" DragEnter="Root_DragEnter" Drop="Root_Drop"
+            PreviewMouseRightButtonDown="Root_PreviewMouseRightButtonDown">
         <Border.ContextMenu>
             <ContextMenu>
                 <MenuItem Header="Configurações..." Click="OpenSettings_Click" />
@@ -18,6 +19,7 @@
                     <MenuItem Header="Escolher um arquivo..." Click="AddLauncherFromFile_Click" />
                     <MenuItem Header="Escolher app instalado..." Click="AddLauncherFromInstalled_Click" />
                 </MenuItem>
+                <MenuItem Header="Adicionar separador" Click="AddSeparator_Click" />
                 <MenuItem Header="Tema" x:Name="ThemeMenu" />
                 <MenuItem Header="Recarregar" Click="Reload_Click" />
                 <MenuItem Header="Monitores detectados" Click="Monitors_Click" />
