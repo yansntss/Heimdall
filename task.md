@@ -118,6 +118,19 @@
 - [x] Respeita `SystemParameters.ClientAreaAnimation` (animações do Windows desligadas = trocas sem animação)
 - [x] Durações de animação centralizadas em constantes num só lugar (`LauncherDragAnimations`)
 
+> **Investigação (vizinhos "sumindo" durante o arraste):** revisão completa de
+> `BeginDrag`/`UpdateDrag`/`EndDrag`/`Rebuild()` do `LauncherWidget` confirma que nenhum
+> vizinho tem `Visibility`/`Opacity` alterado nem é removido da `_root.Children` durante o
+> arraste — só o item arrastado vira `Opacity = 0` (mantém o lugar), e os outros só
+> recebem `TranslateTransform`. Hipótese mais provável (não confirmada ao vivo — teste
+> manual automatizado nessa sessão causou efeitos colaterais indesejados, então não deu
+> pra reproduzir com segurança): o `GhostIconWindow`, opaco e ~1.15x maior que o ícone
+> (`PickupScale`), cobre por completo o vizinho por baixo enquanto o cursor passa perto
+> dele — parece "sumir" mas é só oclusão visual do fantasma, não um bug de visibilidade.
+> Mitigação aplicada: `GhostIconWindow` ganhou `Opacity = 0.85` — deixa o que está atrás
+> minimamente visível sem perder a sensação de "sólido"/pego na mão. Precisa de
+> confirmação visual manual.
+
 # Fase 8 — Logo, mais modelos de relógio, widgets móveis/fixáveis
 
 ## 1) Logo do heimdall-brand

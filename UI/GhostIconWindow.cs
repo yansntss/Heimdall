@@ -33,6 +33,15 @@ internal sealed class GhostIconWindow : Window
         Width = width;
         Height = height;
 
+        // Levemente translúcida de propósito: ícones/widgets ficam pequenos e próximos
+        // uns dos outros, e o fantasma (que segue o cursor colado neles, ainda mais
+        // "grande" por causa do PickupScale) senão cobre por completo o vizinho que está
+        // por baixo — dava a impressão de que ele tinha sumido, mesmo sem nada no código
+        // mexendo em Visibility/Opacity dos vizinhos (isso nunca acontece, é só o fantasma
+        // opaco por cima). Opacity baixo o bastante pra dar pra notar o que está atrás,
+        // alto o bastante pra continuar parecendo "sólido"/pego na mão.
+        Opacity = 0.85;
+
         _host = new Border
         {
             Width = width,
