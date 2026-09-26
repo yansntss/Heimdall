@@ -1,3 +1,5 @@
+using System.Windows;
+using System.Windows.Media.Animation;
 using Heimdall.Config;
 using Heimdall.Services;
 
@@ -39,6 +41,8 @@ internal sealed class BarPresenter
 
     public bool IsVisible => (_inOverlay ? (System.Windows.Window)_overlay : _bar).Visibility == System.Windows.Visibility.Visible;
 
+    private const int FadeMs = 200;
+
     private void OnFullscreenChanged(bool fullscreen)
     {
         if (fullscreen == _inOverlay) return;
@@ -46,15 +50,37 @@ internal sealed class BarPresenter
 
         if (fullscreen)
         {
-            _bar.AppBar?.Unregister();
-            _bar.Hide();
-            _overlay.ShowOnMonitor(_monitor);
+            FadeOut(_bar, () =>
+            {
+                _bar.AppBar?.Unregister();
+                _bar.Hide();
+                _overlay.ShowOnMonitor(_monitor);
+                FadeIn(_overlay);
+            });
         }
         else
         {
-            _overlay.HideAway();
-            _bar.Show();
-            _bar.AppBar?.Register();
+            FadeOut(_overlay, () =>
+            {
+                _overlay.HideAway();
+                _bar.Show();
+                _bar.AppBar?.Register();
+                FadeIn(_bar);
+            });
         }
+    }
+
+    /// <summary>Fade de 200 ms na troca barra↔overlay — sem isso a troca era um corte seco (Hide/Show instantâneo).</summary>
+    private static void FadeOut(Window window, Action onCompleted)
+    {
+        var animation = new DoubleAnimation(window.Opacity, 0, TimeSpan.FromMilliseconds(FadeMs));
+        animation.Completed += (_, _) => onCompleted();
+        window.BeginAnimation(UIElement.OpacityProperty, animation);
+    }
+
+    private static void FadeIn(Window window)
+    {
+        var animation = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(FadeMs));
+        window.BeginAnimation(UIElement.OpacityProperty, animation);
     }
 }

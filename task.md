@@ -44,7 +44,7 @@
 - [x] Ícone animado de equalizador ao lado da faixa quando estiver tocando
 - [x] Tooltips em todos os botões
 - [x] Contorno leve no texto do overlay pra legibilidade sobre qualquer fundo (texto duplicado deslocado, não `DropShadowEffect`)
-- [ ] Animação de fade (200 ms) na troca entre modo barra e overlay
+- [x] Animação de fade (200 ms) na troca entre modo barra e overlay
 
 ## Outros
 - [ ] Atualizar `README.md` — ainda descreve a Aparência antiga (3 presets de cor) em vez do sistema de 9 temas + dropdown + temas de usuário já implementado
