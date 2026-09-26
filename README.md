@@ -1,183 +1,145 @@
-# Heimdall
+<p align="center">
+  <img src="docs/assets/banner.webp" alt="Heimdall" width="720">
+</p>
 
-Barra (ou barra flutuante) fixa numa borda da tela, com relógio, controle de mídia,
-lembretes e atalhos de apps. Troca sozinha pra um modo overlay discreto quando um
-jogo em tela cheia abre, e volta quando ele fecha.
+<h1 align="center">Heimdall</h1>
 
-## Rodar
-Requer Windows 10/11 + .NET 10 SDK.
+<p align="center">Uma barra de sistema para Windows que faz o que a barra de tarefas deveria fazer.</p>
 
-```
+<p align="center">
+  <img alt="Plataforma" src="https://img.shields.io/badge/plataforma-Windows%2010%20%2F%2011-0078D6">
+  <img alt=".NET" src="https://img.shields.io/badge/.NET-10-512BD4">
+  <img alt="Licença" src="https://img.shields.io/badge/licença-MIT-green">
+</p>
+
+---
+
+Fixa numa borda da tela (ou flutuando, com cantos arredondados), reunindo relógio,
+controle de mídia, lembretes e atalhos dos seus apps num só lugar, com o visual que você
+escolher. Ela se recolhe automaticamente para um overlay discreto quando um jogo em tela
+cheia é aberto, e volta ao normal quando ele fecha.
+
+## Por que usar
+
+- **Relógio sempre visível**, no formato e fuso que você quiser.
+- **Controle de mídia** para Spotify, YouTube ou qualquer player — play/pause, próxima
+  faixa, capa do álbum, progresso e volume por app, sem precisar abrir a janela.
+- **Lembretes** rápidos ou agendados, com recorrência, aviso visual na barra e histórico.
+- **Atalhos de apps** direto na barra — arraste um arquivo, uma pasta ou escolha entre os
+  apps instalados.
+- **9 temas prontos** (Escuro, Claro, Acrílico, Mica, Vidro, Destaque do Windows, Auto...)
+  com suporte a temas próprios em JSON.
+- **Modo overlay automático**: em jogos e apps de tela cheia, a barra normal some e um
+  overlay discreto e somente informativo assume o lugar, sem interceptar clique.
+- **Leve e nativo**: WPF puro, sem Electron e sem serviço em segundo plano consumindo RAM.
+
+## Baixar e instalar
+
+Não é necessário compilar nada — baixe o executável já pronto:
+
+**[Baixar a última versão](https://github.com/yansntss/Heimdall/releases/latest)**
+
+1. Baixe o `.zip` (ou `.exe`) da versão mais recente no link acima.
+2. Extraia (se for `.zip`) numa pasta de sua preferência.
+3. Execute o `Heimdall.exe`.
+4. Opcional: clique direito na barra → **Configurações...** → aba **Geral** → marque
+   **"Iniciar com o Windows"** para que ela abra automaticamente ao ligar o PC.
+
+> Requer Windows 10 ou 11. A versão "leve" precisa do
+> [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) instalado
+> na máquina; a versão "self-contained" já traz tudo embutido e roda sem instalar nada
+> extra.
+>
+> Ainda não há releases publicados? Veja [Rodar localmente](#rodar-localmente) para
+> compilar a partir do código-fonte.
+
+## Rodar localmente
+
+Para quem quer testar em modo desenvolvimento ou contribuir com código.
+
+**Pré-requisitos:**
+- Windows 10/11
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+
+**Passos:**
+
+```bash
+git clone https://github.com/yansntss/Heimdall.git
+cd Heimdall
 dotnet run
 ```
 
-### Publicar
-Duas opções, dependendo de onde o `.exe` vai rodar:
+A barra deve aparecer na borda da tela.
 
-- **Leve** (depende do .NET 10 Desktop Runtime instalado na máquina):
-  ```
-  dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
-  ```
-- **Self-contained** (maior, mas roda em qualquer PC Windows sem instalar nada):
-  ```
-  dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
-  ```
+**Gerando seu próprio build:**
 
-## Uso
-Clique direito na barra: **Configurações...** (tela de config completa — veja abaixo),
-**Adicionar atalho**, editar `config.json` na mão, ver histórico de lembretes, trocar
-tema, recarregar, ver monitores, sair.
+```bash
+# Leve (requer o .NET 10 Desktop Runtime instalado na máquina que for rodar)
+dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 
-Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução).
+# Self-contained (maior, mas roda em qualquer PC Windows sem instalar nada)
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+O executável final fica em `bin/Release/net10.0-windows.../win-x64/publish/`.
+
+## Configuração
+
+Tudo pode ser ajustado pela interface: clique direito na barra → **Configurações...**
+abre uma janela com abas de borda/tamanho, aparência/temas, widgets e lembretes.
+"Salvar e recarregar" aplica as mudanças na hora, sem reiniciar o app.
+
+Quem preferir também pode editar o JSON diretamente em
+`%AppData%\Heimdall\config.json`:
 
 ```jsonc
 {
   "Edge": "Top",               // Top | Bottom | Left | Right
-  "Thickness": 28,              // DIPs. Laterais: ~72
+  "Thickness": 28,              // DIPs
   "FloatingMode": false,        // true = barra flutuante (margem + cantos arredondados)
-  "FloatingMargin": 8,          // DIPs de respiro nos 4 lados, só com FloatingMode
   "MonitorMode": "Primary",     // Primary | Specific | All
-  "MonitorDevice": "DISPLAY2",  // usado em Specific (ver "Monitores detectados")
-  "Theme": "Escuro",            // nome de um tema embutido ou salvo em .../themes/*.json
-  "Style": {                    // overrides opcionais por cima do tema — null usa o tema
-    "Background": null,
-    "Foreground": null,
-    "FontFamily": null,
-    "FontSize": null
-  },
-  "Widgets": { "Start": [], "Center": ["clock"], "End": ["media", "reminder", "launcher"] },
-  "Clock": {
-    "TimeFormat": "HH:mm:ss",
-    "DateFormat": "ddd, dd/MM/yyyy",
-    "VerticalDateFormat": "dd/MM",
-    "Culture": "pt-BR"
-  },
-  "Reminders": [
-    { "Kind": "Fixed", "Text": "Beber água" },
-    {
-      "Kind": "Scheduled",
-      "Text": "Reunião diária",
-      "Time": "09:00",
-      "Recurrence": "Weekly",
-      "Days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      "PlaySound": true
-    }
-  ],
-  "Launchers": [
-    { "Name": "Bloco de notas", "Path": "shell:AppsFolder\\Microsoft.WindowsNotepad_8wekyb3d8bbwe!App" },
-    { "Name": "Calculadora", "Path": "C:\\Windows\\System32\\calc.exe" }
-  ]
+  "Theme": "Escuro",            // tema embutido ou salvo em .../themes/*.json
+  "Widgets": { "Start": [], "Center": ["clock"], "End": ["media", "reminder", "launcher"] }
 }
 ```
 
-## Configurações
-Clique direito na barra → **Configurações...** abre uma janela com 4 abas — não precisa
-editar o `config.json` na mão pro dia a dia:
+Detalhes completos de cada opção, dos widgets, temas customizados e da estrutura interna
+do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 
-- **Geral**: borda, espessura, modo flutuante (+ margem), modo/escolha de monitor,
-  "Iniciar com o Windows".
-- **Aparência**: dropdown com os temas (embutidos + os seus, salvos em
-  `%AppData%\Heimdall\themes\*.json` — ver "Temas" abaixo), e overrides opcionais de
-  cor de fundo/texto (com seletor nativo), fonte e tamanho por cima do tema escolhido.
-- **Widgets**: reordena/adiciona/remove os widgets de cada zona (início/centro/fim).
-  `launcher` (atalhos) entra aqui como qualquer outro — os itens em si (`Launchers`) são
-  geridos direto pela barra, não por essa tela (ver "Widget: launcher").
-- **Lembretes**: grid pra adicionar/editar/remover os itens de `Reminders`.
+## Widgets disponíveis
 
-"Salvar e recarregar" grava o `config.json` e aplica na hora, sem reiniciar o app. Quem
-preferir editar o JSON direto ainda pode, pelo item "Editar config.json" do mesmo menu.
+| Widget | O que faz |
+|---|---|
+| `clock` | Relógio e data, formato configurável |
+| `media` | Controle de mídia (SMTC), volume por app, capa do álbum |
+| `reminder` | Lembretes fixos e agendados, com histórico |
+| `launcher` | Atalhos de apps, pastas, arquivos e URLs |
 
-### Iniciar com o Windows
-O checkbox na aba Geral grava/remove uma entrada em
-`HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`, apontando pro
-executável atual — sem instalador nem tarefa agendada. Importante: ele aponta pro `.exe`
-que está rodando *no momento em que você salva*. Em `dotnet run`/debug isso é o apphost
-de debug; assim que você rodar a partir do `.exe` publicado (veja "Publicar" acima), é só
-reativar o checkbox uma vez pra apontar pro caminho certo. Se mover ou republicar o app
-pra outra pasta, reative de novo.
+## Stack
 
-## Temas
-9 temas embutidos — **Escuro**, **Claro**, **Translúcido Escuro**, **Translúcido Claro**,
-**Acrílico**, **Mica**, **Vidro**, **Destaque do Windows** (usa a cor de destaque do
-sistema) e **Auto** (acompanha o tema claro/escuro do Windows, trocando sozinho quando
-ele muda). Escolha rápida pelo clique direito na barra → **Tema**, ou pela aba
-Aparência das Configurações.
+- **.NET 10** + **WPF** — interface nativa, sem Electron
+- **P/Invoke** direto no Windows Shell/DWM para reserva de espaço na tela (AppBar),
+  detecção de tela cheia, extração de ícones e backdrops (Acrílico/Mica)
+- **SMTC** (System Media Transport Controls) para controle de mídia
+- **NAudio.Wasapi** para volume por aplicativo
 
-Temas de usuário são arquivos `.json` em `%AppData%\Heimdall\themes\`, com o mesmo
-formato dos embutidos:
+## Contribuindo
 
-```jsonc
-{
-  "Name": "Meu tema",
-  "Background": "#E61E1E1E",  // #AARRGGBB
-  "TextPrimary": "#FFFFFFFF",
-  "TextSecondary": "#FFB0B0B0",
-  "Accent": "#FF4A9EFF",
-  "Hover": "#22FFFFFF",
-  "Border": "#22FFFFFF",
-  "CornerRadius": 8,
-  "Backdrop": "Translucent",   // Solid | Translucent | Acrylic | Mica | None
-  "FontFamily": "Segoe UI"
-}
-```
+Encontrou um bug ou quer sugerir uma ideia? Abra uma
+[issue](https://github.com/yansntss/Heimdall/issues) ou um pull request — toda
+contribuição é bem-vinda.
 
-Aparecem automaticamente no dropdown/menu assim que o arquivo existe — não precisa
-reiniciar o app, só recarregar.
+## Apoie o projeto
 
-## Modo flutuante
-Com `FloatingMode: true`, a barra ganha uma margem (`FloatingMargin`, em DIPs) das 4
-bordas da tela e cantos arredondados, em vez de grudar na borda de ponta a ponta. O
-espaço reservado do AppBar (que empurra janelas maximizadas) inclui essa margem, então
-o respiro visual é respeitado mesmo sem a barra tocar a borda física da tela.
+O Heimdall é gratuito e desenvolvido nas horas livres. Se ele foi útil para você e
+quiser retribuir, um Pix é muito bem-vindo para manter o projeto vivo:
 
-## Modo overlay (jogos em tela cheia)
-Quando um app entra em tela cheia (detectado via notificação do shell e, como reforço,
-comparando o retângulo da janela em primeiro plano com o monitor), a barra normal some e
-um overlay discreto assume: sem interceptar clique (`WS_EX_TRANSPARENT`), sem os botões
-interativos dos widgets — só texto/ícones informativos, com contorno pra ler sobre
-qualquer fundo. A troca entre os dois modos é um fade de 200 ms, não um corte seco.
+**Chave Pix:** `c85cc18b-19b3-4d94-82ad-c68fa3dc8721`
 
-## Widgets
-- **`clock`** — relógio/data (ver `Clock` acima).
-- **`media`** — controle de mídia via SMTC (Spotify, YouTube, qualquer player), sem
-  login. Botões ⏮ ⏯ ⏭ (habilitados/desabilitados conforme o player permite), capa do
-  álbum, barra de progresso fina, texto com marquee no hover quando não cabe, e um
-  ícone de equalizador animado enquanto toca. Roda do mouse ajusta o volume por app
-  (via NAudio, com fallback pro volume master) em passos de 5%; clicar no ícone de
-  volume abre um slider vertical. Atalhos globais opcionais:
-  `Ctrl+Alt+Espaço` (play/pause), `Ctrl+Alt+←/→` (anterior/próximo),
-  `Ctrl+Alt+↑/↓` (volume). Fica oculto quando nada está tocando.
-- **`reminder`** — lembretes fixos e agendados. Botão "+" no hover (ou `Ctrl+Shift+R`)
-  abre um popup rápido pra criar um lembrete: chips de horário (Sem horário/+15 min/+1h/
-  Hoje 18h/Amanhã 9h/Personalizado), recorrência (Única/Diária/Dias da semana, com
-  data de início/fim opcional) e som. Cada lembrete pode ser editado ou excluído pelo
-  clique direito. `Kind: "Fixed"` fica sempre visível como chip; `Kind: "Scheduled"`
-  só aparece na barra (pulsando com a cor de destaque) quando dispara — concluir marca
-  `Completed: true` (uma vez, se `Recurrence: "Once"`) e grava no histórico, acessível
-  pelo menu da barra → "Ver histórico de lembretes".
-- **`launcher`** — ícones de atalhos: executáveis, `.lnk` (resolve pro destino real pra
-  pegar o ícone certo), pastas, arquivos, URLs, e apps da Microsoft Store (via
-  `shell:AppsFolder\{AppUserModelId}`). Ícones extraídos em alta resolução (cache em
-  `%AppData%\Heimdall\cache\icons\`) e escalados pela espessura da barra. Clique abre;
-  clique direito dá "Executar como administrador", "Abrir local do arquivo",
-  "Renomear..." e "Remover"; um ícone é arrastável pra reordenar; um ponto embaixo
-  indica que o app já está aberto (só funciona pra atalhos que apontam direto pro `.exe`
-  real — alguns como `calc.exe`/`notepad.exe` no Windows 11 são stubs que redirecionam
-  pro app moderno noutro caminho). Pra adicionar: arraste um arquivo/atalho/pasta pra
-  cima da barra, ou clique direito na barra → **Adicionar atalho** (escolher um arquivo,
-  ou escolher entre os apps instalados com busca). Some no modo overlay.
 
-## Estrutura
-- `Native/` — P/Invoke: `AppBarManager` (reserva de espaço, DPI, restart do Explorer,
-  detecção de tela cheia), `DwmVisuals` (backdrop/cantos), `HotkeyManager` (hotkeys
-  globais), `ShellInterop` (extração de ícone e resolução de `.lnk`).
-- `Services/` — `ThemeService` (temas embutidos/usuário), `MonitorService`,
-  `StartupService`, `AudioVolumeService` (volume por app), `IconCacheService`,
-  `InstalledAppsService` (lista de apps instalados), `ReminderHistoryService`.
-- `Config/` — modelo e leitura/gravação do JSON (`AppConfig`, `ThemeConfig`,
-  `ReminderConfig`, `LauncherConfig`).
-- `Widgets/` — `IWidget`, `WidgetFactory`, `ClockWidget`, `MediaWidget`,
-  `ReminderWidget`, `LauncherWidget`.
-- `UI/` — `BarPresenter` (troca barra↔overlay), `BarWindow`/`OverlayWindow` (3 zonas:
-  início/centro/fim, via `WidgetZoneBuilder`), `SettingsWindow`, `QuickAddReminderWindow`,
-  `ReminderHistoryWindow`, `RenamePromptWindow`, `InstalledAppPickerWindow`.
+Nenhuma doação é necessária para usar, sugerir ou contribuir com o projeto — é apenas uma
+forma de agradecer, caso queira.
+
+## Licença
+
+Distribuído sob a licença MIT — veja [LICENSE](LICENSE) para mais detalhes.
