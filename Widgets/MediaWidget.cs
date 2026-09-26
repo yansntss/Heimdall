@@ -147,10 +147,15 @@ public sealed class MediaWidget : IWidget
         _muteIcon.Foreground = iconBrush;
 
         _previous = CreateIconButton(_previousIcon);
+        _previous.ToolTip = "Faixa anterior";
         _playPause = CreateIconButton(_playPauseIcon);
+        _playPause.ToolTip = "Tocar/Pausar";
         _next = CreateIconButton(_nextIcon);
+        _next.ToolTip = "Próxima faixa";
         _volume = CreateIconToggleButton(_volumeIcon);
+        _volume.ToolTip = "Volume";
         _muteButton = CreateIconButton(_muteIcon);
+        _muteButton.ToolTip = "Mudo";
 
         _progressBar.Background = FrozenBrush(Color.FromArgb(0x33, _popupForeground.R, _popupForeground.G, _popupForeground.B));
         _progressFill.Background = FrozenBrush(style.Accent);
@@ -276,6 +281,7 @@ public sealed class MediaWidget : IWidget
 
         bool playing = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
         _playPauseIcon.Text = playing ? GlyphPause : GlyphPlay;
+        _playPause.ToolTip = playing ? "Pausar" : "Tocar";
 
         if (playing) StartEqualizer(); else StopEqualizer();
 
@@ -522,7 +528,11 @@ public sealed class MediaWidget : IWidget
         _volumeIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
     }
 
-    private void RefreshMuteButtonGlyph(bool muted) => _muteIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+    private void RefreshMuteButtonGlyph(bool muted)
+    {
+        _muteIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+        _muteButton.ToolTip = muted ? "Ativar som" : "Mudo";
+    }
 
     private void ShowVolumeFeedback(float volume, bool muted)
     {

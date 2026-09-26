@@ -87,13 +87,13 @@
                         <TextBlock Text="Início" FontWeight="Bold" Margin="0,0,0,4"/>
                         <ListBox x:Name="StartList" Height="150"/>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <Button Content="▲" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveUp_Click"/>
-                            <Button Content="▼" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveDown_Click"/>
+                            <Button Content="▲" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveUp_Click" ToolTip="Mover para cima"/>
+                            <Button Content="▼" Width="26" Tag="{Binding ElementName=StartList}" Click="MoveDown_Click" ToolTip="Mover para baixo"/>
                             <Button Content="Remover" Tag="{Binding ElementName=StartList}" Click="Remove_Click"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <ComboBox x:Name="StartCatalog" Width="80"/>
-                            <Button Content="+" Width="26" Click="AddStart_Click"/>
+                            <Button Content="+" Width="26" Click="AddStart_Click" ToolTip="Adicionar widget selecionado"/>
                         </StackPanel>
                     </StackPanel>
 
@@ -101,13 +101,13 @@
                         <TextBlock Text="Centro" FontWeight="Bold" Margin="0,0,0,4"/>
                         <ListBox x:Name="CenterList" Height="150"/>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <Button Content="▲" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveUp_Click"/>
-                            <Button Content="▼" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveDown_Click"/>
+                            <Button Content="▲" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveUp_Click" ToolTip="Mover para cima"/>
+                            <Button Content="▼" Width="26" Tag="{Binding ElementName=CenterList}" Click="MoveDown_Click" ToolTip="Mover para baixo"/>
                             <Button Content="Remover" Tag="{Binding ElementName=CenterList}" Click="Remove_Click"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <ComboBox x:Name="CenterCatalog" Width="80"/>
-                            <Button Content="+" Width="26" Click="AddCenter_Click"/>
+                            <Button Content="+" Width="26" Click="AddCenter_Click" ToolTip="Adicionar widget selecionado"/>
                         </StackPanel>
                     </StackPanel>
 
@@ -115,13 +115,13 @@
                         <TextBlock Text="Fim" FontWeight="Bold" Margin="0,0,0,4"/>
                         <ListBox x:Name="EndList" Height="150"/>
                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <Button Content="▲" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveUp_Click"/>
-                            <Button Content="▼" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveDown_Click"/>
+                            <Button Content="▲" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveUp_Click" ToolTip="Mover para cima"/>
+                            <Button Content="▼" Width="26" Tag="{Binding ElementName=EndList}" Click="MoveDown_Click" ToolTip="Mover para baixo"/>
                             <Button Content="Remover" Tag="{Binding ElementName=EndList}" Click="Remove_Click"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <ComboBox x:Name="EndCatalog" Width="80"/>
-                            <Button Content="+" Width="26" Click="AddEnd_Click"/>
+                            <Button Content="+" Width="26" Click="AddEnd_Click" ToolTip="Adicionar widget selecionado"/>
                         </StackPanel>
                     </StackPanel>
                 </Grid>

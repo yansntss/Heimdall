@@ -42,7 +42,7 @@
 - [x] Separadores sutis entre widgets e entre zonas (início/centro/fim)
 - [x] Hover com fundo levemente destacado e transição de 150 ms
 - [x] Ícone animado de equalizador ao lado da faixa quando estiver tocando
-- [ ] Tooltips em todos os botões
+- [x] Tooltips em todos os botões
 - [ ] Contorno leve no texto do overlay pra legibilidade sobre qualquer fundo (texto duplicado deslocado, não `DropShadowEffect`)
 - [ ] Animação de fade (200 ms) na troca entre modo barra e overlay
 
