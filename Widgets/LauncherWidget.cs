@@ -51,7 +51,26 @@ public sealed class LauncherWidget : IWidget
         _root.Children.Clear();
         _runningIndicators.Clear();
         foreach (var launcher in _cfg.Launchers)
-            _root.Children.Add(CreateIcon(launcher));
+            _root.Children.Add(launcher.Type == LauncherItemType.Separator ? CreateSeparatorItem(launcher) : CreateIcon(launcher));
+    }
+
+    /// <summary>Índice em <see cref="AppConfig.Launchers"/> correspondente a um ponto (nas coordenadas do <see cref="View"/>) — usado pelo "Adicionar separador" da barra pra inserir na posição do clique.</summary>
+    public int GetInsertIndex(Point pointInView)
+    {
+        double clickPos = _root.Orientation == Orientation.Horizontal ? pointInView.X : pointInView.Y;
+
+        for (int i = 0; i < _root.Children.Count; i++)
+        {
+            if (_root.Children[i] is not FrameworkElement child) continue;
+
+            var topLeft = child.TranslatePoint(new Point(0, 0), _root);
+            double center = _root.Orientation == Orientation.Horizontal
+                ? topLeft.X + child.ActualWidth / 2
+                : topLeft.Y + child.ActualHeight / 2;
+            if (clickPos < center) return i;
+        }
+
+        return _root.Children.Count;
     }
 
     // ---------- Ponto indicando que o app já está aberto ----------
@@ -158,7 +177,88 @@ public sealed class LauncherWidget : IWidget
         return border;
     }
 
-    // ---------- Menu de clique direito ----------
+    // ---------- Separadores dentro da lista de atalhos ----------
+
+    private Border CreateSeparatorItem(LauncherConfig separator)
+    {
+        bool vertical = _root.Orientation == Orientation.Vertical;
+        double lineThickness = Math.Max(1, _cfg.Thickness * 0.6);
+        var lineBrush = new SolidColorBrush(_style.Border);
+
+        FrameworkElement visual = separator.Style switch
+        {
+            SeparatorStyle.Dot => new Ellipse
+            {
+                Width = 4,
+                Height = 4,
+                Fill = lineBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            },
+            SeparatorStyle.Space => new Border
+            {
+                Width = vertical ? lineThickness : 12,
+                Height = vertical ? 12 : lineThickness
+            },
+            _ => new Border
+            {
+                Background = lineBrush,
+                Width = vertical ? lineThickness : 1,
+                Height = vertical ? 1 : lineThickness,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+
+        // Padding generoso: uma linha de 1px só, sem isso, vira um alvo minúsculo demais
+        // pra hover/clique direito confortável — a área clicável fica do tamanho de um
+        // ícone mesmo, só o traço visível no meio que é fino.
+        double pad = Math.Max(4, (_iconSize - 1) / 2.0);
+        var background = new SolidColorBrush(Colors.Transparent);
+        var container = new Border
+        {
+            Child = visual,
+            Background = background,
+            CornerRadius = new CornerRadius(4),
+            Padding = vertical ? new Thickness(4, pad, 4, pad) : new Thickness(pad, 4, pad, 4),
+            Margin = new Thickness(2, 0, 2, 0),
+            Cursor = Cursors.Arrow
+        };
+
+        container.MouseEnter += (_, _) =>
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(_style.Hover, TimeSpan.FromMilliseconds(150)));
+        container.MouseLeave += (_, _) =>
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
+
+        SetupDrag(container, separator);
+        container.ContextMenu = BuildSeparatorContextMenu(separator);
+
+        return container;
+    }
+
+    private ContextMenu BuildSeparatorContextMenu(LauncherConfig separator)
+    {
+        var line = new MenuItem { Header = "Linha", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Line };
+        var space = new MenuItem { Header = "Espaço", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Space };
+        var dot = new MenuItem { Header = "Ponto", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Dot };
+        line.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Line);
+        space.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Space);
+        dot.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Dot);
+
+        var remove = new MenuItem { Header = "Remover" };
+        remove.Click += (_, _) => RemoveLauncher(separator);
+
+        return new ContextMenu { Items = { line, space, dot, new Separator(), remove } };
+    }
+
+    private void ChangeSeparatorStyle(LauncherConfig separator, SeparatorStyle style)
+    {
+        separator.Style = style;
+        ConfigService.Save(_cfg);
+        Rebuild();
+    }
+
+    // ---------- Menu de clique direito (ícones de app) ----------
 
     private ContextMenu BuildContextMenu(LauncherConfig launcher, Border icon)
     {

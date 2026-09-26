@@ -10,7 +10,7 @@ namespace Heimdall.UI;
 
 public partial class SettingsWindow : Window
 {
-    private static readonly string[] WidgetCatalog = { "clock", "media", "reminder", "launcher" };
+    private static readonly string[] WidgetCatalog = { "clock", "media", "reminder", "launcher", "separator" };
 
     private readonly AppConfig _cfg;
     private readonly ObservableCollection<ReminderRow> _reminders;

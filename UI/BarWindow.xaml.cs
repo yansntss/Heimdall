@@ -19,6 +19,7 @@ public partial class BarWindow : Window
     private readonly MonitorInfo _monitor;
     private readonly List<IWidget> _widgets = new();
     private InstalledAppPickerWindow? _appPicker;
+    private Point _lastRightClickScreenPoint;
 
     private bool IsVertical => _cfg.Edge is BarEdge.Left or BarEdge.Right;
 
@@ -190,6 +191,25 @@ public partial class BarWindow : Window
         });
         _appPicker.Closed += (_, _) => _appPicker = null;
         _appPicker.Show();
+    }
+
+    private void Root_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
+        _lastRightClickScreenPoint = PointToScreen(e.GetPosition(this));
+
+    private void AddSeparator_Click(object sender, RoutedEventArgs e)
+    {
+        var launcherWidget = _widgets.OfType<LauncherWidget>().FirstOrDefault();
+
+        // Sem o widget "launcher" ainda na barra: cai no fim, e o AddLauncherAt/EnsureLauncherWidgetVisible
+        // cuida de fazer ele aparecer em algum lugar (igual "Adicionar atalho" já faz).
+        int index = 0;
+        if (launcherWidget is not null)
+        {
+            var pointInWidget = launcherWidget.View.PointFromScreen(_lastRightClickScreenPoint);
+            index = launcherWidget.GetInsertIndex(pointInWidget);
+        }
+
+        CurrentApp.AddLauncherAt(new LauncherConfig { Type = LauncherItemType.Separator, Name = "Separador" }, index);
     }
 
     private void Root_DragEnter(object sender, DragEventArgs e)

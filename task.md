@@ -87,12 +87,12 @@
 # Fase 7 — Arrastar com animação e separadores
 
 ## Separadores (primeiro, mais simples)
-- [ ] `LauncherConfig.Type` (`App` | `Separator`) + `Style` (`Line` | `Space` | `Dot`) pros itens de `Launchers`
-- [ ] `LauncherWidget` renderiza separador conforme o estilo (linha fina/espaço/ponto discreto), cor de borda ou texto secundário do tema, baixa opacidade, ~60% da espessura da barra
-- [ ] Widget `"separator"` novo registrado no `WidgetFactory`, pra separar widgets inteiros dentro de uma zona (ex: entre `clock` e `media`)
-- [ ] Clique direito na barra → "Adicionar separador", inserido na posição do clique
-- [ ] Separador reordenável (mesmo mecanismo de arrastar dos ícones)
-- [ ] Clique direito no separador → trocar estilo ou remover
+- [x] `LauncherConfig.Type` (`App` | `Separator`) + `Style` (`Line` | `Space` | `Dot`) pros itens de `Launchers`
+- [x] `LauncherWidget` renderiza separador conforme o estilo (linha fina/espaço/ponto discreto), cor de borda ou texto secundário do tema, baixa opacidade, ~60% da espessura da barra
+- [x] Widget `"separator"` novo registrado no `WidgetFactory`, pra separar widgets inteiros dentro de uma zona (ex: entre `clock` e `media`)
+- [x] Clique direito na barra → "Adicionar separador", inserido na posição do clique
+- [x] Separador reordenável (mesmo mecanismo de arrastar dos ícones)
+- [x] Clique direito no separador → trocar estilo ou remover
 
 ## Arrastar com animação (depois, mais trabalhoso)
 - [ ] Arraste manual com `CaptureMouse` pra reordenar dentro da barra — não usar `DragDrop.DoDragDrop` (bloqueia a thread, cursor padrão do Windows, sem dar pra animar); OLE drag-drop continua só pra receber arquivos de fora (Explorer)
