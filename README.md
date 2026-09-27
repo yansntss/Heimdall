@@ -10,6 +10,9 @@
   <a href="https://github.com/yansntss/Heimdall/releases/latest">
     <img alt="Última versão" src="https://img.shields.io/github/v/release/yansntss/Heimdall">
   </a>
+  <a href="https://github.com/yansntss/Heimdall/releases">
+    <img alt="Downloads" src="https://img.shields.io/github/downloads/yansntss/Heimdall/total">
+  </a>
   <img alt="Plataforma" src="https://img.shields.io/badge/plataforma-Windows%2010%20%2F%2011-0078D6">
   <img alt=".NET" src="https://img.shields.io/badge/.NET-10-512BD4">
   <img alt="Licença" src="https://img.shields.io/badge/licença-MIT-green">
