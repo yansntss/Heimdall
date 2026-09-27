@@ -19,7 +19,6 @@ namespace Heimdall.Widgets;
 /// </summary>
 public sealed class ReminderWidget : IWidget
 {
-    private static readonly TimeSpan HighlightDuration = TimeSpan.FromSeconds(6);
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
     private const string GlyphAdd = "";
     private const string GlyphCheck = "";
@@ -32,7 +31,6 @@ public sealed class ReminderWidget : IWidget
     private readonly EffectiveStyle _style;
 
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMinutes(1) };
-    private readonly DispatcherTimer _highlightTimer = new() { Interval = HighlightDuration };
     private readonly Queue<ReminderConfig> _pendingScheduled = new();
     private readonly Dictionary<ReminderConfig, string> _lastFired = new();
     private readonly List<Border> _fixedChips = new();
@@ -53,7 +51,6 @@ public sealed class ReminderWidget : IWidget
         _style = ThemeService.GetEffectiveStyle(cfg);
         _accent = _style.Accent;
         _clock.Tick += (_, _) => CheckSchedule();
-        _highlightTimer.Tick += (_, _) => { _highlightTimer.Stop(); ShowNextHighlight(); };
 
         var addIcon = new TextBlock
         {
@@ -248,9 +245,6 @@ public sealed class ReminderWidget : IWidget
         _activeScheduledChip.Background = CreatePulsingBrush();
         _root.Children.Insert(0, _activeScheduledChip);
         RefreshBadge();
-
-        _highlightTimer.Stop();
-        _highlightTimer.Start();
     }
 
     /// <summary>Mostra/atualiza o "+N" no chip agendado ativo conforme quantos ainda estão na fila.</summary>
@@ -271,11 +265,7 @@ public sealed class ReminderWidget : IWidget
         }
     }
 
-    private void DismissActiveScheduled()
-    {
-        _highlightTimer.Stop();
-        ShowNextHighlight();
-    }
+    private void DismissActiveScheduled() => ShowNextHighlight();
 
     // ---------- Concluir / Excluir ----------
 
@@ -427,7 +417,6 @@ public sealed class ReminderWidget : IWidget
     public void Dispose()
     {
         _clock.Stop();
-        _highlightTimer.Stop();
         _quickAddWindow?.Close();
         if (Primary == this) Primary = null;
     }
