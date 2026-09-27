@@ -21,6 +21,7 @@
                     <MenuItem Header="Escolher app instalado..." Click="AddLauncherFromInstalled_Click" />
                 </MenuItem>
                 <MenuItem Header="Adicionar separador" Click="AddSeparator_Click" />
+                <MenuItem x:Name="AddWidgetMenu" Header="Adicionar widget" />
                 <MenuItem Header="Tema" x:Name="ThemeMenu" />
                 <MenuItem x:Name="GamingModeMenuItem" IsCheckable="True" Click="GamingMode_Click" />
                 <MenuItem Header="Recarregar" Click="Reload_Click" />

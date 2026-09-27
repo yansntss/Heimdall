@@ -4,6 +4,13 @@ namespace Heimdall.Widgets;
 
 public static class WidgetFactory
 {
+    /// <summary>Catálogo de widgets disponíveis (id + ícone) — usado pela tela de Configurações e pelo menu "Adicionar widget" da barra.</summary>
+    public static readonly (string Id, string Icon)[] Catalog =
+    {
+        ("clock", "🕐"), ("media", "🎵"), ("reminder", "⏰"), ("launcher", "🚀"),
+        ("ram", "🧠"), ("temp", "🌡️"), ("fps", "🎮"), ("separator", "┃")
+    };
+
     /// <summary>Novos widgets (media, reminder...) entram aqui.</summary>
     public static IWidget? Create(string id, AppConfig config, bool isOverlay = false) => id.Trim().ToLowerInvariant() switch
     {

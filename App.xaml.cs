@@ -198,13 +198,28 @@ public partial class App : Application
     {
         if (_settingsWindow is not null)
         {
-            _settingsWindow.Activate();
+            BringToFront(_settingsWindow);
             return;
         }
 
         _settingsWindow = new SettingsWindow();
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
+        BringToFront(_settingsWindow);
+    }
+
+    /// <summary>
+    /// Show() + Activate() sozinhos às vezes não bastam: o clique vem do menu de contexto
+    /// da barra, uma janela WS_EX_NOACTIVATE que nunca teve foco de verdade, e o Windows
+    /// pode negar a ativação (foreground lock) — a janela nova fica aberta, mas atrás do
+    /// app que já estava em uso. Alternar Topmost força o z-order pra cima de qualquer
+    /// janela já aberta independente disso, garantindo que apareça na frente.
+    /// </summary>
+    private static void BringToFront(Window window)
+    {
+        window.Activate();
+        window.Topmost = true;
+        window.Topmost = false;
     }
 
     public void OpenConfig()
@@ -244,17 +259,27 @@ public partial class App : Application
         if (!alreadyVisible) cfg.Widgets.End.Add(new WidgetEntry("launcher"));
     }
 
+    /// <summary>Adiciona um widget direto pelo menu de contexto da barra (sem precisar abrir Configurações) — entra no fim da zona Fim.</summary>
+    public void AddWidget(string id)
+    {
+        var cfg = ConfigService.Load();
+        cfg.Widgets.End.Add(new WidgetEntry(id));
+        ConfigService.Save(cfg);
+        Reload();
+    }
+
     public void OpenReminderHistory()
     {
         if (_historyWindow is not null)
         {
-            _historyWindow.Activate();
+            BringToFront(_historyWindow);
             return;
         }
 
         _historyWindow = new ReminderHistoryWindow();
         _historyWindow.Closed += (_, _) => _historyWindow = null;
         _historyWindow.Show();
+        BringToFront(_historyWindow);
     }
 
     public void ShowMonitors()

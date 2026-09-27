@@ -45,6 +45,7 @@ public partial class BarWindow : Window
         ApplyStyle();
         BuildWidgets();
         BuildThemeMenu();
+        BuildAddWidgetMenu();
         UpdateGamingModeMenuItem();
 
         SourceInitialized += OnSourceInitialized;
@@ -128,6 +129,17 @@ public partial class BarWindow : Window
             };
             item.Click += (sender, _) => CurrentApp.SetTheme((string)((MenuItem)sender).Tag);
             ThemeMenu.Items.Add(item);
+        }
+    }
+
+    /// <summary>Adicionar widget direto pelo menu da barra, sem precisar abrir Configurações — mesmo catálogo da aba Widgets.</summary>
+    private void BuildAddWidgetMenu()
+    {
+        foreach (var (id, icon) in WidgetFactory.Catalog)
+        {
+            var item = new MenuItem { Header = $"{icon}  {id}", Tag = id };
+            item.Click += (sender, _) => CurrentApp.AddWidget((string)((MenuItem)sender).Tag);
+            AddWidgetMenu.Items.Add(item);
         }
     }
 
