@@ -131,6 +131,14 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
+    // Progman/WorkerW (área de trabalho) também preenchem a tela inteira — sem excluí-los,
+    // "Mostrar área de trabalho" (Win+D) é indistinguível de um jogo em tela cheia.
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetShellWindow();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
     // ---------- Tecla Esc durante arraste ----------
     // A barra é WS_EX_NOACTIVATE — nada nela recebe foco de teclado de verdade, então um
     // KeyDown normal não serve pra cancelar um arraste. GetAsyncKeyState funciona

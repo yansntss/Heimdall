@@ -175,6 +175,15 @@ internal sealed class AppBarManager : IDisposable
         IntPtr fg = GetForegroundWindow();
         if (fg == IntPtr.Zero || fg == _hwnd) return;
 
+        // A área de trabalho (Progman/WorkerW) também ocupa a tela inteira — sem essa
+        // checagem, "Mostrar área de trabalho" (Win+D) era tratado como um jogo em tela
+        // cheia e disparava o modo gaming.
+        if (IsDesktopWindow(fg))
+        {
+            SetFullscreen(false);
+            return;
+        }
+
         bool matches = GetWindowRect(fg, out RECT rect)
             && rect.Left == _monitor.Bounds.Left
             && rect.Top == _monitor.Bounds.Top
@@ -182,6 +191,15 @@ internal sealed class AppBarManager : IDisposable
             && rect.Bottom == _monitor.Bounds.Bottom;
 
         SetFullscreen(matches);
+    }
+
+    private static bool IsDesktopWindow(IntPtr hwnd)
+    {
+        if (hwnd == GetShellWindow()) return true;
+
+        var className = new System.Text.StringBuilder(256);
+        GetClassName(hwnd, className, className.Capacity);
+        return className.ToString() is "Progman" or "WorkerW";
     }
 
     private void SetFullscreen(bool fullscreen)
