@@ -40,13 +40,16 @@ public static class ConfigService
             });
             MigrateClockConfig(node);
             MigrateWidgetLayout(node);
-            return node.Deserialize<AppConfig>(Options) ?? new AppConfig();
+            var config = node.Deserialize<AppConfig>(Options) ?? new AppConfig();
+            Services.Strings.Current = config.Language;
+            return config;
         }
         catch (Exception ex)
         {
+            Services.Strings.Current = AppLanguage.PtBr;
             MessageBox.Show(
-                $"Erro ao ler a configuração:\n{ex.Message}\n\nUsando configuração padrão.",
-                "Heimdall", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Services.Strings.ConfigLoadErrorBody(ex.Message),
+                Services.Strings.ConfigLoadErrorTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return new AppConfig();
         }
     }

@@ -13,21 +13,21 @@
             PreviewMouseRightButtonDown="Root_PreviewMouseRightButtonDown">
         <Border.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="Configurações..." Click="OpenSettings_Click" />
-                <MenuItem Header="Editar config.json" Click="OpenConfig_Click" />
-                <MenuItem Header="Ver histórico de lembretes" Click="OpenReminderHistory_Click" />
-                <MenuItem Header="Adicionar atalho">
-                    <MenuItem Header="Escolher um arquivo..." Click="AddLauncherFromFile_Click" />
-                    <MenuItem Header="Escolher app instalado..." Click="AddLauncherFromInstalled_Click" />
+                <MenuItem x:Name="SettingsMenuItem" Click="OpenSettings_Click" />
+                <MenuItem x:Name="EditConfigMenuItem" Click="OpenConfig_Click" />
+                <MenuItem x:Name="ReminderHistoryMenuItem" Click="OpenReminderHistory_Click" />
+                <MenuItem x:Name="AddShortcutMenu">
+                    <MenuItem x:Name="AddShortcutFromFileMenuItem" Click="AddLauncherFromFile_Click" />
+                    <MenuItem x:Name="AddShortcutFromInstalledMenuItem" Click="AddLauncherFromInstalled_Click" />
                 </MenuItem>
-                <MenuItem Header="Adicionar separador" Click="AddSeparator_Click" />
-                <MenuItem x:Name="AddWidgetMenu" Header="Adicionar widget" />
-                <MenuItem Header="Tema" x:Name="ThemeMenu" />
+                <MenuItem x:Name="AddSeparatorMenuItem" Click="AddSeparator_Click" />
+                <MenuItem x:Name="AddWidgetMenu" />
+                <MenuItem x:Name="ThemeMenu" />
                 <MenuItem x:Name="GamingModeMenuItem" IsCheckable="True" Click="GamingMode_Click" />
-                <MenuItem Header="Recarregar" Click="Reload_Click" />
-                <MenuItem Header="Monitores detectados" Click="Monitors_Click" />
+                <MenuItem x:Name="ReloadMenuItem" Click="Reload_Click" />
+                <MenuItem x:Name="MonitorsMenuItem" Click="Monitors_Click" />
                 <Separator />
-                <MenuItem Header="Sair" Click="Exit_Click" />
+                <MenuItem x:Name="ExitMenuItem" Click="Exit_Click" />
             </ContextMenu>
         </Border.ContextMenu>
 

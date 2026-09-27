@@ -183,7 +183,7 @@ public sealed class LauncherWidget : IWidget
             Margin = new Thickness(2, 0, 2, 0),
             Cursor = exists ? Cursors.Hand : Cursors.Arrow,
             Opacity = exists ? 1.0 : 0.35,
-            ToolTip = exists ? launcher.Name : $"{launcher.Name} — Atalho não encontrado"
+            ToolTip = exists ? launcher.Name : Strings.LauncherTooltipMissing(launcher.Name)
         };
 
         border.MouseEnter += (_, _) =>
@@ -272,14 +272,14 @@ public sealed class LauncherWidget : IWidget
 
     private ContextMenu BuildSeparatorContextMenu(LauncherConfig separator)
     {
-        var line = new MenuItem { Header = "Linha", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Line };
-        var space = new MenuItem { Header = "Espaço", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Space };
-        var dot = new MenuItem { Header = "Ponto", IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Dot };
+        var line = new MenuItem { Header = Strings.SeparatorStyleLine, IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Line };
+        var space = new MenuItem { Header = Strings.SeparatorStyleSpace, IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Space };
+        var dot = new MenuItem { Header = Strings.SeparatorStyleDot, IsCheckable = true, IsChecked = separator.Style == SeparatorStyle.Dot };
         line.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Line);
         space.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Space);
         dot.Click += (_, _) => ChangeSeparatorStyle(separator, SeparatorStyle.Dot);
 
-        var remove = new MenuItem { Header = "Remover" };
+        var remove = new MenuItem { Header = Strings.Remove };
         remove.Click += (_, _) => RemoveLauncher(separator);
 
         return new ContextMenu { Items = { line, space, dot, new Separator(), remove } };
@@ -296,16 +296,16 @@ public sealed class LauncherWidget : IWidget
 
     private ContextMenu BuildContextMenu(LauncherConfig launcher, Border icon)
     {
-        var runAsAdmin = new MenuItem { Header = "Executar como administrador" };
+        var runAsAdmin = new MenuItem { Header = Strings.LauncherRunAsAdmin };
         runAsAdmin.Click += (_, _) => Launch(launcher, forceAdmin: true);
 
-        var openLocation = new MenuItem { Header = "Abrir local do arquivo" };
+        var openLocation = new MenuItem { Header = Strings.LauncherOpenLocation };
         openLocation.Click += (_, _) => OpenFileLocation(launcher);
 
-        var rename = new MenuItem { Header = "Renomear..." };
+        var rename = new MenuItem { Header = Strings.LauncherRename };
         rename.Click += (_, _) => RenameLauncher(launcher, icon);
 
-        var remove = new MenuItem { Header = "Remover" };
+        var remove = new MenuItem { Header = Strings.Remove };
         remove.Click += (_, _) => RemoveLauncher(launcher);
 
         return new ContextMenu { Items = { runAsAdmin, openLocation, rename, remove } };

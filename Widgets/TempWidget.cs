@@ -45,7 +45,7 @@ public sealed class TempWidget : IWidget
             // timer — o nível de elevação não muda em runtime, então tentar de novo a
             // cada 3s não ia mudar nada.
             _text.Text = "—";
-            _text.ToolTip = "Sensores de temperatura precisam do Heimdall rodando como administrador.";
+            _text.ToolTip = Strings.TempAdminRequiredTooltip;
             return;
         }
 

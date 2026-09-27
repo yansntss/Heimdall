@@ -286,13 +286,9 @@ public partial class App : Application
     {
         var lines = MonitorService.GetMonitors().Select(m =>
             $"{m.ShortName}  —  {m.Bounds.Width}x{m.Bounds.Height} em ({m.Bounds.Left}, {m.Bounds.Top})" +
-            (m.IsPrimary ? "  [principal]" : ""));
+            (m.IsPrimary ? Strings.MonitorPrimarySuffix : ""));
 
-        MessageBox.Show(
-            "Use o nome em \"MonitorDevice\" com \"MonitorMode\": \"Specific\":\n\n" +
-            string.Join("\n", lines) +
-            "\n\n(Ctrl+C copia este texto)",
-            "Heimdall — Monitores");
+        MessageBox.Show(Strings.MonitorsDialogBody(string.Join("\n", lines)), "Heimdall — Monitores");
     }
 
     public void ExitApp()

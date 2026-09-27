@@ -19,7 +19,7 @@
             <DataTemplate x:Key="WidgetRowTemplate">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding Icon}" Margin="0,0,8,0" FontSize="13"/>
-                    <TextBlock Text="{Binding Id}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
                     <TextBlock Text="📌" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="10"
                                Visibility="{Binding Pinned, Converter={StaticResource BoolToVis}}"/>
                 </StackPanel>
@@ -35,7 +35,7 @@
                 <Grid>
                     <StackPanel Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
                         <Image Source="pack://application:,,,/Assets/heimdall.ico" Width="18" Height="18"/>
-                        <TextBlock Text="Configurações — Heimdall" Margin="10,0,0,0" VerticalAlignment="Center"
+                        <TextBlock x:Name="TitleBarText" Text="Configurações — Heimdall" Margin="10,0,0,0" VerticalAlignment="Center"
                                    FontWeight="SemiBold" FontSize="12"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -52,8 +52,8 @@
                     <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource HeimdallHint}"
                                Foreground="{StaticResource HeimdallAccentSecondary}"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Cancelar" Width="100" Margin="0,0,8,0" Click="Cancel_Click" Style="{StaticResource HeimdallSecondaryButton}"/>
-                        <Button Content="Salvar e recarregar" Width="170" Click="Save_Click" Style="{StaticResource HeimdallPrimaryButton}"/>
+                        <Button x:Name="CancelButton" Content="Cancelar" Width="100" Margin="0,0,8,0" Click="Cancel_Click" Style="{StaticResource HeimdallSecondaryButton}"/>
+                        <Button x:Name="SaveButton" Content="Salvar e recarregar" Width="170" Click="Save_Click" Style="{StaticResource HeimdallPrimaryButton}"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -84,12 +84,12 @@
                     <!-- ================= GERAL ================= -->
                     <ScrollViewer x:Name="GeralSection" VerticalScrollBarVisibility="Auto" Padding="28,22,28,22">
                         <StackPanel MaxWidth="480" HorizontalAlignment="Left">
-                            <TextBlock Text="Geral" Style="{StaticResource HeimdallSectionTitle}"/>
+                            <TextBlock x:Name="GeralTitle" Text="Geral" Style="{StaticResource HeimdallSectionTitle}"/>
 
-                            <TextBlock Text="Borda" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="EdgeLabel" Text="Borda" Style="{StaticResource HeimdallLabel}"/>
                             <ComboBox x:Name="EdgeCombo" Margin="0,0,0,16" HorizontalAlignment="Left" Width="180"/>
 
-                            <TextBlock Text="Espessura (DIPs)" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="ThicknessLabel" Text="Espessura (DIPs)" Style="{StaticResource HeimdallLabel}"/>
                             <Grid Margin="0,0,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -103,7 +103,7 @@
                             <CheckBox x:Name="FloatingModeCheck" Content="Modo flutuante (margem das bordas + cantos arredondados)"
                                       Margin="0,0,0,12" Checked="FloatingModeCheck_Changed" Unchecked="FloatingModeCheck_Changed"/>
 
-                            <TextBlock Text="Margem flutuante (DIPs)" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="FloatingMarginLabel" Text="Margem flutuante (DIPs)" Style="{StaticResource HeimdallLabel}"/>
                             <Grid Margin="0,0,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -114,27 +114,30 @@
                                            Style="{StaticResource HeimdallMonoValue}" Margin="10,0,0,0" VerticalAlignment="Center"/>
                             </Grid>
 
-                            <TextBlock Text="Modo de monitor" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="MonitorModeLabel" Text="Modo de monitor" Style="{StaticResource HeimdallLabel}"/>
                             <ComboBox x:Name="MonitorModeCombo" Margin="0,0,0,12" HorizontalAlignment="Left" Width="180"
                                       SelectionChanged="MonitorModeCombo_SelectionChanged"/>
 
-                            <TextBlock Text="Monitor específico" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="MonitorSpecificLabel" Text="Monitor específico" Style="{StaticResource HeimdallLabel}"/>
                             <ComboBox x:Name="MonitorCombo" Margin="0,0,0,16" HorizontalAlignment="Stretch"/>
 
                             <CheckBox x:Name="StartWithWindowsCheck" Content="Iniciar com o Windows" Margin="0,4,0,16"/>
 
                             <CheckBox x:Name="GamingModeCheck" Content="Ativar modo gaming (overlay em tela cheia)" Margin="0,0,0,4"/>
-                            <TextBlock Text="Quando desativado, a barra some ao abrir um jogo em tela cheia, em vez de virar overlay transparente."
+                            <TextBlock x:Name="GamingModeHint" Text="Quando desativado, a barra some ao abrir um jogo em tela cheia, em vez de virar overlay transparente."
                                        Style="{StaticResource HeimdallHint}" Margin="48,0,0,0"/>
+
+                            <TextBlock x:Name="LanguageLabel" Text="Idioma" Style="{StaticResource HeimdallLabel}" Margin="0,16,0,0"/>
+                            <ComboBox x:Name="LanguageCombo" Margin="0,0,0,16" HorizontalAlignment="Left" Width="180"/>
                         </StackPanel>
                     </ScrollViewer>
 
                     <!-- ================= APARÊNCIA ================= -->
                     <ScrollViewer x:Name="AparenciaSection" VerticalScrollBarVisibility="Auto" Padding="28,22,28,22" Visibility="Collapsed">
                         <StackPanel MaxWidth="640" HorizontalAlignment="Left">
-                            <TextBlock Text="Aparência" Style="{StaticResource HeimdallSectionTitle}"/>
+                            <TextBlock x:Name="AparenciaTitle" Text="Aparência" Style="{StaticResource HeimdallSectionTitle}"/>
 
-                            <TextBlock Text="Prévia" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="PreviewLabel" Text="Prévia" Style="{StaticResource HeimdallLabel}"/>
                             <Border x:Name="PreviewBar" Width="340" Height="40" CornerRadius="6" Margin="0,0,0,20"
                                     HorizontalAlignment="Left" ClipToBounds="True">
                                 <Grid Margin="10,0">
@@ -146,7 +149,7 @@
                                 </Grid>
                             </Border>
 
-                            <TextBlock Text="Tema" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="ThemeLabel" Text="Tema" Style="{StaticResource HeimdallLabel}"/>
                             <ItemsControl x:Name="ThemeCardsList" Margin="0,0,0,20">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -173,9 +176,9 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <TextBlock Text="Overrides opcionais (vazio = usa o tema)" Style="{StaticResource HeimdallLabel}" Margin="0,0,0,10"/>
+                            <TextBlock x:Name="OverridesLabel" Text="Overrides opcionais (vazio = usa o tema)" Style="{StaticResource HeimdallLabel}" Margin="0,0,0,10"/>
 
-                            <TextBlock Text="Cor de fundo" Style="{StaticResource HeimdallHint}" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="BackgroundColorHint" Text="Cor de fundo" Style="{StaticResource HeimdallHint}" Margin="0,0,0,4"/>
                             <DockPanel Margin="0,0,0,14" LastChildFill="False">
                                 <Button x:Name="BackgroundSwatchButton" Width="30" Height="26" Margin="0,0,8,0" Click="BackgroundSwatch_Click"
                                         Style="{StaticResource HeimdallIconButton}" ToolTip="Escolher cor">
@@ -183,10 +186,10 @@
                                             BorderBrush="{StaticResource HeimdallBorder}" BorderThickness="1"/>
                                 </Button>
                                 <TextBox x:Name="BackgroundHexBox" Width="130" TextChanged="BackgroundHexBox_TextChanged"/>
-                                <Button Content="Limpar" Width="64" Margin="8,0,0,0" Click="ClearBackground_Click"/>
+                                <Button x:Name="ClearBackgroundButton" Content="Limpar" Width="64" Margin="8,0,0,0" Click="ClearBackground_Click"/>
                             </DockPanel>
 
-                            <TextBlock Text="Cor do texto" Style="{StaticResource HeimdallHint}" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="ForegroundColorHint" Text="Cor do texto" Style="{StaticResource HeimdallHint}" Margin="0,0,0,4"/>
                             <DockPanel Margin="0,0,0,14" LastChildFill="False">
                                 <Button x:Name="ForegroundSwatchButton" Width="30" Height="26" Margin="0,0,8,0" Click="ForegroundSwatch_Click"
                                         Style="{StaticResource HeimdallIconButton}" ToolTip="Escolher cor">
@@ -194,10 +197,10 @@
                                             BorderBrush="{StaticResource HeimdallBorder}" BorderThickness="1"/>
                                 </Button>
                                 <TextBox x:Name="ForegroundHexBox" Width="130" TextChanged="ForegroundHexBox_TextChanged"/>
-                                <Button Content="Limpar" Width="64" Margin="8,0,0,0" Click="ClearForeground_Click"/>
+                                <Button x:Name="ClearForegroundButton" Content="Limpar" Width="64" Margin="8,0,0,0" Click="ClearForeground_Click"/>
                             </DockPanel>
 
-                            <TextBlock Text="Fonte" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="FontLabel" Text="Fonte" Style="{StaticResource HeimdallLabel}"/>
                             <ComboBox x:Name="FontFamilyCombo" IsEditable="True" Margin="0,0,0,14" HorizontalAlignment="Left" Width="220"
                                       SelectionChanged="FontFamilyCombo_Changed" LostFocus="FontFamilyCombo_Changed"/>
 
@@ -218,34 +221,34 @@
                     <!-- ================= RELÓGIO ================= -->
                     <ScrollViewer x:Name="RelogioSection" VerticalScrollBarVisibility="Auto" Padding="28,22,28,22" Visibility="Collapsed">
                         <StackPanel MaxWidth="480" HorizontalAlignment="Left">
-                            <TextBlock Text="Relógio" Style="{StaticResource HeimdallSectionTitle}"/>
+                            <TextBlock x:Name="RelogioTitle" Text="Relógio" Style="{StaticResource HeimdallSectionTitle}"/>
 
-                            <TextBlock Text="Modo" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="ClockModeLabel" Text="Modo" Style="{StaticResource HeimdallLabel}"/>
                             <ComboBox x:Name="ClockModeCombo" Margin="0,0,0,16" HorizontalAlignment="Left" Width="180"
                                       SelectionChanged="ClockModeCombo_SelectionChanged"/>
 
-                            <TextBlock Text="Estilo" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="ClockStyleLabel" Text="Estilo" Style="{StaticResource HeimdallLabel}"/>
                             <ComboBox x:Name="ClockStyleCombo" Margin="0,0,0,16" HorizontalAlignment="Left" Width="180"
                                       SelectionChanged="ClockStyleCombo_SelectionChanged"/>
 
-                            <TextBlock Text="Cultura (ex.: pt-BR, en-US)" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="ClockCultureLabel" Text="Cultura (ex.: pt-BR, en-US)" Style="{StaticResource HeimdallLabel}"/>
                             <TextBox x:Name="ClockCultureBox" Margin="0,0,0,16" Width="180" HorizontalAlignment="Left"
                                      TextChanged="ClockCultureBox_TextChanged"/>
 
-                            <TextBlock Text="Formato personalizado (.NET) — só com Modo = Custom" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="ClockCustomFormatLabel" Text="Formato personalizado (.NET) — só com Modo = Custom" Style="{StaticResource HeimdallLabel}"/>
                             <TextBox x:Name="ClockCustomFormatBox" Margin="0,0,0,20" Width="320" HorizontalAlignment="Left"
                                      TextChanged="ClockCustomFormatBox_TextChanged"/>
 
-                            <TextBlock Text="Pré-visualização" Style="{StaticResource HeimdallLabel}"/>
+                            <TextBlock x:Name="ClockPreviewLabel" Text="Pré-visualização" Style="{StaticResource HeimdallLabel}"/>
                             <Border Background="{StaticResource HeimdallPanelBackground}" BorderBrush="{StaticResource HeimdallBorder}"
                                     BorderThickness="1" CornerRadius="4" Padding="14" HorizontalAlignment="Left">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Barra horizontal:  " FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="ClockPreviewHorizontalLabel" Text="Barra horizontal:  " FontWeight="SemiBold"/>
                                         <TextBlock x:Name="ClockPreviewHorizontal" Style="{StaticResource HeimdallMonoValue}"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Barra vertical:  " FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="ClockPreviewVerticalLabel" Text="Barra vertical:  " FontWeight="SemiBold"/>
                                         <TextBlock x:Name="ClockPreviewVertical" Style="{StaticResource HeimdallMonoValue}"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -256,8 +259,8 @@
                     <!-- ================= WIDGETS ================= -->
                     <ScrollViewer x:Name="WidgetsSection" VerticalScrollBarVisibility="Auto" Padding="28,22,28,22" Visibility="Collapsed">
                         <StackPanel>
-                            <TextBlock Text="Widgets" Style="{StaticResource HeimdallSectionTitle}"/>
-                            <TextBlock Text="Arraste pra reordenar, inclusive entre colunas. Clique num item e depois no alfinete pra fixar/desafixar."
+                            <TextBlock x:Name="WidgetsTitle" Text="Widgets" Style="{StaticResource HeimdallSectionTitle}"/>
+                            <TextBlock x:Name="WidgetsHint" Text="Arraste pra reordenar, inclusive entre colunas. Clique num item e depois no alfinete pra fixar/desafixar."
                                        Style="{StaticResource HeimdallHint}" Margin="0,0,0,16"/>
 
                             <Grid>
@@ -268,33 +271,33 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Início" Style="{StaticResource HeimdallLabel}"/>
+                                    <TextBlock x:Name="ZoneStartLabel" Text="Início" Style="{StaticResource HeimdallLabel}"/>
                                     <ListBox x:Name="StartList" Height="220" ItemTemplate="{StaticResource WidgetRowTemplate}"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                        <Button Content="📌" Width="30" Click="TogglePin_Click" Tag="{Binding ElementName=StartList}" ToolTip="Fixar/desafixar selecionado"/>
-                                        <Button Content="Remover" Click="Remove_Click" Tag="{Binding ElementName=StartList}" Margin="4,0,0,0"/>
+                                        <Button x:Name="StartPinButton" Content="📌" Width="30" Click="TogglePin_Click" Tag="{Binding ElementName=StartList}" ToolTip="Fixar/desafixar selecionado"/>
+                                        <Button x:Name="StartRemoveButton" Content="Remover" Click="Remove_Click" Tag="{Binding ElementName=StartList}" Margin="4,0,0,0"/>
                                     </StackPanel>
-                                    <Button Content="+ Adicionar widget" Margin="0,6,0,0" Click="AddStart_Click"/>
+                                    <Button x:Name="StartAddWidgetButton" Content="+ Adicionar widget" Margin="0,6,0,0" Click="AddStart_Click"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1" Margin="8,0,8,0">
-                                    <TextBlock Text="Centro" Style="{StaticResource HeimdallLabel}"/>
+                                    <TextBlock x:Name="ZoneCenterLabel" Text="Centro" Style="{StaticResource HeimdallLabel}"/>
                                     <ListBox x:Name="CenterList" Height="220" ItemTemplate="{StaticResource WidgetRowTemplate}"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                        <Button Content="📌" Width="30" Click="TogglePin_Click" Tag="{Binding ElementName=CenterList}" ToolTip="Fixar/desafixar selecionado"/>
-                                        <Button Content="Remover" Click="Remove_Click" Tag="{Binding ElementName=CenterList}" Margin="4,0,0,0"/>
+                                        <Button x:Name="CenterPinButton" Content="📌" Width="30" Click="TogglePin_Click" Tag="{Binding ElementName=CenterList}" ToolTip="Fixar/desafixar selecionado"/>
+                                        <Button x:Name="CenterRemoveButton" Content="Remover" Click="Remove_Click" Tag="{Binding ElementName=CenterList}" Margin="4,0,0,0"/>
                                     </StackPanel>
-                                    <Button Content="+ Adicionar widget" Margin="0,6,0,0" Click="AddCenter_Click"/>
+                                    <Button x:Name="CenterAddWidgetButton" Content="+ Adicionar widget" Margin="0,6,0,0" Click="AddCenter_Click"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                                    <TextBlock Text="Fim" Style="{StaticResource HeimdallLabel}"/>
+                                    <TextBlock x:Name="ZoneEndLabel" Text="Fim" Style="{StaticResource HeimdallLabel}"/>
                                     <ListBox x:Name="EndList" Height="220" ItemTemplate="{StaticResource WidgetRowTemplate}"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                        <Button Content="📌" Width="30" Click="TogglePin_Click" Tag="{Binding ElementName=EndList}" ToolTip="Fixar/desafixar selecionado"/>
-                                        <Button Content="Remover" Click="Remove_Click" Tag="{Binding ElementName=EndList}" Margin="4,0,0,0"/>
+                                        <Button x:Name="EndPinButton" Content="📌" Width="30" Click="TogglePin_Click" Tag="{Binding ElementName=EndList}" ToolTip="Fixar/desafixar selecionado"/>
+                                        <Button x:Name="EndRemoveButton" Content="Remover" Click="Remove_Click" Tag="{Binding ElementName=EndList}" Margin="4,0,0,0"/>
                                     </StackPanel>
-                                    <Button Content="+ Adicionar widget" Margin="0,6,0,0" Click="AddEnd_Click"/>
+                                    <Button x:Name="EndAddWidgetButton" Content="+ Adicionar widget" Margin="0,6,0,0" Click="AddEnd_Click"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -307,21 +310,21 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Lembretes" Style="{StaticResource HeimdallSectionTitle}"/>
+                        <TextBlock x:Name="LembretesTitle" Grid.Row="0" Text="Lembretes" Style="{StaticResource HeimdallSectionTitle}"/>
                         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Content="Adicionar lembrete" Margin="0,0,8,0" Click="AddReminder_Click"/>
-                            <Button Content="Remover selecionado" Click="RemoveReminder_Click"/>
+                            <Button x:Name="AddReminderButton" Content="Adicionar lembrete" Margin="0,0,8,0" Click="AddReminder_Click"/>
+                            <Button x:Name="RemoveReminderButton" Content="Remover selecionado" Click="RemoveReminder_Click"/>
                         </StackPanel>
                         <DataGrid x:Name="RemindersGrid" Grid.Row="2" AutoGenerateColumns="False" CanUserAddRows="False"
                                   RowHeaderWidth="0">
                             <DataGrid.Columns>
                                 <DataGridComboBoxColumn x:Name="KindColumn" Header="Tipo" SelectedItemBinding="{Binding Kind}" Width="90"/>
-                                <DataGridTextColumn Header="Texto" Binding="{Binding Text}" Width="*"/>
-                                <DataGridTextColumn Header="Horário (HH:mm)" Binding="{Binding Time}" Width="110"/>
+                                <DataGridTextColumn x:Name="TextColumn" Header="Texto" Binding="{Binding Text}" Width="*"/>
+                                <DataGridTextColumn x:Name="TimeColumn" Header="Horário (HH:mm)" Binding="{Binding Time}" Width="110"/>
                                 <DataGridComboBoxColumn x:Name="RecurrenceColumn" Header="Recorrência" SelectedItemBinding="{Binding Recurrence}" Width="100"/>
-                                <DataGridTextColumn Header="Dias (Weekly)" Binding="{Binding Days}" Width="150"/>
-                                <DataGridCheckBoxColumn Header="Som" Binding="{Binding PlaySound}" Width="45"/>
-                                <DataGridCheckBoxColumn Header="Concluído" Binding="{Binding Completed}" Width="70"/>
+                                <DataGridTextColumn x:Name="DaysColumn" Header="Dias (Weekly)" Binding="{Binding Days}" Width="150"/>
+                                <DataGridCheckBoxColumn x:Name="SoundColumn" Header="Som" Binding="{Binding PlaySound}" Width="45"/>
+                                <DataGridCheckBoxColumn x:Name="CompletedColumn" Header="Concluído" Binding="{Binding Completed}" Width="70"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
@@ -332,9 +335,9 @@
                             <Image Source="pack://application:,,,/Assets/heimdall-logo.png" Width="220" Stretch="Uniform" Margin="0,0,0,20"/>
                             <TextBlock x:Name="VersionText" Text="Versão 1.0.0" HorizontalAlignment="Center"
                                        Style="{StaticResource HeimdallMonoValue}" Margin="0,0,0,4"/>
-                            <TextBlock Text="Barra de sistema leve e personalizável pro Windows." HorizontalAlignment="Center"
+                            <TextBlock x:Name="AppTaglineText" Text="Barra de sistema leve e personalizável pro Windows." HorizontalAlignment="Center"
                                        Style="{StaticResource HeimdallHint}" Margin="0,0,0,20"/>
-                            <Button Content="Ver no GitHub" Width="160" Click="OpenGitHub_Click" Style="{StaticResource HeimdallSecondaryButton}"/>
+                            <Button x:Name="GitHubButton" Content="Ver no GitHub" Width="160" Click="OpenGitHub_Click" Style="{StaticResource HeimdallSecondaryButton}"/>
                         </StackPanel>
                     </ScrollViewer>
 

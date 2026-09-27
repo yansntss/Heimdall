@@ -1,5 +1,7 @@
 namespace Heimdall.Config;
 
+public enum AppLanguage { PtBr, EnUs }
+
 public enum BarEdge { Top, Bottom, Left, Right }
 
 public enum MonitorMode { Primary, Specific, All }
@@ -49,6 +51,8 @@ public sealed class AppConfig
     /// sem overlay nenhum.
     /// </summary>
     public bool GamingMode { get; set; } = true;
+
+    public AppLanguage Language { get; set; } = AppLanguage.PtBr;
 }
 
 /// <summary>

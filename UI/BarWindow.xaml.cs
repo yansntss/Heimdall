@@ -44,6 +44,7 @@ public partial class BarWindow : Window
 
         ApplyStyle();
         BuildWidgets();
+        ApplyMenuLabels();
         BuildThemeMenu();
         BuildAddWidgetMenu();
         UpdateGamingModeMenuItem();
@@ -116,6 +117,22 @@ public partial class BarWindow : Window
 
     private static App CurrentApp => (App)Application.Current;
 
+    private void ApplyMenuLabels()
+    {
+        SettingsMenuItem.Header = Strings.MenuSettings;
+        EditConfigMenuItem.Header = Strings.MenuEditConfig;
+        ReminderHistoryMenuItem.Header = Strings.MenuReminderHistory;
+        AddShortcutMenu.Header = Strings.MenuAddShortcut;
+        AddShortcutFromFileMenuItem.Header = Strings.MenuAddShortcutFromFile;
+        AddShortcutFromInstalledMenuItem.Header = Strings.MenuAddShortcutFromInstalled;
+        AddSeparatorMenuItem.Header = Strings.MenuAddSeparator;
+        AddWidgetMenu.Header = Strings.MenuAddWidget;
+        ThemeMenu.Header = Strings.MenuTheme;
+        ReloadMenuItem.Header = Strings.MenuReload;
+        MonitorsMenuItem.Header = Strings.MenuMonitors;
+        ExitMenuItem.Header = Strings.MenuExit;
+    }
+
     private void BuildThemeMenu()
     {
         foreach (var name in ThemeService.GetAllThemeNames())
@@ -137,7 +154,7 @@ public partial class BarWindow : Window
     {
         foreach (var (id, icon) in WidgetFactory.Catalog)
         {
-            var item = new MenuItem { Header = $"{icon}  {id}", Tag = id };
+            var item = new MenuItem { Header = $"{icon}  {Strings.WidgetName(id)}", Tag = id };
             item.Click += (sender, _) => CurrentApp.AddWidget((string)((MenuItem)sender).Tag);
             AddWidgetMenu.Items.Add(item);
         }
@@ -145,7 +162,7 @@ public partial class BarWindow : Window
 
     private void UpdateGamingModeMenuItem()
     {
-        GamingModeMenuItem.Header = _cfg.GamingMode ? "Modo gaming: Ativado" : "Modo gaming: Desativado";
+        GamingModeMenuItem.Header = _cfg.GamingMode ? Strings.MenuGamingModeOn : Strings.MenuGamingModeOff;
         GamingModeMenuItem.IsChecked = _cfg.GamingMode;
     }
 
@@ -184,7 +201,7 @@ public partial class BarWindow : Window
         helper.Show();
         helper.Activate();
 
-        var dialog = new OpenFileDialog { Title = "Escolher arquivo ou atalho", Filter = "Todos os arquivos|*.*" };
+        var dialog = new OpenFileDialog { Title = Strings.DialogChooseFileTitle, Filter = $"{Strings.DialogAllFiles}|*.*" };
         bool chosen = dialog.ShowDialog(helper) == true;
         helper.Close();
         if (!chosen) return;

@@ -147,15 +147,15 @@ public sealed class MediaWidget : IWidget
         _muteIcon.Foreground = iconBrush;
 
         _previous = CreateIconButton(_previousIcon);
-        _previous.ToolTip = "Faixa anterior";
+        _previous.ToolTip = Strings.MediaPrevious;
         _playPause = CreateIconButton(_playPauseIcon);
-        _playPause.ToolTip = "Tocar/Pausar";
+        _playPause.ToolTip = Strings.MediaPlayPauseTooltip;
         _next = CreateIconButton(_nextIcon);
-        _next.ToolTip = "Próxima faixa";
+        _next.ToolTip = Strings.MediaNext;
         _volume = CreateIconToggleButton(_volumeIcon);
-        _volume.ToolTip = "Volume";
+        _volume.ToolTip = Strings.MediaVolume;
         _muteButton = CreateIconButton(_muteIcon);
-        _muteButton.ToolTip = "Mudo";
+        _muteButton.ToolTip = Strings.MediaMute;
 
         _progressBar.Background = FrozenBrush(Color.FromArgb(0x33, _popupForeground.R, _popupForeground.G, _popupForeground.B));
         _progressFill.Background = FrozenBrush(style.Accent);
@@ -284,7 +284,7 @@ public sealed class MediaWidget : IWidget
 
         bool playing = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
         _playPauseIcon.Text = playing ? GlyphPause : GlyphPlay;
-        _playPause.ToolTip = playing ? "Pausar" : "Tocar";
+        _playPause.ToolTip = playing ? Strings.MediaPause : Strings.MediaPlay;
 
         if (playing) StartEqualizer(); else StopEqualizer();
 
@@ -534,12 +534,12 @@ public sealed class MediaWidget : IWidget
     private void RefreshMuteButtonGlyph(bool muted)
     {
         _muteIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
-        _muteButton.ToolTip = muted ? "Ativar som" : "Mudo";
+        _muteButton.ToolTip = muted ? Strings.MediaUnmute : Strings.MediaMute;
     }
 
     private void ShowVolumeFeedback(float volume, bool muted)
     {
-        _feedbackText.Text = muted ? "Mudo" : $"{Math.Round(volume * 100)}%";
+        _feedbackText.Text = muted ? Strings.MediaMutedLabel : $"{Math.Round(volume * 100)}%";
         _feedbackPopup.PlacementTarget = _root;
         _feedbackPopup.IsOpen = true;
         _feedbackTimer.Stop();

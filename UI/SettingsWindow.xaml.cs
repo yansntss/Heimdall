@@ -18,11 +18,7 @@ namespace Heimdall.UI;
 
 public partial class SettingsWindow : Window
 {
-    private static readonly (string Id, string Icon)[] WidgetCatalog =
-    {
-        ("clock", "🕐"), ("media", "🎵"), ("reminder", "⏰"), ("launcher", "🚀"),
-        ("ram", "🧠"), ("temp", "🌡️"), ("fps", "🎮"), ("separator", "┃")
-    };
+    private static readonly (string Id, string Icon)[] WidgetCatalog = WidgetFactory.Catalog;
 
     private const string GitHubUrl = "https://github.com/yansntss/Heimdall";
 
@@ -38,6 +34,8 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         _cfg = ConfigService.Load();
         _selectedTheme = _cfg.Theme;
+        Title = Strings.SettingsTitleBar;
+        ApplyLabels();
         SourceInitialized += (_, _) =>
         {
             var hwnd = new WindowInteropHelper(this).Handle;
@@ -69,6 +67,15 @@ public partial class SettingsWindow : Window
         MonitorCombo.IsEnabled = MonitorModeCombo.SelectedItem is MonitorMode.Specific;
         StartWithWindowsCheck.IsChecked = _cfg.StartWithWindows;
         GamingModeCheck.IsChecked = _cfg.GamingMode;
+
+        LanguageCombo.ItemsSource = new[]
+        {
+            new LanguageOption(AppLanguage.PtBr, Strings.LanguagePtBr),
+            new LanguageOption(AppLanguage.EnUs, Strings.LanguageEnUs)
+        };
+        LanguageCombo.DisplayMemberPath = nameof(LanguageOption.Label);
+        LanguageCombo.SelectedItem = ((IEnumerable<LanguageOption>)LanguageCombo.ItemsSource)
+            .FirstOrDefault(o => o.Value == _cfg.Language);
 
         // Aparência
         BackgroundHexBox.Text = _cfg.Style.Background;
@@ -110,9 +117,89 @@ public partial class SettingsWindow : Window
 
         // Sobre
         var version = Assembly.GetExecutingAssembly().GetName().Version;
-        VersionText.Text = version is null ? "Versão de desenvolvimento" : $"Versão {version.ToString(3)}";
+        VersionText.Text = version is null ? Strings.VersionDev : Strings.VersionFormat(version.ToString(3));
 
         Closed += (_, _) => _clockPreviewTimer.Stop();
+    }
+
+    /// <summary>
+    /// Aplica o idioma atual (<see cref="Strings.Current"/>, já resolvido por
+    /// <see cref="ConfigService.Load"/> antes do construtor rodar) a todo texto estático
+    /// da tela — o XAML mantém o pt-BR como valor de design-time/fallback.
+    /// </summary>
+    private void ApplyLabels()
+    {
+        TitleBarText.Text = Strings.SettingsTitleBar;
+        CancelButton.Content = Strings.Cancel;
+        SaveButton.Content = Strings.SaveAndReload;
+
+        NavGeral.Content = Strings.NavGeral;
+        NavAparencia.Content = Strings.NavAparencia;
+        NavRelogio.Content = Strings.NavRelogio;
+        NavWidgets.Content = Strings.NavWidgets;
+        NavLembretes.Content = Strings.NavLembretes;
+        NavSobre.Content = Strings.NavSobre;
+
+        GeralTitle.Text = Strings.SectionGeral;
+        EdgeLabel.Text = Strings.LabelEdge;
+        ThicknessLabel.Text = Strings.LabelThickness;
+        FloatingModeCheck.Content = Strings.LabelFloatingMode;
+        FloatingMarginLabel.Text = Strings.LabelFloatingMargin;
+        MonitorModeLabel.Text = Strings.LabelMonitorMode;
+        MonitorSpecificLabel.Text = Strings.LabelMonitorSpecific;
+        StartWithWindowsCheck.Content = Strings.LabelStartWithWindows;
+        GamingModeCheck.Content = Strings.LabelGamingMode;
+        GamingModeHint.Text = Strings.HintGamingMode;
+        LanguageLabel.Text = Strings.LabelLanguage;
+
+        AparenciaTitle.Text = Strings.SectionAparencia;
+        PreviewLabel.Text = Strings.LabelPreview;
+        ThemeLabel.Text = Strings.LabelTheme;
+        OverridesLabel.Text = Strings.LabelOverridesOptional;
+        BackgroundColorHint.Text = Strings.HintBackgroundColor;
+        ClearBackgroundButton.Content = Strings.Clear;
+        ForegroundColorHint.Text = Strings.HintForegroundColor;
+        ClearForegroundButton.Content = Strings.Clear;
+        FontLabel.Text = Strings.LabelFont;
+        CustomFontSizeCheck.Content = Strings.LabelCustomFontSize;
+
+        RelogioTitle.Text = Strings.SectionRelogio;
+        ClockModeLabel.Text = Strings.LabelClockMode;
+        ClockStyleLabel.Text = Strings.LabelClockStyle;
+        ClockCultureLabel.Text = Strings.LabelClockCulture;
+        ClockCustomFormatLabel.Text = Strings.LabelClockCustomFormat;
+        ClockPreviewLabel.Text = Strings.LabelPreviewSection;
+        ClockPreviewHorizontalLabel.Text = Strings.PreviewHorizontal;
+        ClockPreviewVerticalLabel.Text = Strings.PreviewVertical;
+
+        WidgetsTitle.Text = Strings.SectionWidgets;
+        WidgetsHint.Text = Strings.HintWidgets;
+        ZoneStartLabel.Text = Strings.ZoneStart;
+        ZoneCenterLabel.Text = Strings.ZoneCenter;
+        ZoneEndLabel.Text = Strings.ZoneEnd;
+        StartPinButton.ToolTip = Strings.TogglePinTooltip;
+        CenterPinButton.ToolTip = Strings.TogglePinTooltip;
+        EndPinButton.ToolTip = Strings.TogglePinTooltip;
+        StartRemoveButton.Content = Strings.Remove;
+        CenterRemoveButton.Content = Strings.Remove;
+        EndRemoveButton.Content = Strings.Remove;
+        StartAddWidgetButton.Content = Strings.AddWidgetButton;
+        CenterAddWidgetButton.Content = Strings.AddWidgetButton;
+        EndAddWidgetButton.Content = Strings.AddWidgetButton;
+
+        LembretesTitle.Text = Strings.SectionLembretes;
+        AddReminderButton.Content = Strings.AddReminder;
+        RemoveReminderButton.Content = Strings.RemoveSelected;
+        TextColumn.Header = Strings.ColumnText;
+        TimeColumn.Header = Strings.ColumnTime;
+        DaysColumn.Header = Strings.ColumnDays;
+        SoundColumn.Header = Strings.ColumnSound;
+        CompletedColumn.Header = Strings.ColumnCompleted;
+        KindColumn.Header = Strings.ColumnType;
+        RecurrenceColumn.Header = Strings.ColumnRecurrence;
+
+        AppTaglineText.Text = Strings.AppTagline;
+        GitHubButton.Content = Strings.ViewOnGitHub;
     }
 
     // ---------- Relógio ----------
@@ -273,7 +360,7 @@ public partial class SettingsWindow : Window
                 BorderBrush = (Brush)FindResource("HeimdallBorder"),
                 BorderThickness = new Thickness(1),
                 Cursor = Cursors.Hand,
-                ToolTip = name
+                ToolTip = Strings.ColorPresetName(name)
             };
             var popup = new Popup { PlacementTarget = placementTarget, Placement = PlacementMode.Bottom, StaysOpen = false };
             swatch.MouseLeftButtonUp += (_, _) =>
@@ -393,7 +480,7 @@ public partial class SettingsWindow : Window
                     Children =
                     {
                         new TextBlock { Text = icon, FontSize = 18, HorizontalAlignment = HorizontalAlignment.Center },
-                        new TextBlock { Text = id, FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 4, 0, 0) }
+                        new TextBlock { Text = Strings.WidgetName(id), FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 4, 0, 0) }
                     }
                 }
             };
@@ -470,7 +557,7 @@ public partial class SettingsWindow : Window
     // ---------- Lembretes ----------
 
     private void AddReminder_Click(object sender, RoutedEventArgs e) =>
-        _reminders.Add(new ReminderRow { Text = "Novo lembrete" });
+        _reminders.Add(new ReminderRow { Text = Strings.NewReminderDefaultText });
 
     private void RemoveReminder_Click(object sender, RoutedEventArgs e)
     {
@@ -488,7 +575,7 @@ public partial class SettingsWindow : Window
             if (row.Kind != ReminderKind.Scheduled) continue;
             if (!DateTime.TryParseExact(row.Time, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             {
-                MessageBox.Show(this, $"Horário inválido em \"{row.Text}\" — use o formato HH:mm.", "Heimdall",
+                MessageBox.Show(this, Strings.InvalidTimeMessage(row.Text), "Heimdall",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -519,15 +606,41 @@ public partial class SettingsWindow : Window
         _cfg.StartWithWindows = startWithWindows;
         _cfg.GamingMode = GamingModeCheck.IsChecked == true;
 
-        ConfigService.Save(_cfg);
-        ((App)Application.Current).Reload();
+        var previousLanguage = _cfg.Language;
+        _cfg.Language = (LanguageCombo.SelectedItem as LanguageOption)?.Value ?? _cfg.Language;
 
-        StatusText.Text = "Salvo ✓";
+        ConfigService.Save(_cfg);
+        var app = (App)Application.Current;
+        app.Reload();
+
+        // Essa janela já foi toda montada com os textos do idioma anterior — reabrir do
+        // zero é mais simples e confiável do que re-aplicar ApplyLabels() em cima de
+        // controles que já têm valor/seleção do usuário. Close() dispara o Closed que
+        // limpa App._settingsWindow, então OpenSettings() já cria uma instância nova.
+        if (_cfg.Language != previousLanguage)
+        {
+            Close();
+            app.OpenSettings();
+            return;
+        }
+
+        StatusText.Text = Strings.Saved;
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
 
-    private sealed record MonitorOption(string Device, string Label);
+    private sealed record MonitorOption(string Device, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private sealed record LanguageOption(AppLanguage Value, string Label)
+    {
+        // O ComboBox estilizado (Theme.xaml) mostra o item selecionado via SelectionBoxItem,
+        // que às vezes cai no ToString() padrão em vez de respeitar DisplayMemberPath —
+        // sobrescrever aqui garante o texto certo independente de qual caminho o WPF usa.
+        public override string ToString() => Label;
+    }
 
     private sealed class ThemeCardViewModel
     {
@@ -545,6 +658,7 @@ public partial class SettingsWindow : Window
         public bool Pinned { get; set; }
 
         public string Icon => WidgetCatalog.FirstOrDefault(w => w.Id == Id).Icon is { } icon && !string.IsNullOrEmpty(icon) ? icon : "•";
+        public string DisplayName => Strings.WidgetName(Id);
 
         public static WidgetRow From(WidgetEntry entry) => new() { Id = entry.Id, Pinned = entry.Pinned };
 

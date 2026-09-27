@@ -61,7 +61,7 @@ internal sealed class QuickAddReminderWindow : Window
         _style = style;
         _editing = editing;
 
-        Title = editing is null ? "Heimdall — Novo lembrete" : "Heimdall — Editar lembrete";
+        Title = editing is null ? Strings.ReminderNewTitle : Strings.ReminderEditTitle;
         Icon = AppIcon.Source;
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -87,12 +87,12 @@ internal sealed class QuickAddReminderWindow : Window
             Text = editing?.Text ?? ""
         };
 
-        _chipNone = CreateChip("Sem horário", isChecked: true);
-        _chipPlus15 = CreateChip("+15 min");
-        _chipPlus1h = CreateChip("+1 h");
-        _chipToday18 = CreateChip("Hoje 18h");
-        _chipTomorrow9 = CreateChip("Amanhã 9h");
-        _chipCustom = CreateChip("Personalizado");
+        _chipNone = CreateChip(Strings.ChipNone, isChecked: true);
+        _chipPlus15 = CreateChip(Strings.ChipPlus15);
+        _chipPlus1h = CreateChip(Strings.ChipPlus1h);
+        _chipToday18 = CreateChip(Strings.ChipToday18);
+        _chipTomorrow9 = CreateChip(Strings.ChipTomorrow9);
+        _chipCustom = CreateChip(Strings.ChipCustom);
 
         var chipsPanel = new WrapPanel();
         foreach (var chip in AllChips)
@@ -138,10 +138,10 @@ internal sealed class QuickAddReminderWindow : Window
 
         _startDatePicker = new DatePicker { Width = 104, FontSize = 11, Foreground = Brushes.Black, Background = Brushes.White };
         _endDatePicker = new DatePicker { Width = 104, FontSize = 11, Foreground = Brushes.Black, Background = Brushes.White };
-        var startLabel = CreateLabel("De:");
+        var startLabel = CreateLabel(Strings.RangeFrom);
         startLabel.VerticalAlignment = VerticalAlignment.Center;
         startLabel.Margin = new Thickness(0, 0, 4, 0);
-        var endLabel = CreateLabel("até:");
+        var endLabel = CreateLabel(Strings.RangeTo);
         endLabel.VerticalAlignment = VerticalAlignment.Center;
         endLabel.Margin = new Thickness(8, 0, 4, 0);
         _rangePanel = new StackPanel
@@ -158,9 +158,9 @@ internal sealed class QuickAddReminderWindow : Window
         // RadioButton/CheckBox/Expander: Content = string direto pega o Foreground
         // padrão do tema Fluent (preto), não o nosso — mesmo problema dos ícones dos
         // outros widgets. Um TextBlock à parte com Foreground seu resolve.
-        _recurOnce = new RadioButton { Content = CreateLabel("Única"), GroupName = "Recur", IsChecked = true, Margin = new Thickness(0, 0, 10, 0) };
-        _recurDaily = new RadioButton { Content = CreateLabel("Diária"), GroupName = "Recur", Margin = new Thickness(0, 0, 10, 0) };
-        _recurWeekly = new RadioButton { Content = CreateLabel("Dias da semana"), GroupName = "Recur" };
+        _recurOnce = new RadioButton { Content = CreateLabel(Strings.RecurOnce), GroupName = "Recur", IsChecked = true, Margin = new Thickness(0, 0, 10, 0) };
+        _recurDaily = new RadioButton { Content = CreateLabel(Strings.RecurDaily), GroupName = "Recur", Margin = new Thickness(0, 0, 10, 0) };
+        _recurWeekly = new RadioButton { Content = CreateLabel(Strings.RecurWeekly), GroupName = "Recur" };
         _recurWeekly.Checked += (_, _) => { _daysPanel.Visibility = Visibility.Visible; _rangePanel.Visibility = Visibility.Visible; };
         _recurOnce.Checked += (_, _) => { _daysPanel.Visibility = Visibility.Collapsed; _rangePanel.Visibility = Visibility.Collapsed; };
         _recurDaily.Checked += (_, _) => { _daysPanel.Visibility = Visibility.Collapsed; _rangePanel.Visibility = Visibility.Visible; };
@@ -169,7 +169,7 @@ internal sealed class QuickAddReminderWindow : Window
         recurPanel.Children.Add(_recurDaily);
         recurPanel.Children.Add(_recurWeekly);
 
-        _playSoundCheck = new CheckBox { Content = CreateLabel("Tocar som"), Margin = new Thickness(0, 8, 0, 0) };
+        _playSoundCheck = new CheckBox { Content = CreateLabel(Strings.PlaySound), Margin = new Thickness(0, 8, 0, 0) };
 
         var moreOptionsContent = new StackPanel();
         moreOptionsContent.Children.Add(recurPanel);
@@ -179,7 +179,7 @@ internal sealed class QuickAddReminderWindow : Window
 
         _moreOptions = new Expander
         {
-            Header = CreateLabel("Mais opções"),
+            Header = CreateLabel(Strings.MoreOptions),
             IsExpanded = false,
             Margin = new Thickness(0, 8, 0, 0),
             Content = moreOptionsContent,
@@ -268,16 +268,7 @@ internal sealed class QuickAddReminderWindow : Window
         _moreOptions.IsExpanded = true;
     }
 
-    private static string DayLabel(DayOfWeek day) => day switch
-    {
-        DayOfWeek.Monday => "Seg",
-        DayOfWeek.Tuesday => "Ter",
-        DayOfWeek.Wednesday => "Qua",
-        DayOfWeek.Thursday => "Qui",
-        DayOfWeek.Friday => "Sex",
-        DayOfWeek.Saturday => "Sáb",
-        _ => "Dom"
-    };
+    private static string DayLabel(DayOfWeek day) => Strings.DayLabel(day);
 
     private void OnChipChecked(object sender, RoutedEventArgs e)
     {

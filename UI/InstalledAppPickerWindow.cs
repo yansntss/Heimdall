@@ -19,7 +19,7 @@ internal sealed class InstalledAppPickerWindow : Window
     {
         _all = InstalledAppsService.GetAll();
 
-        Title = "Heimdall — Escolher app instalado";
+        Title = Strings.PickAppTitle;
         Icon = AppIcon.Source;
         Width = 360;
         Height = 420;
@@ -32,7 +32,7 @@ internal sealed class InstalledAppPickerWindow : Window
         _list = new ListBox { Margin = new Thickness(8, 0, 8, 8), DisplayMemberPath = nameof(InstalledAppsService.InstalledApp.Name) };
         _list.MouseDoubleClick += (_, _) => Choose();
 
-        var okButton = new Button { Content = "Adicionar", Width = 90, Margin = new Thickness(0, 0, 8, 8), HorizontalAlignment = HorizontalAlignment.Right };
+        var okButton = new Button { Content = Strings.Add, Width = 90, Margin = new Thickness(0, 0, 8, 8), HorizontalAlignment = HorizontalAlignment.Right };
         okButton.Click += (_, _) => Choose();
 
         var root = new DockPanel();

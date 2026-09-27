@@ -14,7 +14,7 @@ internal sealed class ReminderHistoryWindow : Window
 {
     public ReminderHistoryWindow()
     {
-        Title = "Heimdall — Histórico de lembretes";
+        Title = Strings.HistoryTitle;
         Icon = AppIcon.Source;
         Width = 420;
         Height = 480;
@@ -28,7 +28,7 @@ internal sealed class ReminderHistoryWindow : Window
         {
             stack.Children.Add(new TextBlock
             {
-                Text = "Nenhum lembrete concluído ainda.",
+                Text = Strings.HistoryEmpty,
                 Opacity = 0.7,
                 TextWrapping = TextWrapping.Wrap
             });
@@ -68,8 +68,9 @@ internal sealed class ReminderHistoryWindow : Window
     {
         if (DateTime.TryParseExact(monthKey, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
-            var label = date.ToString("MMMM 'de' yyyy", new CultureInfo("pt-BR"));
-            return char.ToUpper(label[0], new CultureInfo("pt-BR")) + label[1..];
+            var culture = new CultureInfo(Strings.HistoryCultureName);
+            var label = date.ToString(Strings.HistoryMonthFormat, culture);
+            return char.ToUpper(label[0], culture) + label[1..];
         }
         return monthKey;
     }

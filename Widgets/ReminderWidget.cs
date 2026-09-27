@@ -72,7 +72,7 @@ public sealed class ReminderWidget : IWidget
             Padding = new Thickness(4, 0, 4, 0),
             Cursor = Cursors.Hand,
             Focusable = false,
-            ToolTip = "Novo lembrete (Ctrl+Shift+R)"
+            ToolTip = Strings.ReminderNewTooltip
         };
         _addButton.Click += (_, _) => OpenQuickAdd();
 
@@ -256,7 +256,7 @@ public sealed class ReminderWidget : IWidget
         if (count > 0)
         {
             ((TextBlock)_activeBadge.Child).Text = $"+{count}";
-            _activeBadge.ToolTip = $"+{count} lembrete(s) na fila";
+            _activeBadge.ToolTip = Strings.ReminderQueueTooltip(count);
             _activeBadge.Visibility = Visibility.Visible;
         }
         else
@@ -361,7 +361,7 @@ public sealed class ReminderWidget : IWidget
             Padding = new Thickness(4, 0, 0, 0),
             Cursor = Cursors.Hand,
             Focusable = false,
-            ToolTip = "Concluir"
+            ToolTip = Strings.ReminderComplete
         };
         completeButton.Click += (_, e) => { e.Handled = true; Complete(reminder, isFixed, chip); };
 
@@ -382,9 +382,9 @@ public sealed class ReminderWidget : IWidget
         chip.MouseLeave += (_, _) =>
             completeButton.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
 
-        var editItem = new MenuItem { Header = "Editar..." };
+        var editItem = new MenuItem { Header = Strings.ReminderEdit };
         editItem.Click += (_, _) => Edit(reminder, isFixed, chip);
-        var deleteItem = new MenuItem { Header = "Excluir" };
+        var deleteItem = new MenuItem { Header = Strings.ReminderDelete };
         deleteItem.Click += (_, _) => Delete(reminder, isFixed, chip);
         chip.ContextMenu = new ContextMenu { Items = { editItem, deleteItem } };
 

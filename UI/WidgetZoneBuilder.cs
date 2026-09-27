@@ -106,7 +106,7 @@ internal static class WidgetZoneBuilder
     /// <summary>Fixar/desafixar um widget inteiro (clique direito em qualquer parte dele que não tenha o próprio menu, como o ícone de um atalho).</summary>
     private static ContextMenu BuildWidgetContextMenu(AppConfig cfg, WidgetEntry entry)
     {
-        var toggle = new MenuItem { Header = entry.Pinned ? "Desafixar" : "Fixar posição" };
+        var toggle = new MenuItem { Header = entry.Pinned ? Strings.Unpin : Strings.Pin };
         toggle.Click += (_, _) =>
         {
             entry.Pinned = !entry.Pinned;
