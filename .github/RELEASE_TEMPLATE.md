@@ -12,10 +12,10 @@
 
 ## Qual arquivo baixar
 
-| Arquivo | Quando usar |
-|---|---|
-| `Heimdall-vX.Y.Z-win-x64.zip` | Leve. Requer o [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) instalado. |
-| `Heimdall-vX.Y.Z-win-x64-standalone.zip` | Maior (~150 MB), roda em qualquer PC Windows sem instalar nada. |
+| Arquivo                                  | Quando usar                                                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `Heimdall-vX.Y.Z-win-x64.zip`            | Leve. Requer o [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) instalado. |
+| `Heimdall-vX.Y.Z-win-x64-standalone.zip` | Maior (~150 MB), roda em qualquer PC Windows sem instalar nada.                                        |
 
 ## Requisitos
 
