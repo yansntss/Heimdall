@@ -1,0 +1,463 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===================== Paleta (heimdall-brand) ===================== -->
+    <SolidColorBrush x:Key="HeimdallBackground" Color="#0F1318"/>
+    <SolidColorBrush x:Key="HeimdallSidebarBackground" Color="#0B0E12"/>
+    <SolidColorBrush x:Key="HeimdallPanelBackground" Color="#161B22"/>
+    <SolidColorBrush x:Key="HeimdallFieldBackground" Color="#1A2028"/>
+    <SolidColorBrush x:Key="HeimdallForeground" Color="#F2EEE6"/>
+    <SolidColorBrush x:Key="HeimdallForegroundSecondary" Color="#A7B0BC"/>
+    <SolidColorBrush x:Key="HeimdallAccent" Color="#E9A23B"/>
+    <SolidColorBrush x:Key="HeimdallAccentSecondary" Color="#2FA39A"/>
+    <SolidColorBrush x:Key="HeimdallBlue" Color="#3F6FE0"/>
+    <SolidColorBrush x:Key="HeimdallBorder" Color="#3A4350"/>
+    <SolidColorBrush x:Key="HeimdallAccentHover" Color="#332A1D0F"/>
+    <SolidColorBrush x:Key="HeimdallAccentWash" Color="#1AE9A23B"/>
+    <SolidColorBrush x:Key="HeimdallAccentWashStrong" Color="#40E9A23B"/>
+
+    <!-- Space Grotesk / IBM Plex Mono (mesmas do brand pack) — cai pra fonte do sistema se
+         não estiverem instaladas; não embutimos os arquivos de fonte no projeto. -->
+    <FontFamily x:Key="HeimdallHeadingFont">Space Grotesk, Segoe UI</FontFamily>
+    <FontFamily x:Key="HeimdallMonoFont">IBM Plex Mono, Consolas</FontFamily>
+
+    <!-- ===================== Texto ===================== -->
+    <Style x:Key="HeimdallLabel" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+
+    <Style x:Key="HeimdallHint" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForegroundSecondary}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style x:Key="HeimdallSectionTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="Margin" Value="0,0,0,16"/>
+    </Style>
+
+    <Style x:Key="HeimdallMonoValue" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallMonoFont}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <!-- Base implícita: qualquer TextBlock sem estilo próprio ainda fica legível no fundo escuro. -->
+    <Style TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+    </Style>
+
+    <!-- ===================== TextBox ===================== -->
+    <Style TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource HeimdallFieldBackground}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource HeimdallAccent}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HeimdallBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallMonoFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource HeimdallAccentWashStrong}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="border" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource HeimdallAccent}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== CheckBox → toggle switch ===================== -->
+    <Style TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal">
+                        <Border x:Name="Track" Width="38" Height="20" CornerRadius="10"
+                                Background="{StaticResource HeimdallBorder}" VerticalAlignment="Center">
+                            <Ellipse x:Name="Thumb" Width="16" Height="16" Fill="{StaticResource HeimdallForeground}"
+                                     HorizontalAlignment="Left" Margin="2,0,0,0" RenderTransformOrigin="0.5,0.5">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform x:Name="ThumbTransform" X="0"/>
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Border>
+                        <ContentPresenter x:Name="ContentSite" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#E9A23B" Duration="0:0:0.15"/>
+                                        <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X"
+                                                         To="18" Duration="0:0:0.15"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#3A4350" Duration="0:0:0.15"/>
+                                        <DoubleAnimation Storyboard.TargetName="ThumbTransform" Storyboard.TargetProperty="X"
+                                                         To="0" Duration="0:0:0.15"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== ComboBox ===================== -->
+    <Style x:Key="HeimdallComboBoxToggle" TargetType="ToggleButton">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="{StaticResource HeimdallFieldBackground}"
+                            BorderBrush="{StaticResource HeimdallBorder}" BorderThickness="1" CornerRadius="4">
+                        <Path Data="M0,0 L4,4 L8,0" Stroke="{StaticResource HeimdallForegroundSecondary}"
+                              StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              HorizontalAlignment="Right" Margin="0,0,10,0"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource HeimdallAccentHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource HeimdallAccentWashStrong}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="Background" Value="{StaticResource HeimdallFieldBackground}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HeimdallBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="Toggle" Style="{StaticResource HeimdallComboBoxToggle}" Focusable="False" ClickMode="Press"
+                                      IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+                        <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                        <TextBox x:Name="PART_EditableTextBox" Visibility="Hidden" Background="Transparent" BorderThickness="0"
+                                 Foreground="{StaticResource HeimdallForeground}" Margin="{TemplateBinding Padding}"
+                                 VerticalAlignment="Center" Focusable="True" IsReadOnly="{TemplateBinding IsReadOnly}"/>
+                        <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                               AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                            <Border Background="{StaticResource HeimdallPanelBackground}" BorderBrush="{StaticResource HeimdallBorder}"
+                                    BorderThickness="1" CornerRadius="4" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                    MaxHeight="260" Margin="0,2,0,0">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="2">
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEditable" Value="True">
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Slider ===================== -->
+    <Style x:Key="HeimdallSliderThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Ellipse Width="16" Height="16" Fill="{StaticResource HeimdallAccent}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Slider">
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid VerticalAlignment="Center" Height="20">
+                        <Border Height="4" Background="{StaticResource HeimdallBorder}" CornerRadius="2" VerticalAlignment="Center"/>
+                        <Track x:Name="PART_Track">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="Slider.DecreaseLarge">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="RepeatButton">
+                                            <Border Height="4" Background="{StaticResource HeimdallAccent}" CornerRadius="2" VerticalAlignment="Center"/>
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="RepeatButton">
+                                            <Rectangle Fill="Transparent"/>
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource HeimdallSliderThumb}"/>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Botões ===================== -->
+    <Style x:Key="HeimdallSecondaryButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HeimdallBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource HeimdallAccent}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource HeimdallAccentWash}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HeimdallPrimaryButton" TargetType="Button" BasedOn="{StaticResource HeimdallSecondaryButton}">
+        <Setter Property="Background" Value="{StaticResource HeimdallAccent}"/>
+        <Setter Property="Foreground" Value="#1A1108"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HeimdallAccent}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="0.88"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Botão sem moldura, só pra ícones (título da janela, swatch de cor, etc.) -->
+    <Style x:Key="HeimdallIconButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForegroundSecondary}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#22FFFFFF"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HeimdallCloseButton" TargetType="Button" BasedOn="{StaticResource HeimdallIconButton}">
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="White"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Estilo implícito: qualquer Button sem Style próprio vira "secundário" — cobre os
+         botões pequenos (▲▼📌 Remover etc.) sem precisar marcar cada um. -->
+    <Style TargetType="Button" BasedOn="{StaticResource HeimdallSecondaryButton}"/>
+
+    <!-- ===================== Navegação lateral ===================== -->
+    <Style x:Key="HeimdallNavItem" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForegroundSecondary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Height" Value="38"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid>
+                        <Rectangle x:Name="ActiveBar" Width="3" HorizontalAlignment="Left" Fill="{StaticResource HeimdallAccent}" Opacity="0"/>
+                        <Border x:Name="bd" Background="Transparent" Margin="3,0,0,0">
+                            <TextBlock Text="{TemplateBinding Content}" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#12FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="ActiveBar" Property="Opacity" Value="1"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource HeimdallAccentHover}"/>
+                            <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== DataGrid (aba Lembretes) ===================== -->
+    <Style TargetType="DataGrid">
+        <Setter Property="Background" Value="{StaticResource HeimdallPanelBackground}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="RowBackground" Value="{StaticResource HeimdallPanelBackground}"/>
+        <Setter Property="AlternatingRowBackground" Value="#1B222B"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource HeimdallBorder}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HeimdallBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="RowHeight" Value="28"/>
+    </Style>
+
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{StaticResource HeimdallSidebarBackground}"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForegroundSecondary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="6,6"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HeimdallBorder}"/>
+        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+    </Style>
+
+    <Style TargetType="DataGridCell">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="6,2"/>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource HeimdallAccentWash}"/>
+                <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ===================== ListBox (colunas de widgets) ===================== -->
+    <Style TargetType="ListBox">
+        <Setter Property="Background" Value="{StaticResource HeimdallPanelBackground}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HeimdallBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="FontFamily" Value="{StaticResource HeimdallHeadingFont}"/>
+        <Setter Property="Padding" Value="2"/>
+    </Style>
+
+    <Style TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="8,7"/>
+        <Setter Property="Foreground" Value="{StaticResource HeimdallForeground}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="bd" Background="Transparent" CornerRadius="3" Margin="0,1" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="#12FFFFFF"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource HeimdallAccentWashStrong}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

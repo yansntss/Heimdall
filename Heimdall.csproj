@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\heimdall.ico" />
+    <Resource Include="Assets\heimdall-logo.png" />
   </ItemGroup>
 
   <ItemGroup>

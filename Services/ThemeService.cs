@@ -96,6 +96,9 @@ internal static class ThemeService
             Backdrop: theme.Backdrop);
     }
 
+    /// <summary>Cores resolvidas de um tema pelo nome — usado pelos cards de prévia da tela de Configurações.</summary>
+    public static ThemeDefinition GetThemeDefinition(string name) => ResolveBase(name);
+
     private static ThemeDefinition ResolveBase(string name)
     {
         if (string.Equals(name, AutoName, StringComparison.OrdinalIgnoreCase))
