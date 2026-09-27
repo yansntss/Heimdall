@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish (framework-dependent)
+        run: dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/light
+
+      - name: Publish (self-contained)
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/standalone
+
+      - name: Zip artifacts
+        run: |
+          Compress-Archive -Path publish/light/* -DestinationPath Heimdall-${{ github.ref_name }}-win-x64.zip
+          Compress-Archive -Path publish/standalone/* -DestinationPath Heimdall-${{ github.ref_name }}-win-x64-standalone.zip
+
+      - name: Generate checksums
+        run: Get-FileHash *.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Out-File SHA256SUMS.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.zip
+            SHA256SUMS.txt
+          generate_release_notes: true

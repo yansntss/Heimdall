@@ -7,6 +7,9 @@
 <p align="center">Uma barra de sistema para Windows que faz o que a barra de tarefas deveria fazer.</p>
 
 <p align="center">
+  <a href="https://github.com/yansntss/Heimdall/releases/latest">
+    <img alt="Última versão" src="https://img.shields.io/github/v/release/yansntss/Heimdall">
+  </a>
   <img alt="Plataforma" src="https://img.shields.io/badge/plataforma-Windows%2010%20%2F%2011-0078D6">
   <img alt=".NET" src="https://img.shields.io/badge/.NET-10-512BD4">
   <img alt="Licença" src="https://img.shields.io/badge/licença-MIT-green">
@@ -33,25 +36,54 @@ cheia é aberto, e volta ao normal quando ele fecha.
   overlay discreto e somente informativo assume o lugar, sem interceptar clique.
 - **Leve e nativo**: WPF puro, sem Electron e sem serviço em segundo plano consumindo RAM.
 
+## Screenshots
+
+<!-- TODO: substituir pelos screenshots reais em docs/assets/ antes de publicar -->
+<p align="center">
+  <img src="docs/assets/screenshot-normal.png" alt="Heimdall em modo normal" width="720"><br>
+  <sub>Modo normal</sub>
+</p>
+<p align="center">
+  <img src="docs/assets/screenshot-overlay.png" alt="Heimdall em modo overlay durante um jogo" width="720"><br>
+  <sub>Modo overlay em jogo</sub>
+</p>
+
 ## Baixar e instalar
 
 Não é necessário compilar nada — baixe o executável já pronto:
 
 **[Baixar a última versão](https://github.com/yansntss/Heimdall/releases/latest)**
 
-1. Baixe o `.zip` (ou `.exe`) da versão mais recente no link acima.
-2. Extraia (se for `.zip`) numa pasta de sua preferência.
+Cada release traz dois arquivos — escolha um:
+
+| Arquivo | Quando usar |
+|---|---|
+| `Heimdall-vX.Y.Z-win-x64.zip` | Leve (poucos MB). Requer o [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) instalado. |
+| `Heimdall-vX.Y.Z-win-x64-standalone.zip` | Maior (~150 MB), roda em qualquer PC Windows sem instalar nada. |
+
+1. Baixe um dos `.zip` acima na [página de releases](https://github.com/yansntss/Heimdall/releases/latest).
+2. Extraia numa pasta de sua preferência.
 3. Execute o `Heimdall.exe`.
 4. Opcional: clique direito na barra → **Configurações...** → aba **Geral** → marque
    **"Iniciar com o Windows"** para que ela abra automaticamente ao ligar o PC.
 
-> Requer Windows 10 ou 11. A versão "leve" precisa do
-> [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) instalado
-> na máquina; a versão "self-contained" já traz tudo embutido e roda sem instalar nada
-> extra.
+> Requer Windows 10 ou 11.
 >
 > Ainda não há releases publicados? Veja [Rodar localmente](#rodar-localmente) para
 > compilar a partir do código-fonte.
+
+### Verificação de integridade
+
+O executável **não é assinado digitalmente** — o Windows pode exibir o alerta "O Windows
+protegeu o computador" na primeira execução. Clique em **Mais informações** → **Executar
+assim mesmo**.
+
+Para confirmar que o arquivo baixado não foi adulterado, compare o hash SHA256 com os
+publicados em `SHA256SUMS.txt`, anexado a cada release:
+
+```powershell
+Get-FileHash Heimdall-vX.Y.Z-win-x64.zip -Algorithm SHA256
+```
 
 ## Rodar localmente
 
@@ -75,11 +107,14 @@ A barra deve aparecer na borda da tela.
 
 ```bash
 # Leve (requer o .NET 10 Desktop Runtime instalado na máquina que for rodar)
-dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
+dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 
 # Self-contained (maior, mas roda em qualquer PC Windows sem instalar nada)
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
+
+> Não use `-p:PublishTrimmed=true`: WPF e as bibliotecas de sensores usam reflexão, e o
+> trimming quebra o app.
 
 O executável final fica em `bin/Release/net10.0-windows.../win-x64/publish/`.
 
@@ -117,6 +152,13 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `ram` | Uso de memória — funciona sempre, sem dependências |
 | `temp` | Temperatura de CPU/GPU — **precisa do Heimdall rodando como administrador** |
 | `fps` | FPS via RTSS/MSI Afterburner — **precisa do RTSS rodando**; sem ele, o widget simplesmente não aparece |
+
+## Limitações conhecidas
+
+- Widget de temperatura precisa do Heimdall rodando como administrador.
+- Widget de FPS precisa do RTSS/MSI Afterburner rodando.
+- O overlay funciona apenas em tela cheia em janela (borderless), não em tela cheia
+  exclusiva.
 
 ## Stack
 
