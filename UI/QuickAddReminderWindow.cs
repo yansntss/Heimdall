@@ -47,6 +47,7 @@ internal sealed class QuickAddReminderWindow : Window
 
     private readonly ReminderConfig? _editing;
     private bool _closing;
+    private bool _everActivated;
 
     public event Action<ReminderConfig>? Saved;
 
@@ -206,11 +207,17 @@ internal sealed class QuickAddReminderWindow : Window
         // Fechar já dispara Deactivated de novo como parte do próprio fechamento — sem a
         // guarda, isso chama Close() reentrante e o WPF derruba o app (VerifyNotClosing).
         Closing += (_, _) => _closing = true;
+        // Aberta por clique num botão da barra (WS_EX_NOACTIVATE) ou pelo hotkey global,
+        // sem o processo estar em primeiro plano — o Windows às vezes nega a ativação
+        // (foreground lock) e dispara um Deactivated espúrio antes do usuário digitar
+        // qualquer coisa. Sem essa guarda, isso caía direto em Save() com o texto vazio,
+        // que fecha a janela — o popup "não abria" (fechava sozinho no mesmo instante).
+        Activated += (_, _) => _everActivated = true;
         // Salva (não só fecha) ao perder o foco: o calendário do DatePicker é um popup à
         // parte, e clicar nele já dispara Deactivated na janela — sem isso, escolher uma
         // data e clicar nela perdia a edição inteira sem salvar nada. Esc continua
         // cancelando de verdade (Close() direto, sem passar por Save()).
-        Deactivated += (_, _) => { if (!_closing) Save(); };
+        Deactivated += (_, _) => { if (!_closing && _everActivated) Save(); };
         // KeyDown (bubble) + handledEventsToo: Enter precisa chegar primeiro no
         // DatePicker em foco pra ele confirmar a data digitada/selecionada —
         // interceptar antes disso (Preview/tunneling) fazia o Save() ler o valor antigo

@@ -12,6 +12,7 @@ internal sealed class RenamePromptWindow : Window
     private readonly TextBox _textBox;
     private bool _closing;
     private bool _cancelled;
+    private bool _everActivated;
 
     public event Action<string>? Confirmed;
 
@@ -52,7 +53,12 @@ internal sealed class RenamePromptWindow : Window
         Content = border;
 
         Closing += (_, _) => _closing = true;
-        Deactivated += (_, _) => { if (!_closing) Confirm(); };
+        // Mesmo problema do popup de lembrete: aberta a partir de um clique no menu de
+        // contexto da barra (WS_EX_NOACTIVATE), a ativação real às vezes é negada pelo
+        // Windows (foreground lock) e dispara um Deactivated espúrio antes do usuário
+        // interagir — sem essa guarda, isso confirmava/fechava a janela sozinha.
+        Activated += (_, _) => _everActivated = true;
+        Deactivated += (_, _) => { if (!_closing && _everActivated) Confirm(); };
         PreviewKeyDown += OnPreviewKeyDown;
         Loaded += (_, _) => { _textBox.Focus(); _textBox.SelectAll(); };
     }
