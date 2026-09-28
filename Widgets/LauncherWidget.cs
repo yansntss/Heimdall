@@ -100,7 +100,7 @@ public sealed class LauncherWidget : IWidget
     {
         if (_runningIndicators.Count == 0) return;
 
-        var openWindows = OpenWindowsService.Snapshot();
+        var openWindows = WindowTrackerService.SnapshotFirstPerExecutable();
         foreach (var (targetPath, dot, launcher) in _runningIndicators)
         {
             if (openWindows.TryGetValue(targetPath, out var hwnd))
@@ -193,7 +193,7 @@ public sealed class LauncherWidget : IWidget
 
         border.MouseLeftButtonUp += (_, _) =>
         {
-            if (_openWindows.TryGetValue(launcher, out var hwnd)) OpenWindowsService.FocusOrRestore(hwnd);
+            if (_openWindows.TryGetValue(launcher, out var hwnd)) WindowTrackerService.FocusOrRestore(hwnd);
             else Launch(launcher, forceAdmin: false);
         };
 

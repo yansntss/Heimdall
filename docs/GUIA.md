@@ -38,6 +38,12 @@ Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução).
   "Ram": { "ShowUsedTotal": true },   // false = só a porcentagem
   "Temp": { "ShowCpu": true, "ShowGpu": true },
   "Fps": { "OnlyInGame": true },      // false = aparece também fora do modo overlay
+  "Windows": {
+    "GroupWindows": true,       // false = uma janela por item, com título ao lado do ícone
+    "ShowTitles": false,        // mostra o título também no modo agrupado
+    "MaxItems": 15,             // acima disso, o excedente vira um item "+N"
+    "ExcludeProcesses": []      // ex.: ["backgroundtaskhost.exe"]
+  },
   "Reminders": [
     { "Kind": "Fixed", "Text": "Beber água" },
     {
@@ -213,6 +219,20 @@ Configurações.
   um arquivo/atalho/pasta pra cima da barra, ou clique direito na barra → **Adicionar
   atalho** (escolher um arquivo, ou escolher entre os apps instalados com busca). Some no
   modo overlay.
+- **`windows`** — lista automaticamente as janelas de topo abertas no momento, sem
+  precisar fixá-las como atalho — uma taskbar leve dentro do Heimdall. Reage em tempo
+  real a `EVENT_OBJECT_SHOW`/`DESTROY`/`NAMECHANGE`/`EVENT_SYSTEM_FOREGROUND` via
+  `SetWinEventHook` (aqui o hook se justifica — diferente do indicador do `launcher`,
+  uma lista que demora segundos pra refletir uma janela nova ficaria visivelmente
+  errada). `Windows.GroupWindows: true` (padrão) agrupa janelas do mesmo executável sob
+  um ícone (ponto = uma janela, contador = várias); `false` mostra uma janela por item,
+  com o título ao lado do ícone. `Windows.ShowTitles` mostra o título também no modo
+  agrupado. Clique numa janela foca/restaura, ou minimiza se já estiver em foco; num
+  grupo, abre um popup com a lista de janelas. Clique direito: "Fechar janela",
+  "Minimizar" e "Fixar como atalho" (adiciona o executável à lista de atalhos do
+  `launcher`). `Windows.MaxItems: 15` (padrão) — acima disso, o excedente vira um item
+  "+N" com popup próprio. `Windows.ExcludeProcesses` ignora executáveis específicos.
+  Ignora as próprias janelas do Heimdall. Some no modo overlay (o clique atravessa ali).
 - **`ram`** — uso de memória física via `GlobalMemoryStatusEx` (Win32 puro, mais leve que
   `PerformanceCounter`). `Ram.ShowUsedTotal: true` mostra "11,9 / 16 GB"; `false` (ou
   qualquer coisa na barra vertical, que não tem espaço pros dois números) mostra só a
@@ -246,14 +266,15 @@ Configurações.
 - `Services/` — `ThemeService` (temas embutidos/usuário), `MonitorService`,
   `StartupService`, `AudioVolumeService` (volume por app), `IconCacheService`,
   `InstalledAppsService` (lista de apps instalados), `ReminderHistoryService`,
-  `OpenWindowsService` (janelas de topo abertas, pro indicador do `launcher`),
-  `RamStatsService` (`GlobalMemoryStatusEx`), `TemperatureService` (LibreHardwareMonitorLib,
-  checa elevação antes de abrir), `RtssService` (memória compartilhada do RTSS).
+  `WindowTrackerService` (janelas de topo abertas — base do indicador do `launcher` e do
+  widget `windows`), `RamStatsService` (`GlobalMemoryStatusEx`), `TemperatureService`
+  (LibreHardwareMonitorLib, checa elevação antes de abrir), `RtssService` (memória
+  compartilhada do RTSS).
 - `Config/` — modelo e leitura/gravação do JSON (`AppConfig`, `WidgetEntry`, `ThemeConfig`,
   `ReminderConfig`, `LauncherConfig`) — `ConfigService` também migra formatos antigos
   (`Clock` solto → `Mode`/`Style`, `Widgets.*` de string pra `{Id, Pinned}`).
 - `Widgets/` — `IWidget`, `WidgetFactory`, `ClockWidget` + `ClockFormatter`, `MediaWidget`,
-  `ReminderWidget`, `LauncherWidget`, `RamWidget`, `TempWidget`, `FpsWidget`.
+  `ReminderWidget`, `LauncherWidget`, `WindowsWidget`, `RamWidget`, `TempWidget`, `FpsWidget`.
 - `UI/` — `BarPresenter` (troca barra↔overlay), `BarWindow`/`OverlayWindow` (3 zonas:
   início/centro/fim, via `WidgetZoneBuilder`), `WidgetDragController` (arrastar widgets
   entre zonas), `GhostIconWindow` (fantasma do arraste, reaproveitado pelo `launcher` e

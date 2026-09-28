@@ -40,6 +40,8 @@ public sealed class AppConfig
 
     public FpsConfig Fps { get; set; } = new();
 
+    public WindowsWidgetConfig Windows { get; set; } = new();
+
     public bool StartWithWindows { get; set; }
 
     /// <summary>Nome de um tema embutido ou de %AppData%\Heimdall\themes\*.json.</summary>
@@ -121,4 +123,19 @@ public sealed class FpsConfig
 {
     /// <summary>true (padrão) = só aparece no modo overlay (tela cheia); false = aparece sempre.</summary>
     public bool OnlyInGame { get; set; } = true;
+}
+
+public sealed class WindowsWidgetConfig
+{
+    /// <summary>true (padrão) = janelas do mesmo executável agrupadas sob um ícone; false = um item por janela.</summary>
+    public bool GroupWindows { get; set; } = true;
+
+    /// <summary>Mostra o título ao lado do ícone — útil em barra larga, ruim em barra estreita.</summary>
+    public bool ShowTitles { get; set; }
+
+    /// <summary>Acima disso, o excedente vira um item "+N" que abre a lista completa num popup.</summary>
+    public int MaxItems { get; set; } = 15;
+
+    /// <summary>Nomes de executável (ex.: "backgroundtaskhost.exe") a nunca exibir, mesmo passando pelos filtros de janela.</summary>
+    public List<string> ExcludeProcesses { get; set; } = new();
 }

@@ -197,11 +197,13 @@ internal static class NativeMethods
     [DllImport("dwmapi.dll")]
     public static extern int DwmGetColorizationColor(out uint pcrColorization, [MarshalAs(UnmanagedType.Bool)] out bool pfOpaqueBlend);
 
-    // ---------- Janelas de topo abertas (indicador de app aberto do launcher) ----------
+    // ---------- Janelas de topo abertas (indicador de app aberto do launcher, widget windows) ----------
 
     public const int GW_OWNER = 4;
     public const int SW_RESTORE = 9;
+    public const int SW_MINIMIZE = 6;
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+    public const uint WM_CLOSE = 0x0010;
 
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -235,6 +237,33 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetWindowTextLength(IntPtr hWnd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    public static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    // ---------- SetWinEventHook (widget windows: reage a janelas abrindo/fechando/trocando de foco/título) ----------
+
+    public const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+    public const uint EVENT_OBJECT_DESTROY = 0x8001;
+    public const uint EVENT_OBJECT_SHOW = 0x8002;
+    public const uint EVENT_OBJECT_NAMECHANGE = 0x800C;
+    public const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+    public const int OBJID_WINDOW = 0;
+    public const int CHILDID_SELF = 0;
+
+    public delegate void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventProc lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
     // ---------- Memória (widget de RAM) ----------
 

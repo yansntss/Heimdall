@@ -26,6 +26,7 @@ public static class Strings
         "media" => T("Mídia", "Media"),
         "reminder" => T("Lembretes", "Reminders"),
         "launcher" => T("Atalhos", "Shortcuts"),
+        "windows" => T("Janelas", "Windows"),
         "ram" => T("RAM", "RAM"),
         "temp" => T("Temperatura", "Temperature"),
         "fps" => T("FPS", "FPS"),
@@ -73,6 +74,14 @@ public static class Strings
     public static string LauncherOpenLocation => T("Abrir local do arquivo", "Open file location");
     public static string LauncherRename => T("Renomear...", "Rename...");
     public static string LauncherTooltipMissing(string name) => T($"{name} — Atalho não encontrado", $"{name} — Shortcut not found");
+
+    // ---------- Widget de janelas abertas (WindowsWidget) ----------
+
+    public static string WindowsCloseWindow => T("Fechar janela", "Close window");
+    public static string WindowsMinimize => T("Minimizar", "Minimize");
+    public static string WindowsPinAsShortcut => T("Fixar como atalho", "Pin as shortcut");
+    public static string WindowsOverflowTooltip(int count) => T($"+{count} janela(s)", $"+{count} more window(s)");
+    public static string WindowsUntitled => T("(sem título)", "(untitled)");
 
     // ---------- Widget de lembretes (ReminderWidget) ----------
 
