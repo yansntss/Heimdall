@@ -19,6 +19,9 @@ internal sealed class BarPresenter
     /// <summary>true enquanto a barra normal está fora do ar por causa de tela cheia — seja em overlay (GamingMode) ou só escondida.</summary>
     private bool _fullscreenActive;
 
+    /// <summary>true depois do <see cref="Close"/> — callbacks atrasados (fim de fade, FullscreenChanged) viram no-op.</summary>
+    private bool _closed;
+
     public BarPresenter(AppConfig cfg, MonitorInfo monitor)
     {
         _cfg = cfg;
@@ -32,6 +35,8 @@ internal sealed class BarPresenter
 
     public void Close()
     {
+        _closed = true;
+        _bar.FullscreenChanged -= OnFullscreenChanged;
         _overlay.Close();
         _bar.Close();
     }
@@ -53,7 +58,7 @@ internal sealed class BarPresenter
 
     private void OnFullscreenChanged(bool fullscreen)
     {
-        if (fullscreen == _fullscreenActive) return;
+        if (_closed || fullscreen == _fullscreenActive) return;
         _fullscreenActive = fullscreen;
 
         if (_cfg.GamingMode) OnFullscreenChangedGaming(fullscreen);
@@ -105,10 +110,18 @@ internal sealed class BarPresenter
     }
 
     /// <summary>Fade de 200 ms na troca barra↔overlay — sem isso a troca era um corte seco (Hide/Show instantâneo).</summary>
-    private static void FadeOut(Window window, Action onCompleted)
+    /// <remarks>
+    /// O fade pode terminar depois que as barras foram reconstruídas (jogo em tela cheia muda
+    /// a resolução → DisplaySettingsChanged → BuildBars fecha estas janelas no meio da
+    /// animação) — Show() numa janela já fechada derrubava o app. Daí o guard de _closed.
+    /// </remarks>
+    private void FadeOut(Window window, Action onCompleted)
     {
         var animation = new DoubleAnimation(window.Opacity, 0, TimeSpan.FromMilliseconds(FadeMs));
-        animation.Completed += (_, _) => onCompleted();
+        animation.Completed += (_, _) =>
+        {
+            if (!_closed) onCompleted();
+        };
         window.BeginAnimation(UIElement.OpacityProperty, animation);
     }
 

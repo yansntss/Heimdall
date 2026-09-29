@@ -24,12 +24,20 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        bool afterGpuReset = e.Args.Contains(GpuResetArg);
+
         _mutex = new Mutex(true, "Heimdall.SingleInstance", out bool created);
-        if (!created)
+        if (!created && !(afterGpuReset && WaitForPreviousInstance(_mutex)))
         {
             Shutdown();
             return;
         }
+
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+
+        // Relançado depois de um reset do driver de vídeo: dá um respiro pro driver
+        // terminar de voltar antes de criar janelas novas (senão cai de novo na hora).
+        if (afterGpuReset) Thread.Sleep(GpuResetSettleMs);
 
         // Mudança de resolução / monitor conectado: reconstrói as barras (com debounce)
         _displayDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
@@ -48,6 +56,62 @@ public partial class App : Application
             () => Widgets.ReminderWidget.Primary?.OpenQuickAdd());
 
         BuildBars();
+    }
+
+    // ---------- Reset do driver de vídeo (TDR) ----------
+    // Quando a GPU trava e o Windows reinicia o driver (tela preta por uns segundos), o
+    // thread de renderização do WPF morre com UCEERR_RENDERTHREADFAILURE e não tem volta
+    // dentro do mesmo processo — antes isso derrubava o Heimdall e a barra sumia até o
+    // usuário abrir de novo. Agora o app se relança sozinho.
+
+    private const string GpuResetArg = "--after-gpu-reset";
+    private const int GpuResetSettleMs = 2000;
+    private const int UCEERR_RENDERTHREADFAILURE = unchecked((int)0x88980406);
+
+    /// <summary>Se a instância nova também cair logo de cara (driver ainda instável), não relança de novo — evita loop.</summary>
+    private static readonly TimeSpan MinUptimeForRestart = TimeSpan.FromSeconds(15);
+
+    private bool _restarting;
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        if (!IsRenderThreadFailure(e.Exception)) return;
+
+        var uptime = DateTime.Now - Process.GetCurrentProcess().StartTime;
+        if (uptime < MinUptimeForRestart || Environment.ProcessPath is not { } exe) return;
+
+        e.Handled = true;
+        if (_restarting) return;
+        _restarting = true;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(exe, GpuResetArg) { UseShellExecute = false });
+        }
+        catch
+        {
+            _restarting = false;
+            e.Handled = false; // sem como relançar: deixa cair como antes
+            return;
+        }
+
+        // Não passa pelo CloseBars(): mexer nas janelas agora só provoca a mesma exceção
+        // de novo. O processo sai e o Windows limpa janelas/AppBar/hotkeys sozinho.
+        Environment.Exit(0);
+    }
+
+    private static bool IsRenderThreadFailure(Exception? ex)
+    {
+        for (; ex is not null; ex = ex.InnerException)
+            if (ex.HResult == UCEERR_RENDERTHREADFAILURE) return true;
+        return false;
+    }
+
+    /// <summary>A instância anterior ainda pode estar saindo quando a nova sobe — espera ela soltar o mutex.</summary>
+    private static bool WaitForPreviousInstance(Mutex mutex)
+    {
+        try { return mutex.WaitOne(TimeSpan.FromSeconds(10)); }
+        catch (AbandonedMutexException) { return true; } // saiu sem liberar (Environment.Exit): o mutex é nosso
     }
 
     // ---------- Atalhos globais de mídia (opcionais, Ctrl+Alt+...) ----------
