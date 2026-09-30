@@ -4,11 +4,40 @@ on:
   push:
     tags: [ 'v*' ]
 
+# Criar a release e anexar os arquivos precisa de escrita no repositório — em repos
+# novos o token padrão é só leitura.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Antes de compilar qualquer coisa: a versão do csproj tem que bater com a tag (na
+      # v1.1.0 o .exe saiu dizendo "1.0.0" na tela Sobre) e o CHANGELOG.md tem que ter a
+      # seção da versão — falhar aqui evita esperar o build inteiro pra descobrir.
+      - name: Validate version
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v')
+          [xml]$csproj = Get-Content Heimdall.csproj -Raw
+          $props = $csproj.Project.PropertyGroup | Where-Object { $_.Version } | Select-Object -First 1
+          $expected = @{ Version = $version; AssemblyVersion = "$version.0"; FileVersion = "$version.0" }
+          $errors = @()
+          foreach ($name in $expected.Keys) {
+            if ($props.$name -ne $expected[$name]) { $errors += "Heimdall.csproj: <$name> é '$($props.$name)', esperado '$($expected[$name])'." }
+          }
+          $changelog = Get-Content CHANGELOG.md -Raw -Encoding utf8
+          if ($changelog -notmatch ('(?m)^## \[' + [regex]::Escape($version) + '\]')) {
+            $errors += "CHANGELOG.md sem a seção ## [$version]."
+          }
+          if ($errors) {
+            $errors | ForEach-Object { Write-Error $_ -ErrorAction Continue }
+            exit 1
+          }
+          Write-Host "Versão $version conferida no csproj e no CHANGELOG.md."
 
       - uses: actions/setup-dotnet@v4
         with:
