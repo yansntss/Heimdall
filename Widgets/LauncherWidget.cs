@@ -67,7 +67,7 @@ public sealed class LauncherWidget : IWidget
         _runningIndicators.Clear();
         _openWindows.Clear();
         foreach (var launcher in _cfg.Launchers)
-            _root.Children.Add(launcher.Type == LauncherItemType.Separator ? CreateSeparatorItem(launcher) : CreateIcon(launcher));
+            _root.Children.Add(launcher.Type == LauncherItemType.App ? CreateIcon(launcher) : CreateSeparatorItem(launcher));
     }
 
     /// <summary>Índice em <see cref="AppConfig.Launchers"/> correspondente a um ponto (nas coordenadas do <see cref="View"/>) — usado pelo "Adicionar separador" da barra pra inserir na posição do clique.</summary>
@@ -147,7 +147,7 @@ public sealed class LauncherWidget : IWidget
 
     /// <summary>Visual de um item (ícone de app ou traço de separador) sem moldura/interação — usado pro fantasma do arraste.</summary>
     private FrameworkElement CreateItemVisual(LauncherConfig item) =>
-        item.Type == LauncherItemType.Separator ? CreateSeparatorVisual(item) : CreateIconVisual(item, PathExists(item.Path));
+        item.Type == LauncherItemType.App ? CreateIconVisual(item, PathExists(item.Path)) : CreateSeparatorVisual(item);
 
     private Border CreateIcon(LauncherConfig launcher)
     {
@@ -256,7 +256,8 @@ public sealed class LauncherWidget : IWidget
             CornerRadius = new CornerRadius(4),
             Padding = vertical ? new Thickness(4, pad, 4, pad) : new Thickness(pad, 4, pad, 4),
             Margin = new Thickness(2, 0, 2, 0),
-            Cursor = Cursors.Arrow
+            Cursor = Cursors.Arrow,
+            ToolTip = separator.Type == LauncherItemType.Group ? separator.Name : null
         };
 
         container.MouseEnter += (_, _) =>
@@ -265,7 +266,7 @@ public sealed class LauncherWidget : IWidget
             background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
 
         SetupItemInteraction(container, separator);
-        container.ContextMenu = BuildSeparatorContextMenu(separator);
+        container.ContextMenu = separator.Type == LauncherItemType.Group ? BuildGroupContextMenu(separator, container) : BuildSeparatorContextMenu(separator);
 
         return container;
     }
@@ -308,7 +309,105 @@ public sealed class LauncherWidget : IWidget
         var remove = new MenuItem { Header = Strings.Remove };
         remove.Click += (_, _) => RemoveLauncher(launcher);
 
-        return new ContextMenu { Items = { runAsAdmin, openLocation, rename, remove } };
+        return new ContextMenu { Items = { runAsAdmin, openLocation, rename, BuildMoveToGroupMenu(launcher, icon), new Separator(), remove } };
+    }
+
+    // ---------- Grupos (cabeçalho nomeado + tudo depois dele até o próximo) ----------
+
+    private LauncherConfig? GroupOf(LauncherConfig item)
+    {
+        for (int i = _cfg.Launchers.IndexOf(item) - 1; i >= 0; i--)
+            if (_cfg.Launchers[i].Type == LauncherItemType.Group) return _cfg.Launchers[i];
+        return null;
+    }
+
+    private MenuItem BuildMoveToGroupMenu(LauncherConfig launcher, Border icon)
+    {
+        var menu = new MenuItem { Header = Strings.LauncherMoveToGroup };
+        var current = GroupOf(launcher);
+
+        foreach (var group in _cfg.Launchers.Where(l => l.Type == LauncherItemType.Group).ToList())
+        {
+            var item = new MenuItem { Header = group.Name, IsCheckable = true, IsChecked = ReferenceEquals(group, current) };
+            item.Click += (_, _) => MoveToGroup(launcher, group);
+            menu.Items.Add(item);
+        }
+
+        var none = new MenuItem { Header = Strings.LauncherNoGroup, IsCheckable = true, IsChecked = current is null };
+        none.Click += (_, _) => MoveToGroup(launcher, null);
+        menu.Items.Add(none);
+
+        var newGroup = new MenuItem { Header = Strings.LauncherNewGroup };
+        newGroup.Click += (_, _) => PromptGroupName(icon, NextGroupName(), name =>
+        {
+            var group = new LauncherConfig { Type = LauncherItemType.Group, Name = name };
+            _cfg.Launchers.Add(group);
+            MoveToGroup(launcher, group);
+        });
+        menu.Items.Add(new Separator());
+        menu.Items.Add(newGroup);
+
+        return menu;
+    }
+
+    /// <summary>Move o item pro fim do grupo (ou, sem grupo, pro fim da parte antes do primeiro cabeçalho).</summary>
+    private void MoveToGroup(LauncherConfig item, LauncherConfig? group)
+    {
+        _cfg.Launchers.Remove(item);
+
+        int start = group is null ? 0 : _cfg.Launchers.IndexOf(group) + 1;
+        int end = _cfg.Launchers.FindIndex(start, l => l.Type == LauncherItemType.Group);
+        _cfg.Launchers.Insert(end < 0 ? _cfg.Launchers.Count : end, item);
+
+        ConfigService.Save(_cfg);
+        Rebuild();
+    }
+
+    private ContextMenu BuildGroupContextMenu(LauncherConfig group, Border container)
+    {
+        var title = new MenuItem { Header = group.Name, IsEnabled = false };
+
+        var rename = new MenuItem { Header = Strings.LauncherRenameGroup };
+        rename.Click += (_, _) => PromptGroupName(container, group.Name, name =>
+        {
+            group.Name = name;
+            ConfigService.Save(_cfg);
+            Rebuild();
+        });
+
+        var line = new MenuItem { Header = Strings.SeparatorStyleLine, IsCheckable = true, IsChecked = group.Style == SeparatorStyle.Line };
+        var space = new MenuItem { Header = Strings.SeparatorStyleSpace, IsCheckable = true, IsChecked = group.Style == SeparatorStyle.Space };
+        var dot = new MenuItem { Header = Strings.SeparatorStyleDot, IsCheckable = true, IsChecked = group.Style == SeparatorStyle.Dot };
+        line.Click += (_, _) => ChangeSeparatorStyle(group, SeparatorStyle.Line);
+        space.Click += (_, _) => ChangeSeparatorStyle(group, SeparatorStyle.Space);
+        dot.Click += (_, _) => ChangeSeparatorStyle(group, SeparatorStyle.Dot);
+
+        // Só o cabeçalho sai — os atalhos continuam na barra, no grupo anterior.
+        var remove = new MenuItem { Header = Strings.LauncherRemoveGroup };
+        remove.Click += (_, _) => RemoveLauncher(group);
+
+        return new ContextMenu { Items = { title, new Separator(), rename, line, space, dot, new Separator(), remove } };
+    }
+
+    private void PromptGroupName(FrameworkElement anchor, string currentName, Action<string> onConfirmed)
+    {
+        // Só depois do menu de contexto (e do submenu) terminar de fechar: aberto no meio
+        // do Click, o fechamento do menu tirava o foco do prompt logo em seguida, e o
+        // Deactivated confirmava sozinho com o texto vazio — o grupo nunca era criado.
+        _root.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            var prompt = new RenamePromptWindow(_style, currentName);
+            prompt.AnchorTo(anchor);
+            prompt.Confirmed += onConfirmed;
+            prompt.Show();
+            prompt.Activate();
+        });
+    }
+
+    private string NextGroupName()
+    {
+        int n = _cfg.Launchers.Count(l => l.Type == LauncherItemType.Group) + 1;
+        return Strings.LauncherDefaultGroupName(n);
     }
 
     private void RenameLauncher(LauncherConfig launcher, Border icon)
@@ -354,12 +453,16 @@ public sealed class LauncherWidget : IWidget
         public required double OriginalOffset;
         public required double Size;
         public required TranslateTransform Transform;
+        public required LauncherConfig Item;
     }
 
     private sealed class DragState
     {
         public required LauncherConfig Launcher;
         public required Border SourceElement;
+        /// <summary>Quantos itens seguidos se movem juntos: 1, ou o cabeçalho + atalhos de um grupo.</summary>
+        public required int BlockCount;
+        public required List<FrameworkElement> BlockElements;
         public required GhostIconWindow Ghost;
         public required int SourceIndex;
         public required double SlotSize;
@@ -373,6 +476,8 @@ public sealed class LauncherWidget : IWidget
 
     private Point? _pressPoint;
     private LauncherConfig? _pressSource;
+    // Arrastou desde o último clique — o soltar desse arraste não pode virar "abrir o app".
+    private bool _draggedSincePress;
     private DragState? _drag;
 
     /// <summary>
@@ -388,6 +493,7 @@ public sealed class LauncherWidget : IWidget
         {
             _pressPoint = e.GetPosition(null);
             _pressSource = item;
+            _draggedSincePress = false;
             element.CaptureMouse();
 
             // Essencial: o WidgetDragController escuta o wrapper que envolve o
@@ -416,14 +522,17 @@ public sealed class LauncherWidget : IWidget
 
             _pressPoint = null;
             _pressSource = null;
+            _draggedSincePress = true;
             BeginDrag(element, item);
         };
 
-        element.PreviewMouseLeftButtonUp += (_, _) =>
+        element.PreviewMouseLeftButtonUp += (_, e) =>
         {
             _pressPoint = null;
             _pressSource = null;
             if (_drag is not null && _drag.Launcher == item) EndDrag(commit: true);
+            // Handled barra o MouseLeftButtonUp (bolha) do ícone, que é quem abre o app.
+            if (_draggedSincePress) e.Handled = true;
             element.ReleaseMouseCapture();
         };
     }
@@ -436,22 +545,47 @@ public sealed class LauncherWidget : IWidget
         bool animate = SystemParameters.ClientAreaAnimation;
         bool vertical = _root.Orientation == Orientation.Vertical;
 
-        var screenCenter = element.PointToScreen(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
+        // Arrastar o cabeçalho de um grupo leva o grupo inteiro junto (cabeçalho + atalhos
+        // até o próximo grupo), como um bloco só.
+        int blockCount = 1;
+        if (item.Type == LauncherItemType.Group)
+            while (sourceIndex + blockCount < _cfg.Launchers.Count && _cfg.Launchers[sourceIndex + blockCount].Type != LauncherItemType.Group)
+                blockCount++;
+
+        var blockElements = _root.Children.OfType<FrameworkElement>().Skip(sourceIndex).Take(blockCount).ToList();
+        var first = blockElements[0];
+        var last = blockElements[^1];
+        var firstOffset = first.TranslatePoint(new Point(0, 0), _root);
+        var lastOffset = last.TranslatePoint(new Point(0, 0), _root);
+        // Do início (com margem) do primeiro até o fim (com margem) do último — pra um item
+        // só, dá exatamente tamanho + margens, como antes.
+        double blockStart = vertical ? firstOffset.Y - first.Margin.Top : firstOffset.X - first.Margin.Left;
+        double blockEnd = vertical
+            ? lastOffset.Y + last.ActualHeight + last.Margin.Bottom
+            : lastOffset.X + last.ActualWidth + last.Margin.Right;
+        double slotSize = blockEnd - blockStart;
+
+        var blockRect = vertical
+            ? new Rect(0, firstOffset.Y, _root.ActualWidth, lastOffset.Y + last.ActualHeight - firstOffset.Y)
+            : new Rect(firstOffset.X, 0, lastOffset.X + last.ActualWidth - firstOffset.X, _root.ActualHeight);
+        var screenCenter = _root.PointToScreen(new Point(blockRect.X + blockRect.Width / 2, blockRect.Y + blockRect.Height / 2));
+
+        // Fantasma antes de esconder o bloco — o de um grupo é um snapshot do trecho da barra.
+        var ghost = blockCount == 1
+            ? new GhostIconWindow(CreateItemVisual(item), _iconSize)
+            : new GhostIconWindow(SnapshotOf(blockRect), blockRect.Width, blockRect.Height);
 
         // O ícone original vira um espaço vazio (opacidade 0) guardando o lugar, em vez de
         // sumir da lista — o Rebuild() no fim do arraste que efetivamente reordena.
         // IsHitTestVisible continua true de propósito: desligar isso no elemento que
         // segura a captura do mouse fazia o WPF parar de rotear MouseMove pra ele — o
         // arraste "começava" (o fantasma aparecia) mas nunca mais recebia atualização.
-        element.Opacity = 0;
-
-        double slotSize = (vertical ? element.ActualHeight : element.ActualWidth)
-            + (vertical ? element.Margin.Top + element.Margin.Bottom : element.Margin.Left + element.Margin.Right);
+        foreach (var blockElement in blockElements) blockElement.Opacity = 0;
 
         var others = new List<SiblingInfo>();
         for (int i = 0; i < _root.Children.Count; i++)
         {
-            if (i == sourceIndex || _root.Children[i] is not FrameworkElement child) continue;
+            if ((i >= sourceIndex && i < sourceIndex + blockCount) || _root.Children[i] is not FrameworkElement child) continue;
 
             var offset = child.TranslatePoint(new Point(0, 0), _root);
             var transform = new TranslateTransform();
@@ -461,12 +595,11 @@ public sealed class LauncherWidget : IWidget
                 Element = child,
                 OriginalOffset = vertical ? offset.Y : offset.X,
                 Size = vertical ? child.ActualHeight : child.ActualWidth,
-                Transform = transform
+                Transform = transform,
+                Item = _cfg.Launchers[i]
             });
         }
 
-        var ghostVisual = CreateItemVisual(item);
-        var ghost = new GhostIconWindow(ghostVisual, _iconSize);
         ghost.CenterOn(screenCenter);
         ghost.Show();
         ghost.AnimatePickup(animate, LauncherDragAnimations.PickupScale);
@@ -475,6 +608,8 @@ public sealed class LauncherWidget : IWidget
         {
             Launcher = item,
             SourceElement = element,
+            BlockCount = blockCount,
+            BlockElements = blockElements,
             Ghost = ghost,
             SourceIndex = sourceIndex,
             SlotSize = slotSize,
@@ -506,7 +641,9 @@ public sealed class LauncherWidget : IWidget
         var rootTopLeft = _root.PointToScreen(new Point(0, 0));
         var barBounds = new Rect(rootTopLeft, new Size(Math.Max(_root.ActualWidth, 1), Math.Max(_root.ActualHeight, 1)));
         barBounds.Inflate(RemovalDistance, RemovalDistance);
-        bool removalArmed = !barBounds.Contains(screenPoint);
+        // Grupo nunca é removido arrastando pra fora — apagaria todos os atalhos dele de
+        // uma vez; pra isso tem "Remover grupo" no menu (que mantém os atalhos).
+        bool removalArmed = drag.BlockCount == 1 && !barBounds.Contains(screenPoint);
         drag.RemovalArmed = removalArmed;
         drag.Ghost.SetRemovalHint(removalArmed);
 
@@ -520,10 +657,31 @@ public sealed class LauncherWidget : IWidget
         double clickPos = drag.Vertical ? pointInRoot.Y : pointInRoot.X;
 
         int target = 0;
-        for (int i = 0; i < drag.Others.Count; i++)
+        if (drag.Launcher.Type == LauncherItemType.Group)
         {
-            var sibling = drag.Others[i];
-            if (clickPos >= sibling.OriginalOffset + sibling.Size / 2) target = i + 1;
+            // Grupo só encaixa entre grupos (antes de outro cabeçalho, ou no fim) — soltar
+            // no meio de outro grupo partiria ele em dois. Pega a fronteira mais próxima.
+            double best = double.MaxValue;
+            for (int i = 0; i <= drag.Others.Count; i++)
+            {
+                if (i < drag.Others.Count && drag.Others[i].Item.Type != LauncherItemType.Group) continue;
+                double boundary = i < drag.Others.Count
+                    ? drag.Others[i].OriginalOffset
+                    : drag.Others.Count > 0 ? drag.Others[^1].OriginalOffset + drag.Others[^1].Size : 0;
+                // Fronteiras depois do bloco já "contam" com o espaço dele deslocando os vizinhos.
+                if (i >= drag.SourceIndex) boundary -= drag.SlotSize / 2;
+                else boundary += drag.SlotSize / 2;
+                double distance = Math.Abs(clickPos - boundary);
+                if (distance < best) { best = distance; target = i; }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < drag.Others.Count; i++)
+            {
+                var sibling = drag.Others[i];
+                if (clickPos >= sibling.OriginalOffset + sibling.Size / 2) target = i + 1;
+            }
         }
         drag.CurrentTarget = target;
 
@@ -561,9 +719,10 @@ public sealed class LauncherWidget : IWidget
             drag.Ghost.FlyTo(ComputeTargetScreenCenter(drag), drag.Animate, () =>
             {
                 drag.Ghost.Close();
-                _cfg.Launchers.Remove(drag.Launcher);
+                var block = _cfg.Launchers.GetRange(drag.SourceIndex, drag.BlockCount);
+                _cfg.Launchers.RemoveRange(drag.SourceIndex, drag.BlockCount);
                 int insertAt = Math.Clamp(drag.CurrentTarget, 0, _cfg.Launchers.Count);
-                _cfg.Launchers.Insert(insertAt, drag.Launcher);
+                _cfg.Launchers.InsertRange(insertAt, block);
                 ConfigService.Save(_cfg);
                 Rebuild();
             });
@@ -576,8 +735,24 @@ public sealed class LauncherWidget : IWidget
         drag.Ghost.FlyTo(drag.OriginalScreenCenter, drag.Animate, () =>
         {
             drag.Ghost.Close();
-            drag.SourceElement.Opacity = 1;
+            foreach (var blockElement in drag.BlockElements) blockElement.Opacity = 1;
         });
+    }
+
+    /// <summary>Imagem de um trecho da barra (coordenadas do _root) — fantasma do arraste de um grupo inteiro.</summary>
+    private Image SnapshotOf(Rect area)
+    {
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            var brush = new VisualBrush(_root) { Viewbox = area, ViewboxUnits = BrushMappingMode.Absolute, Stretch = Stretch.None };
+            dc.DrawRectangle(brush, null, new Rect(0, 0, area.Width, area.Height));
+        }
+
+        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            (int)Math.Ceiling(area.Width), (int)Math.Ceiling(area.Height), 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(visual);
+        return new Image { Source = rtb, Width = area.Width, Height = area.Height };
     }
 
     /// <summary>Centro de tela de onde o item vai parar se soltar agora — pro fantasma "voar" até lá antes do Rebuild().</summary>
@@ -588,6 +763,8 @@ public sealed class LauncherWidget : IWidget
         double targetOffset = drag.CurrentTarget < drag.Others.Count
             ? drag.Others[drag.CurrentTarget].OriginalOffset
             : drag.Others[^1].OriginalOffset + drag.Others[^1].Size;
+        // Indo pra frente, os vizinhos até o alvo recuam um bloco — o item para antes deles.
+        if (drag.CurrentTarget > drag.SourceIndex) targetOffset -= drag.SlotSize;
         targetOffset += drag.SlotSize / 2;
 
         var rootTopLeft = _root.PointToScreen(new Point(0, 0));

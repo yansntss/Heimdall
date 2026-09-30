@@ -1,6 +1,11 @@
 namespace Heimdall.Config;
 
-public enum LauncherItemType { App, Separator }
+/// <summary>
+/// Group: cabeçalho de grupo nomeado (ex.: "Apps", "Jogos") — desenhado como separador, e
+/// todos os itens depois dele (até o próximo Group) pertencem a ele. Itens antes do
+/// primeiro Group ficam "sem grupo".
+/// </summary>
+public enum LauncherItemType { App, Separator, Group }
 
 public enum SeparatorStyle { Line, Space, Dot }
 
@@ -26,6 +31,6 @@ public sealed class LauncherConfig
 
     public bool RunAsAdmin { get; set; }
 
-    /// <summary>Usado só quando Type = Separator.</summary>
+    /// <summary>Usado só quando Type = Separator ou Group.</summary>
     public SeparatorStyle Style { get; set; } = SeparatorStyle.Line;
 }

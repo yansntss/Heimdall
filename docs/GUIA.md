@@ -218,7 +218,12 @@ Configurações.
   limitação do Windows, sem contorno sem elevar o Heimdall também. Pra adicionar: arraste
   um arquivo/atalho/pasta pra cima da barra, ou clique direito na barra → **Adicionar
   atalho** (escolher um arquivo, ou escolher entre os apps instalados com busca). Some no
-  modo overlay.
+  modo overlay. **Grupos**: clique direito num ícone → "Mover para grupo" → "Novo
+  grupo..." cria um grupo nomeado (ex.: Apps, Jogos) — um item `Type: "Group"` em
+  `Launchers`, desenhado como separador; tudo depois dele até o próximo grupo pertence a
+  ele, então arrastar um ícone por cima do separador também troca o grupo. Clique
+  direito no separador do grupo renomeia, muda o estilo ou remove o grupo (os atalhos
+  ficam).
 - **`windows`** — lista automaticamente as janelas de topo abertas no momento, sem
   precisar fixá-las como atalho — uma taskbar leve dentro do Heimdall. Reage em tempo
   real a `EVENT_OBJECT_SHOW`/`DESTROY`/`NAMECHANGE`/`EVENT_SYSTEM_FOREGROUND` via

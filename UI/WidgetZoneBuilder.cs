@@ -103,7 +103,7 @@ internal static class WidgetZoneBuilder
         }
     }
 
-    /// <summary>Fixar/desafixar um widget inteiro (clique direito em qualquer parte dele que não tenha o próprio menu, como o ícone de um atalho).</summary>
+    /// <summary>Fixar/desafixar ou remover um widget inteiro (clique direito em qualquer parte dele que não tenha o próprio menu, como o ícone de um atalho).</summary>
     private static ContextMenu BuildWidgetContextMenu(AppConfig cfg, WidgetEntry entry)
     {
         var toggle = new MenuItem { Header = entry.Pinned ? Strings.Unpin : Strings.Pin };
@@ -113,7 +113,18 @@ internal static class WidgetZoneBuilder
             ConfigService.Save(cfg);
             ((App)Application.Current).Reload();
         };
-        return new ContextMenu { Items = { toggle } };
+
+        var remove = new MenuItem { Header = Strings.RemoveWidget };
+        remove.Click += (_, _) =>
+        {
+            // Mesma referência que está numa das 3 zonas do cfg — remove de onde estiver.
+            if (!cfg.Widgets.Start.Remove(entry) && !cfg.Widgets.Center.Remove(entry))
+                cfg.Widgets.End.Remove(entry);
+            ConfigService.Save(cfg);
+            ((App)Application.Current).Reload();
+        };
+
+        return new ContextMenu { Items = { toggle, new Separator(), remove } };
     }
 
     private static FrameworkElement WrapWithMargin(FrameworkElement view, Orientation orientation)

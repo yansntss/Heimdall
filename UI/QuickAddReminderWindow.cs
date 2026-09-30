@@ -385,50 +385,7 @@ internal sealed class QuickAddReminderWindow : Window
     }
 
     /// <summary>Posiciona a janela ancorada à barra, no lado oposto à borda configurada.</summary>
-    public void AnchorTo(FrameworkElement anchor, BarEdge edge)
-    {
-        Loaded += (_, _) =>
-        {
-            // X/Y vêm do widget (abre perto de onde ele está na barra), mas a extensão
-            // vertical/horizontal vem da JANELA da barra inteira — usar só o
-            // ActualHeight/Width do widget deixaria o popup uns pixels dentro da barra
-            // (o widget é menor que a espessura total, fica centralizado nela).
-            var window = Window.GetWindow(anchor);
-            var anchorTopLeft = anchor.PointToScreen(new Point(0, 0));
-            var windowTopLeft = window?.PointToScreen(new Point(0, 0)) ?? anchorTopLeft;
-            double windowWidth = window?.ActualWidth ?? anchor.ActualWidth;
-            double windowHeight = window?.ActualHeight ?? anchor.ActualHeight;
-
-            const double gap = 4;
-            switch (edge)
-            {
-                case BarEdge.Bottom:
-                    Left = anchorTopLeft.X;
-                    Top = windowTopLeft.Y - ActualHeight - gap;
-                    break;
-                case BarEdge.Left:
-                    Left = windowTopLeft.X + windowWidth + gap;
-                    Top = anchorTopLeft.Y;
-                    break;
-                case BarEdge.Right:
-                    Left = windowTopLeft.X - ActualWidth - gap;
-                    Top = anchorTopLeft.Y;
-                    break;
-                default: // Top
-                    Left = anchorTopLeft.X;
-                    Top = windowTopLeft.Y + windowHeight + gap;
-                    break;
-            }
-
-            // O widget de lembretes normalmente fica perto de uma ponta da barra — sem
-            // isso, o popup passava da borda do monitor (renderiza, mas fica invisível,
-            // fora de qualquer tela física).
-            var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)anchorTopLeft.X, (int)anchorTopLeft.Y));
-            var screenBounds = screen.Bounds;
-            Left = Math.Max(screenBounds.Left, Math.Min(Left, screenBounds.Right - ActualWidth));
-            Top = Math.Max(screenBounds.Top, Math.Min(Top, screenBounds.Bottom - ActualHeight));
-        };
-    }
+    public void AnchorTo(FrameworkElement anchor, BarEdge edge) => PopupPlacement.AnchorTo(this, anchor, edge);
 
     /// <summary>
     /// Chip com fundo próprio (não só texto solto): sem isso, num tema escuro a

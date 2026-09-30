@@ -67,6 +67,16 @@ public static class Strings
     public static string Remove => T("Remover", "Remove");
     public static string Pin => T("Fixar posição", "Pin position");
     public static string Unpin => T("Desafixar", "Unpin");
+    public static string RemoveWidget => T("Remover widget", "Remove widget");
+
+    // ---------- Grupos do launcher ----------
+
+    public static string LauncherMoveToGroup => T("Mover para grupo", "Move to group");
+    public static string LauncherNoGroup => T("Sem grupo", "No group");
+    public static string LauncherNewGroup => T("Novo grupo...", "New group...");
+    public static string LauncherDefaultGroupName(int n) => T($"Grupo {n}", $"Group {n}");
+    public static string LauncherRenameGroup => T("Renomear grupo...", "Rename group...");
+    public static string LauncherRemoveGroup => T("Remover grupo (mantém os atalhos)", "Remove group (keeps shortcuts)");
 
     // ---------- Widget de atalhos (LauncherWidget) ----------
 
@@ -82,6 +92,11 @@ public static class Strings
     public static string WindowsPinAsShortcut => T("Fixar como atalho", "Pin as shortcut");
     public static string WindowsOverflowTooltip(int count) => T($"+{count} janela(s)", $"+{count} more window(s)");
     public static string WindowsUntitled => T("(sem título)", "(untitled)");
+
+    // ---------- Calendário (clique no widget de relógio) ----------
+
+    public static string CalendarTitle => T("Calendário", "Calendar");
+    public static string CalendarGoToToday => T("Voltar pro mês atual", "Back to current month");
 
     // ---------- Widget de lembretes (ReminderWidget) ----------
 

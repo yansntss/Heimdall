@@ -148,10 +148,10 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 
 | Widget | O que faz |
 |---|---|
-| `clock` | Relógio e data, formato configurável |
+| `clock` | Relógio e data, formato configurável; clique abre um calendário do mês |
 | `media` | Controle de mídia (SMTC), volume por app, capa do álbum |
 | `reminder` | Lembretes fixos e agendados, com histórico |
-| `launcher` | Atalhos de apps, pastas, arquivos e URLs |
+| `launcher` | Atalhos de apps, pastas, arquivos e URLs, organizáveis em grupos |
 | `windows` | Janelas abertas no momento, agrupadas por app — uma taskbar leve |
 | `ram` | Uso de memória — funciona sempre, sem dependências |
 | `temp` | Temperatura de CPU/GPU — **precisa do Heimdall rodando como administrador** |
