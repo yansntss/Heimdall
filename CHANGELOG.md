@@ -9,6 +9,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 
 ## [Não lançado]
 
+## [1.2.0] - 2026-09-30
+
 ### Adicionado
 
 - Clique no widget de relógio abre um calendário do mês, com as cores do tema da barra.
@@ -16,6 +18,10 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   separador: clique direito num ícone → "Mover para grupo". Um grupo inteiro pode ser
   arrastado pelo separador para trocar de lugar.
 - Clique direito em qualquer widget da barra → "Remover widget".
+- Aviso de versão nova: ao abrir, o Heimdall consulta a última release no GitHub e, se
+  houver versão mais nova, mostra uma notificação e um ícone de download na barra que abre
+  a página da versão (o que mudou + arquivos). Desligável com `"CheckForUpdates": false`
+  no config.
 
 ### Corrigido
 
@@ -47,6 +53,7 @@ Primeira versão pública.
 - Tela de Configurações com navegação lateral e pré-visualização.
 - Interface em português e inglês.
 
-[Não lançado]: https://github.com/yansntss/Heimdall/compare/v1.1.0...HEAD
+[Não lançado]: https://github.com/yansntss/Heimdall/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/yansntss/Heimdall/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yansntss/Heimdall/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yansntss/Heimdall/releases/tag/v1.0.0
