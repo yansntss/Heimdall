@@ -44,6 +44,7 @@ public partial class BarWindow : Window
 
         ApplyStyle();
         BuildWidgets();
+        SetupUpdateButton();
         ApplyMenuLabels();
         BuildThemeMenu();
         BuildAddWidgetMenu();
@@ -85,6 +86,7 @@ public partial class BarWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        UpdateService.UpdateFound -= OnUpdateFound;
         AppBar?.Dispose();
         foreach (var widget in _widgets) widget.Dispose();
         _widgets.Clear();
@@ -112,6 +114,45 @@ public partial class BarWindow : Window
 
     private void BuildWidgets() =>
         _widgets.AddRange(WidgetZoneBuilder.Build(_cfg, IsVertical, Zones, StartZone, CenterZone, EndZone));
+
+    // ---------- Aviso de versão nova ----------
+
+    /// <summary>Âncora pra notificação de atualização abrir colada no botão de download.</summary>
+    internal FrameworkElement UpdateAnchor => UpdateButton;
+
+    private void SetupUpdateButton()
+    {
+        DockPanel.SetDock(UpdateButton, IsVertical ? Dock.Bottom : Dock.Right);
+        UpdateButton.Padding = IsVertical ? new Thickness(0, 6, 0, 6) : new Thickness(6, 0, 6, 0);
+
+        // Cor de destaque (não o texto normal) pra chamar atenção sem precisar de badge.
+        var icon = new TextBlock
+        {
+            Text = "", // Download
+            FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+            FontSize = 14,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = new SolidColorBrush(ThemeService.GetEffectiveStyle(_cfg).Accent)
+        };
+        TextOptions.SetTextRenderingMode(icon, TextRenderingMode.Grayscale);
+        UpdateButton.Content = icon;
+
+        // A barra é recriada a cada Reload — se a checagem já achou versão nova antes,
+        // o botão já nasce visível.
+        if (UpdateService.Available is { } available) ShowUpdateButton(available);
+        UpdateService.UpdateFound += OnUpdateFound;
+    }
+
+    private void OnUpdateFound(UpdateInfo update) => ShowUpdateButton(update);
+
+    private void ShowUpdateButton(UpdateInfo update)
+    {
+        UpdateButton.ToolTip = Strings.UpdateTooltip(update.Tag);
+        UpdateButton.Visibility = Visibility.Visible;
+    }
+
+    private void UpdateButton_Click(object sender, RoutedEventArgs e) => UpdateService.OpenReleasePage();
 
     // ---------- Menu de contexto ----------
 

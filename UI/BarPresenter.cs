@@ -50,6 +50,12 @@ internal sealed class BarPresenter
 
     public bool IsVisible => ActiveWindow().Visibility == System.Windows.Visibility.Visible;
 
+    /// <summary>Barra normal na tela agora (não escondida, não em tela cheia) — só aí faz sentido abrir um aviso colado nela.</summary>
+    public bool IsShowingBar => !_closed && !_fullscreenActive && _bar.IsVisible;
+
+    /// <summary>Botão de download da barra — âncora da notificação de versão nova.</summary>
+    public FrameworkElement UpdateAnchor => _bar.UpdateAnchor;
+
     /// <summary>Janela "de verdade" no momento: overlay se o GamingMode estiver ativo e a tela cheia tiver disparado; a própria barra caso contrário (inclusive quando ela está só escondida, sem GamingMode).</summary>
     private System.Windows.Window ActiveWindow() =>
         _fullscreenActive && _cfg.GamingMode ? _overlay : _bar;

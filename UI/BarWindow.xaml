@@ -31,11 +31,19 @@
             </ContextMenu>
         </Border.ContextMenu>
 
-        <!-- Três zonas sobrepostas na mesma célula: início / centro / fim -->
-        <Grid x:Name="Zones">
-            <StackPanel x:Name="StartZone" />
-            <StackPanel x:Name="CenterZone" />
-            <StackPanel x:Name="EndZone" />
-        </Grid>
+        <!-- Botão de atualização fora das zonas (não é widget: não arrasta, não fixa), na
+             ponta final da barra; só aparece quando tem versão nova no GitHub. -->
+        <DockPanel LastChildFill="True">
+            <Button x:Name="UpdateButton" Visibility="Collapsed" Click="UpdateButton_Click"
+                    Background="Transparent" BorderThickness="0" Focusable="False" Cursor="Hand"
+                    Padding="6,0" Margin="2,0" />
+
+            <!-- Três zonas sobrepostas na mesma célula: início / centro / fim -->
+            <Grid x:Name="Zones">
+                <StackPanel x:Name="StartZone" />
+                <StackPanel x:Name="CenterZone" />
+                <StackPanel x:Name="EndZone" />
+            </Grid>
+        </DockPanel>
     </Border>
 </Window>

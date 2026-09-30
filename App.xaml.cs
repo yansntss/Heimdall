@@ -19,6 +19,8 @@ public partial class App : Application
     private HotkeyManager? _hotkeys;
     private SettingsWindow? _settingsWindow;
     private ReminderHistoryWindow? _historyWindow;
+    private DispatcherTimer? _updateTimer;
+    private UpdateNotificationWindow? _updateNotification;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -56,6 +58,45 @@ public partial class App : Application
             () => Widgets.ReminderWidget.Primary?.OpenQuickAdd());
 
         BuildBars();
+        StartUpdateChecks();
+    }
+
+    // ---------- Aviso de versão nova ----------
+
+    private static readonly TimeSpan UpdateFirstCheckDelay = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// Primeira checagem alguns segundos depois de abrir (a barra já na tela, sem disputar
+    /// o início) e depois a cada poucas horas — quem deixa o PC ligado dias seguidos
+    /// também fica sabendo. Desligável por "CheckForUpdates": false no config.
+    /// </summary>
+    private void StartUpdateChecks()
+    {
+        if (!ConfigService.Load().CheckForUpdates) return;
+
+        UpdateService.UpdateFound += ShowUpdateNotification;
+        _updateTimer = new DispatcherTimer { Interval = UpdateFirstCheckDelay };
+        _updateTimer.Tick += async (_, _) =>
+        {
+            _updateTimer.Interval = UpdateCheckInterval;
+            await UpdateService.CheckAsync();
+        };
+        _updateTimer.Start();
+    }
+
+    /// <summary>Uma vez por versão nova encontrada, colada no botão de download da primeira barra visível.</summary>
+    private void ShowUpdateNotification(UpdateInfo update)
+    {
+        var bar = _bars.FirstOrDefault(b => b.IsShowingBar);
+        if (bar is null || _updateNotification is not null) return; // em tela cheia: fica só o botão na barra
+
+        var cfg = ConfigService.Load();
+        var window = new UpdateNotificationWindow(ThemeService.GetEffectiveStyle(cfg), update);
+        window.AnchorTo(bar.UpdateAnchor, cfg.Edge);
+        window.Closed += (_, _) => _updateNotification = null;
+        _updateNotification = window;
+        window.Show();
     }
 
     // ---------- Reset do driver de vídeo (TDR) ----------
@@ -365,6 +406,8 @@ public partial class App : Application
     {
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+        _updateTimer?.Stop();
+        UpdateService.UpdateFound -= ShowUpdateNotification;
         _hotkeys?.Dispose();
         CloseBars();
         if (_mutex is not null)

@@ -55,6 +55,9 @@ public sealed class AppConfig
     public bool GamingMode { get; set; } = true;
 
     public AppLanguage Language { get; set; } = AppLanguage.PtBr;
+
+    /// <summary>Consulta a última release no GitHub ao abrir (e a cada algumas horas) e avisa quando tem versão nova.</summary>
+    public bool CheckForUpdates { get; set; } = true;
 }
 
 /// <summary>

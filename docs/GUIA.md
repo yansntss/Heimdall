@@ -18,6 +18,7 @@ Config: `%AppData%\Heimdall\config.json` (criado na 1ª execução).
   "MonitorDevice": "DISPLAY2",  // usado em Specific (ver "Monitores detectados")
   "Theme": "Escuro",            // nome de um tema embutido ou salvo em .../themes/*.json
   "GamingMode": true,           // true = overlay transparente em tela cheia; false = a barra só some
+  "CheckForUpdates": true,      // consulta a última release no GitHub e avisa quando tem versão nova
   "Style": {                    // overrides opcionais por cima do tema — null usa o tema
     "Background": null,
     "Foreground": null,

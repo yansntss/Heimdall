@@ -69,6 +69,14 @@ public static class Strings
     public static string Unpin => T("Desafixar", "Unpin");
     public static string RemoveWidget => T("Remover widget", "Remove widget");
 
+    // ---------- Aviso de versão nova ----------
+
+    public static string UpdateAvailableTitle => T("Nova versão disponível", "New version available");
+    public static string UpdateAvailableBody(string tag) => T($"O Heimdall {tag} saiu. Veja o que mudou e baixe na página da versão.", $"Heimdall {tag} is out. See what changed and download it on the release page.");
+    public static string UpdateSeeWhatsNew => T("Ver novidades", "See what's new");
+    public static string UpdateLater => T("Agora não", "Not now");
+    public static string UpdateTooltip(string tag) => T($"Nova versão {tag} disponível — clique para ver o que mudou e baixar", $"New version {tag} available — click to see what changed and download");
+
     // ---------- Grupos do launcher ----------
 
     public static string LauncherMoveToGroup => T("Mover para grupo", "Move to group");
