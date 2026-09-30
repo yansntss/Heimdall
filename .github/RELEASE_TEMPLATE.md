@@ -1,14 +1,14 @@
 <!--
-  Template pro corpo da release no GitHub. Colar acima das notas automáticas
-  geradas pelo `generate_release_notes: true` do workflow, preenchendo:
-  - vX.Y.Z pela tag da versão
-  - o resumo do que mudou
-  - os hashes do SHA256SUMS.txt gerado no build
+  Corpo da release no GitHub, montado automaticamente pelo workflow de release:
+  - {{CHANGELOG}} vira a seção da versão no CHANGELOG.md (o job falha se ela não existir)
+  - vX.Y.Z vira a tag da versão
+  - {{SHA256SUMS}} vira o conteúdo do SHA256SUMS.txt gerado no build
+  As notas automáticas do GitHub (link "Full Changelog") entram logo abaixo.
 -->
 
 ## O que mudou nesta versão
 
-- ...
+{{CHANGELOG}}
 
 ## Qual arquivo baixar
 
@@ -39,7 +39,7 @@ O arquivo `SHA256SUMS.txt` já vem anexado a esta release, mas os hashes também
 colados aqui para facilitar:
 
 ```
-<colar o conteúdo de SHA256SUMS.txt aqui>
+{{SHA256SUMS}}
 ```
 
 ## Limitações conhecidas

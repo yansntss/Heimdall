@@ -57,6 +57,8 @@ Não é necessário compilar nada — baixe o executável já pronto:
 
 **[Baixar a última versão](https://github.com/yansntss/Heimdall/releases/latest)**
 
+O que mudou em cada versão: [CHANGELOG.md](CHANGELOG.md).
+
 Cada release traz dois arquivos — escolha um:
 
 | Arquivo | Quando usar |

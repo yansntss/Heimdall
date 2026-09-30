@@ -28,10 +28,32 @@ jobs:
       - name: Generate checksums
         run: Get-FileHash *.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Out-File SHA256SUMS.txt
 
+      # Corpo da release = RELEASE_TEMPLATE.md preenchido com a seção desta versão no
+      # CHANGELOG.md e os checksums. Falha se a versão não estiver no CHANGELOG, pra
+      # nunca sair uma release sem "O que mudou".
+      - name: Build release notes
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v')
+          $changelog = Get-Content CHANGELOG.md -Raw -Encoding utf8
+          $pattern = '(?ms)^## \[' + [regex]::Escape($version) + '\][^\r\n]*\r?\n(.*?)(?=^## \[|^\[[^\]]+\]:|\z)'
+          $match = [regex]::Match($changelog, $pattern)
+          if (-not $match.Success -or -not $match.Groups[1].Value.Trim()) {
+            Write-Error "CHANGELOG.md sem a seção ## [$version] preenchida."
+            exit 1
+          }
+          $template = Get-Content .github/RELEASE_TEMPLATE.md -Raw -Encoding utf8
+          $body = [regex]::Replace($template, '(?s)^<!--.*?-->\s*', '')
+          $body = $body.Replace('{{CHANGELOG}}', $match.Groups[1].Value.Trim())
+          $body = $body.Replace('{{SHA256SUMS}}', (Get-Content SHA256SUMS.txt -Raw).Trim())
+          $body = $body.Replace('vX.Y.Z', $tag)
+          Set-Content release-notes.md $body -Encoding utf8
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             *.zip
             SHA256SUMS.txt
+          body_path: release-notes.md
           generate_release_notes: true
