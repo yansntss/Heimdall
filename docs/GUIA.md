@@ -134,6 +134,14 @@ arrastados por perto, e ele mesmo não pode ser arrastado (o cursor mostra "bloq
 tentar). Um alfinete discreto aparece no canto ao passar o mouse por cima pra lembrar que
 está fixado. **Desafixar** no mesmo menu libera de novo.
 
+## Mover a barra pra outro monitor
+
+Clique 3 vezes numa área vazia da barra e, sem soltar o terceiro clique, arraste: uma
+miniatura da barra segue o cursor. Solte em outro monitor e a barra passa pra lá, na
+mesma borda — o `config.json` vira `"MonitorMode": "Specific"` com o `MonitorDevice`
+desse monitor. Esc cancela. Com `"MonitorMode": "All"` não faz nada (já tem uma barra em
+cada monitor).
+
 ## Temas
 
 9 temas embutidos — **Escuro**, **Claro**, **Translúcido Escuro**, **Translúcido Claro**,

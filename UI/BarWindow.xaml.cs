@@ -2,9 +2,11 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using Heimdall.Config;
 using Heimdall.Native;
 using Heimdall.Services;
@@ -87,6 +89,7 @@ public partial class BarWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         UpdateService.UpdateFound -= OnUpdateFound;
+        _monitorDragGhost?.Close();
         AppBar?.Dispose();
         foreach (var widget in _widgets) widget.Dispose();
         _widgets.Clear();
@@ -289,6 +292,99 @@ public partial class BarWindow : Window
         }
 
         CurrentApp.AddLauncherAt(new LauncherConfig { Type = LauncherItemType.Separator, Name = "Separador" }, index);
+    }
+
+    // ---------- Mover a barra pra outro monitor (clique triplo + arrastar) ----------
+
+    /// <summary>Tamanho máximo (lado maior) do fantasma da barra que segue o cursor.</summary>
+    private const double MonitorDragGhostMaxSize = 360;
+
+    private GhostIconWindow? _monitorDragGhost;
+
+    private void Root_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Só em área vazia da barra: os dois primeiros cliques chegam normalmente nos
+        // widgets, e um clique triplo num atalho do launcher abriria o app duas vezes.
+        // Com "All" já existe uma barra em cada monitor — não tem pra onde mover.
+        if (e.ClickCount != 3 || _cfg.MonitorMode == MonitorMode.All) return;
+        if (e.OriginalSource != Root && e.OriginalSource != Zones
+            && e.OriginalSource != StartZone && e.OriginalSource != CenterZone && e.OriginalSource != EndZone)
+            return;
+
+        BeginMonitorDrag(e);
+        e.Handled = true;
+    }
+
+    private void BeginMonitorDrag(MouseButtonEventArgs e)
+    {
+        double width = Math.Max(Root.ActualWidth, 1);
+        double height = Math.Max(Root.ActualHeight, 1);
+
+        // Snapshot da barra inteira, reduzido — uma barra horizontal ocupa a largura do
+        // monitor, e um fantasma desse tamanho cobriria a tela de destino toda.
+        var rtb = new RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(height), 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(Root);
+        double scale = Math.Min(1.0, MonitorDragGhostMaxSize / Math.Max(width, height));
+        double ghostWidth = Math.Max(width * scale, 1), ghostHeight = Math.Max(height * scale, 1);
+        var visual = new Image { Source = rtb, Width = ghostWidth, Height = ghostHeight, Stretch = Stretch.Fill };
+
+        _monitorDragGhost = new GhostIconWindow(visual, ghostWidth, ghostHeight);
+        _monitorDragGhost.CenterOn(PointToScreen(e.GetPosition(this)));
+        _monitorDragGhost.Show();
+        _monitorDragGhost.AnimatePickup(SystemParameters.ClientAreaAnimation, LauncherDragAnimations.PickupScale);
+
+        Root.Opacity = 0.5;
+        Root.Cursor = Cursors.SizeAll;
+        Root.CaptureMouse();
+    }
+
+    private void Root_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_monitorDragGhost is null) return;
+
+        // Barra é WS_EX_NOACTIVATE (sem foco de teclado) — Esc lido direto, igual aos outros arrastes.
+        if ((NativeMethods.GetAsyncKeyState(NativeMethods.VK_ESCAPE) & 0x8000) != 0)
+        {
+            EndMonitorDrag(commit: false);
+            return;
+        }
+
+        _monitorDragGhost.CenterOn(PointToScreen(e.GetPosition(this)));
+    }
+
+    private void Root_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_monitorDragGhost is null) return;
+        EndMonitorDrag(commit: true);
+        e.Handled = true;
+    }
+
+    private void Root_LostMouseCapture(object sender, MouseEventArgs e)
+    {
+        // Captura perdida por fora (Alt+Tab, outra janela tomando o mouse): cancela.
+        if (_monitorDragGhost is not null) EndMonitorDrag(commit: false);
+    }
+
+    private void EndMonitorDrag(bool commit)
+    {
+        var ghost = _monitorDragGhost;
+        if (ghost is null) return;
+        _monitorDragGhost = null;
+
+        ghost.Close();
+        Root.Opacity = 1;
+        Root.Cursor = null;
+        Root.ReleaseMouseCapture();
+
+        if (!commit || !NativeMethods.GetCursorPos(out var cursor)) return;
+
+        var handle = NativeMethods.MonitorFromPoint(cursor, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        var target = MonitorService.GetMonitors().FirstOrDefault(m => m.Handle == handle);
+        if (target is null || string.Equals(target.ShortName, _monitor.ShortName, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // Reload fecha esta janela — fora do handler do mouse, como no menu "Recarregar".
+        Dispatcher.BeginInvoke(new Action(() => CurrentApp.MoveBarToMonitor(target.ShortName)));
     }
 
     private void Root_DragEnter(object sender, DragEventArgs e)

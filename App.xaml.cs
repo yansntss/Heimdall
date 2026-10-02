@@ -396,6 +396,16 @@ public partial class App : Application
         MessageBox.Show(Strings.MonitorsDialogBody(string.Join("\n", lines)), "Heimdall — Monitores");
     }
 
+    /// <summary>Clique triplo + arrastar na barra: fixa a barra no monitor onde ela foi solta.</summary>
+    public void MoveBarToMonitor(string deviceName)
+    {
+        var cfg = ConfigService.Load();
+        cfg.MonitorMode = MonitorMode.Specific;
+        cfg.MonitorDevice = MonitorInfo.Normalize(deviceName);
+        ConfigService.Save(cfg);
+        Reload();
+    }
+
     public void ExitApp()
     {
         CloseBars();

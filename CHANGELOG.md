@@ -9,6 +9,11 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 
 ## [Não lançado]
 
+### Adicionado
+
+- Clique triplo numa área vazia da barra + arrastar leva a barra para outro monitor (salva
+  como monitor específico no config). Esc cancela.
+
 ## [1.2.0] - 2026-09-30
 
 ### Adicionado

@@ -10,7 +10,9 @@
         Topmost="True">
 
     <Border x:Name="Root" AllowDrop="True" DragEnter="Root_DragEnter" Drop="Root_Drop"
-            PreviewMouseRightButtonDown="Root_PreviewMouseRightButtonDown">
+            PreviewMouseRightButtonDown="Root_PreviewMouseRightButtonDown"
+            MouseLeftButtonDown="Root_MouseLeftButtonDown" MouseMove="Root_MouseMove"
+            MouseLeftButtonUp="Root_MouseLeftButtonUp" LostMouseCapture="Root_LostMouseCapture">
         <Border.ContextMenu>
             <ContextMenu>
                 <MenuItem x:Name="SettingsMenuItem" Click="OpenSettings_Click" />
