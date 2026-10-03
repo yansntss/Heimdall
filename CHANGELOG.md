@@ -13,6 +13,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 
 - Clique triplo numa área vazia da barra + arrastar leva a barra para outro monitor (salva
   como monitor específico no config). Esc cancela.
+- Widget `mic`: volume do microfone padrão do Windows na barra — roda do mouse ajusta em
+  passos de 5%, clique abre um slider com botão de mudo.
 
 ## [1.2.0] - 2026-09-30
 

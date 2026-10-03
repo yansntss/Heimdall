@@ -155,6 +155,7 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `reminder` | Lembretes fixos e agendados, com histórico |
 | `launcher` | Atalhos de apps, pastas, arquivos e URLs, organizáveis em grupos |
 | `windows` | Janelas abertas no momento, agrupadas por app — uma taskbar leve |
+| `mic` | Volume e mudo do microfone padrão — roda do mouse ou slider |
 | `ram` | Uso de memória — funciona sempre, sem dependências |
 | `temp` | Temperatura de CPU/GPU — **precisa do Heimdall rodando como administrador** |
 | `fps` | FPS via RTSS/MSI Afterburner — **precisa do RTSS rodando**; sem ele, o widget simplesmente não aparece |

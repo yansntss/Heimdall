@@ -27,6 +27,7 @@ public static class Strings
         "reminder" => T("Lembretes", "Reminders"),
         "launcher" => T("Atalhos", "Shortcuts"),
         "windows" => T("Janelas", "Windows"),
+        "mic" => T("Microfone", "Microphone"),
         "ram" => T("RAM", "RAM"),
         "temp" => T("Temperatura", "Temperature"),
         "fps" => T("FPS", "FPS"),
@@ -131,6 +132,7 @@ public static class Strings
     public static string MediaMute => T("Mudo", "Mute");
     public static string MediaUnmute => T("Ativar som", "Unmute");
     public static string MediaMutedLabel => T("Mudo", "Muted");
+    public static string MicNoDevice => T("Nenhum microfone padrão encontrado", "No default microphone found");
 
     // ---------- Popup de adicionar/editar lembrete (QuickAddReminderWindow) ----------
 

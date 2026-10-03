@@ -247,6 +247,11 @@ Configurações.
   `launcher`). `Windows.MaxItems: 15` (padrão) — acima disso, o excedente vira um item
   "+N" com popup próprio. `Windows.ExcludeProcesses` ignora executáveis específicos.
   Ignora as próprias janelas do Heimdall. Some no modo overlay (o clique atravessa ali).
+- **`mic`** — volume do microfone padrão do Windows (o mesmo de Configurações → Som →
+  Entrada), via NAudio. Mostra ícone + porcentagem (só o ícone na barra vertical, com o
+  nome do microfone no tooltip). Roda do mouse ajusta em passos de 5%; clique abre um
+  slider vertical com botão de mudo. Atualiza a cada 2s pra refletir mudanças feitas
+  fora da barra. No overlay só exibe o estado.
 - **`ram`** — uso de memória física via `GlobalMemoryStatusEx` (Win32 puro, mais leve que
   `PerformanceCounter`). `Ram.ShowUsedTotal: true` mostra "11,9 / 16 GB"; `false` (ou
   qualquer coisa na barra vertical, que não tem espaço pros dois números) mostra só a
