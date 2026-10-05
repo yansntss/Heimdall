@@ -11,12 +11,13 @@ using Heimdall.Services;
 namespace Heimdall.Widgets;
 
 /// <summary>
-/// Volume do microfone padrão do Windows: roda do mouse ajusta em passos de 5%, clique
-/// abre um popup com slider + mudo (mesmo padrão do volume do <see cref="MediaWidget"/>).
+/// Volume de um dispositivo padrão do Windows — saída (widget <c>volume</c>, o volume
+/// geral do PC) ou microfone (widget <c>mic</c>): roda do mouse ajusta em passos de 5%,
+/// clique abre um popup com slider + mudo (mesmo padrão do volume do <see cref="MediaWidget"/>).
 /// Refresh periódico pra refletir mudanças feitas fora da barra (Configurações do
-/// Windows, Discord, troca de microfone padrão).
+/// Windows, teclas de volume, Discord, troca de dispositivo padrão).
 /// </summary>
-public sealed class MicWidget : IWidget
+public sealed class VolumeWidget : IWidget
 {
     private const float VolumeStep = 0.05f;
 
@@ -24,18 +25,26 @@ public sealed class MicWidget : IWidget
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
     private const string GlyphMicOn = "";
     private const string GlyphMicOff = "";
+    // Alto-falante com 0 a 3 "ondas" conforme o nível, como o ícone de volume da taskbar.
+    private static readonly string[] GlyphSpeakerLevels = { "", "", "", "" };
+    private const string GlyphSpeakerMuted = "";
 
+    private readonly EndpointVolumeService _service;
+    private readonly bool _isMic;
     private readonly bool _isOverlay;
     private readonly Color _popupBackground;
     private readonly Color _popupForeground;
 
     private readonly TextBlock _icon = CreateGlyph(GlyphMicOn);
     private readonly TextBlock _muteIcon = CreateGlyph(GlyphMicOn);
+    // Minimalista: só o ícone; a porcentagem aparece por um instante ao ajustar pela roda.
     private readonly TextBlock _percent = new()
     {
         VerticalAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(4, 0, 0, 0)
+        Margin = new Thickness(4, 0, 0, 0),
+        Visibility = Visibility.Collapsed
     };
+    private readonly DispatcherTimer _percentHideTimer = new() { Interval = TimeSpan.FromSeconds(1.5) };
     private readonly StackPanel _content = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
     private readonly ToggleButton _toggle;
     private readonly FrameworkElement _root;
@@ -58,8 +67,11 @@ public sealed class MicWidget : IWidget
 
     public FrameworkElement View => _root;
 
-    public MicWidget(AppConfig cfg, bool isOverlay = false)
+    /// <param name="isMic">true = microfone padrão; false = saída padrão (volume geral do PC).</param>
+    public VolumeWidget(AppConfig cfg, bool isMic, bool isOverlay = false)
     {
+        _isMic = isMic;
+        _service = isMic ? EndpointVolumeService.Microphone : EndpointVolumeService.Speakers;
         _isOverlay = isOverlay;
 
         var style = ThemeService.GetEffectiveStyle(cfg);
@@ -115,14 +127,26 @@ public sealed class MicWidget : IWidget
         _volumePopup.Closed += (_, _) => _toggle.IsChecked = false;
 
         _timer.Tick += (_, _) => Update();
+        _percentHideTimer.Tick += (_, _) =>
+        {
+            _percentHideTimer.Stop();
+            _percent.Visibility = Visibility.Collapsed;
+        };
     }
 
     public void ApplyOrientation(Orientation orientation)
     {
-        // Barra vertical: só o ícone, porcentagem vai pro tooltip.
+        // Barra vertical não tem largura pra porcentagem nem temporária.
         _vertical = orientation == Orientation.Vertical;
-        _percent.Visibility = _vertical ? Visibility.Collapsed : Visibility.Visible;
-        if (_timer.IsEnabled) Update();
+        if (_vertical) _percent.Visibility = Visibility.Collapsed;
+    }
+
+    private void FlashPercent()
+    {
+        if (_vertical) return;
+        _percent.Visibility = Visibility.Visible;
+        _percentHideTimer.Stop();
+        _percentHideTimer.Start();
     }
 
     public void Start()
@@ -134,17 +158,17 @@ public sealed class MicWidget : IWidget
 
     private void Update()
     {
-        var state = MicVolumeService.GetState();
+        var state = _service.GetState();
         if (state is not { } s)
         {
-            _icon.Text = GlyphMicOff;
+            _icon.Text = _isMic ? GlyphMicOff : GlyphSpeakerMuted;
             _percent.Text = "—";
-            _root.ToolTip = Strings.MicNoDevice;
+            _root.ToolTip = _isMic ? Strings.MicNoDevice : Strings.VolumeNoDevice;
             return;
         }
 
         int pct = (int)Math.Round(s.Volume * 100);
-        _icon.Text = s.Muted ? GlyphMicOff : GlyphMicOn;
+        _icon.Text = Glyph(s.Volume, s.Muted);
         _percent.Text = s.Muted ? Strings.MediaMutedLabel : $"{pct}%";
         _root.ToolTip = $"{s.Name}\n{(s.Muted ? Strings.MediaMutedLabel : $"{pct}%")}";
     }
@@ -152,16 +176,17 @@ public sealed class MicWidget : IWidget
     private void OnMouseWheel(object sender, MouseWheelEventArgs e)
     {
         e.Handled = true;
-        if (MicVolumeService.GetState() is not { } s) return;
+        if (_service.GetState() is not { } s) return;
 
-        MicVolumeService.SetVolume(s.Volume + (e.Delta > 0 ? VolumeStep : -VolumeStep));
+        _service.SetVolume(s.Volume + (e.Delta > 0 ? VolumeStep : -VolumeStep));
         Update();
+        FlashPercent();
         if (_volumePopup.IsOpen) SyncPopupFromState();
     }
 
     private void SyncPopupFromState()
     {
-        if (MicVolumeService.GetState() is not { } s) return;
+        if (_service.GetState() is not { } s) return;
 
         _updatingSliderProgrammatically = true;
         _volumeSlider.Value = Math.Round(s.Volume * 100);
@@ -173,23 +198,34 @@ public sealed class MicWidget : IWidget
     {
         if (_updatingSliderProgrammatically) return;
 
-        MicVolumeService.SetVolume((float)(e.NewValue / 100));
+        _service.SetVolume((float)(e.NewValue / 100));
         Update();
     }
 
     private void OnMuteButtonClick(object sender, RoutedEventArgs e)
     {
-        if (MicVolumeService.GetState() is not { } s) return;
+        if (_service.GetState() is not { } s) return;
 
-        MicVolumeService.SetMuted(!s.Muted);
+        _service.SetMuted(!s.Muted);
         RefreshMuteButton(!s.Muted);
         Update();
     }
 
     private void RefreshMuteButton(bool muted)
     {
-        _muteIcon.Text = muted ? GlyphMicOff : GlyphMicOn;
+        // Botão mostra o estado atual; no alto-falante usa o ícone "cheio" quando com som.
+        _muteIcon.Text = Glyph(1f, muted);
         _muteButton.ToolTip = muted ? Strings.MediaUnmute : Strings.MediaMute;
+    }
+
+    private string Glyph(float volume, bool muted)
+    {
+        if (_isMic) return muted ? GlyphMicOff : GlyphMicOn;
+        if (muted) return GlyphSpeakerMuted;
+
+        // 0% = sem ondas; o resto divide em terços (1–33, 34–66, 67–100).
+        int level = volume <= 0.005f ? 0 : Math.Min(3, 1 + (int)(volume * 3 - 0.0001f));
+        return GlyphSpeakerLevels[level];
     }
 
     private Popup BuildVolumePopup()
@@ -250,6 +286,7 @@ public sealed class MicWidget : IWidget
     public void Dispose()
     {
         _timer.Stop();
+        _percentHideTimer.Stop();
         _volumePopup.IsOpen = false;
     }
 }

@@ -8,7 +8,7 @@ public static class WidgetFactory
     public static readonly (string Id, string Icon)[] Catalog =
     {
         ("clock", "🕐"), ("media", "🎵"), ("reminder", "⏰"), ("launcher", "🚀"),
-        ("windows", "🗔"), ("mic", "🎤"), ("ram", "🧠"), ("temp", "🌡️"), ("fps", "🎮"), ("separator", "┃")
+        ("windows", "🗔"), ("volume", "🔊"), ("mic", "🎤"), ("ram", "🧠"), ("temp", "🌡️"), ("fps", "🎮"), ("separator", "┃")
     };
 
     /// <summary>Novos widgets (media, reminder...) entram aqui.</summary>
@@ -21,7 +21,8 @@ public static class WidgetFactory
         "launcher" => isOverlay ? null : new LauncherWidget(config),
         // Oculto no overlay: o clique atravessa a janela ali, então a lista não seria utilizável.
         "windows" => isOverlay ? null : new WindowsWidget(config),
-        "mic" => new MicWidget(config, isOverlay),
+        "volume" => new VolumeWidget(config, isMic: false, isOverlay),
+        "mic" => new VolumeWidget(config, isMic: true, isOverlay),
         "separator" => new SeparatorWidget(config),
         "ram" => new RamWidget(config.Ram),
         "temp" => new TempWidget(config.Temp),

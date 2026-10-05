@@ -155,6 +155,7 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `reminder` | Lembretes fixos e agendados, com histórico |
 | `launcher` | Atalhos de apps, pastas, arquivos e URLs, organizáveis em grupos |
 | `windows` | Janelas abertas no momento, agrupadas por app — uma taskbar leve |
+| `volume` | Volume e mudo do som do PC (saída padrão) — roda do mouse ou slider |
 | `mic` | Volume e mudo do microfone padrão — roda do mouse ou slider |
 | `ram` | Uso de memória — funciona sempre, sem dependências |
 | `temp` | Temperatura de CPU/GPU — **precisa do Heimdall rodando como administrador** |

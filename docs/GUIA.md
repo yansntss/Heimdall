@@ -247,9 +247,15 @@ Configurações.
   `launcher`). `Windows.MaxItems: 15` (padrão) — acima disso, o excedente vira um item
   "+N" com popup próprio. `Windows.ExcludeProcesses` ignora executáveis específicos.
   Ignora as próprias janelas do Heimdall. Some no modo overlay (o clique atravessa ali).
+- **`volume`** — volume geral do PC (dispositivo de saída padrão, o mesmo do ícone de som
+  da taskbar), via NAudio. Mesmo comportamento do `mic` abaixo: só o ícone (com 0 a 3
+  ondas conforme o nível), roda do mouse em passos de 5%, clique abre slider com
+  botão de mudo, refresh a cada 2s. Diferente do volume do `media`, que mexe só no app
+  que está tocando.
 - **`mic`** — volume do microfone padrão do Windows (o mesmo de Configurações → Som →
-  Entrada), via NAudio. Mostra ícone + porcentagem (só o ícone na barra vertical, com o
-  nome do microfone no tooltip). Roda do mouse ajusta em passos de 5%; clique abre um
+  Entrada), via NAudio. Mostra só o ícone; nome do microfone e porcentagem ficam no
+  tooltip. Roda do mouse ajusta em passos de 5% e exibe a porcentagem ao lado do ícone
+  por ~1,5s (só na barra horizontal); clique abre um
   slider vertical com botão de mudo. Atualiza a cada 2s pra refletir mudanças feitas
   fora da barra. No overlay só exibe o estado.
 - **`ram`** — uso de memória física via `GlobalMemoryStatusEx` (Win32 puro, mais leve que
