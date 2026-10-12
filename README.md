@@ -25,6 +25,12 @@ controle de mídia, lembretes e atalhos dos seus apps num só lugar, com o visua
 escolher. Ela se recolhe automaticamente para um overlay discreto quando um jogo em tela
 cheia é aberto, e volta ao normal quando ele fecha.
 
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Demonstração do Heimdall: modo overlay, controle de mídia, temas e widgets" width="320">
+  <br>
+  <sub><a href="docs/assets/demo.mp4">Ver o vídeo com som (MP4)</a></sub>
+</p>
+
 ## Por que usar
 
 - **Relógio sempre visível**, no formato e fuso que você quiser.
@@ -32,7 +38,12 @@ cheia é aberto, e volta ao normal quando ele fecha.
   faixa, capa do álbum, progresso e volume por app, sem precisar abrir a janela.
 - **Lembretes** rápidos ou agendados, com recorrência, aviso visual na barra e histórico.
 - **Atalhos de apps** direto na barra — arraste um arquivo, uma pasta ou escolha entre os
-  apps instalados.
+  apps instalados, e organize em grupos que podem virar pastas.
+- **Volume do PC e do microfone** na própria barra, com roda do mouse, slider e mudo.
+- **Pensado pra monitor em pé**: numa barra estreita, grupos de atalhos e janelas abertas
+  viram pastas que abrem uma lista ao clicar, e o player de música fica mínimo.
+- **Vários monitores**: clique triplo numa área vazia e arraste pra levar a barra pra
+  outro monitor.
 - **9 temas prontos** (Escuro, Claro, Acrílico, Mica, Vidro, Destaque do Windows, Auto...)
   com suporte a temas próprios em JSON.
 - **Modo overlay automático**: em jogos e apps de tela cheia, a barra normal some e um
@@ -153,8 +164,8 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `clock` | Relógio e data, formato configurável; clique abre um calendário do mês |
 | `media` | Controle de mídia (SMTC), volume por app, capa do álbum |
 | `reminder` | Lembretes fixos e agendados, com histórico |
-| `launcher` | Atalhos de apps, pastas, arquivos e URLs, organizáveis em grupos |
-| `windows` | Janelas abertas no momento, agrupadas por app — uma taskbar leve |
+| `launcher` | Atalhos de apps, pastas, arquivos e URLs, organizáveis em grupos — que viram pastas com lista ao clicar |
+| `windows` | Janelas abertas no momento, agrupadas por app — uma taskbar leve; em monitor em pé vira uma pasta só |
 | `volume` | Volume e mudo do som do PC (saída padrão) — roda do mouse ou slider |
 | `mic` | Volume e mudo do microfone padrão — roda do mouse ou slider |
 | `ram` | Uso de memória — funciona sempre, sem dependências |
