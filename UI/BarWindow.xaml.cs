@@ -25,6 +25,10 @@ public partial class BarWindow : Window
 
     private bool IsVertical => _cfg.Edge is BarEdge.Left or BarEdge.Right;
 
+    /// <summary>Barra horizontal num monitor em pé (mais alto que largo): pouca largura pra tanto widget.</summary>
+    private bool IsNarrow => !IsVertical
+        && _monitor.Bounds.Right - _monitor.Bounds.Left < _monitor.Bounds.Bottom - _monitor.Bounds.Top;
+
     /// <summary>Null até a janela ter um HWND (depois de <see cref="OnSourceInitialized"/>).</summary>
     internal AppBarManager? AppBar { get; private set; }
 
@@ -116,7 +120,7 @@ public partial class BarWindow : Window
     // ---------- Widgets ----------
 
     private void BuildWidgets() =>
-        _widgets.AddRange(WidgetZoneBuilder.Build(_cfg, IsVertical, Zones, StartZone, CenterZone, EndZone));
+        _widgets.AddRange(WidgetZoneBuilder.Build(_cfg, IsVertical, Zones, StartZone, CenterZone, EndZone, narrowBar: IsNarrow));
 
     // ---------- Aviso de versão nova ----------
 

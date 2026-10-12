@@ -36,6 +36,7 @@ public partial class App : Application
         }
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
+        UI.ContextMenuDismisser.Install();
 
         // Relançado depois de um reset do driver de vídeo: dá um respiro pro driver
         // terminar de voltar antes de criar janelas novas (senão cai de novo na hora).

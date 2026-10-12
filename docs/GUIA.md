@@ -232,7 +232,11 @@ Configurações.
   `Launchers`, desenhado como separador; tudo depois dele até o próximo grupo pertence a
   ele, então arrastar um ícone por cima do separador também troca o grupo. Clique
   direito no separador do grupo renomeia, muda o estilo ou remove o grupo (os atalhos
-  ficam).
+  ficam). **Pasta**: um grupo pode aparecer como uma pasta — um ícone só, com miniaturas
+  dos atalhos, que abre a lista deles ao clicar. Clique direito no grupo → "Exibir como
+  pasta": Automático (padrão — vira pasta só quando a barra é horizontal num monitor em
+  pé, onde falta largura), Sempre ou Nunca (`Folder` no item do grupo: `Auto`, `Always`,
+  `Never`).
 - **`windows`** — lista automaticamente as janelas de topo abertas no momento, sem
   precisar fixá-las como atalho — uma taskbar leve dentro do Heimdall. Reage em tempo
   real a `EVENT_OBJECT_SHOW`/`DESTROY`/`NAMECHANGE`/`EVENT_SYSTEM_FOREGROUND` via

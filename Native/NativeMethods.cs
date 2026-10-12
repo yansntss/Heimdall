@@ -166,6 +166,9 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
 
+    [DllImport("user32.dll")]
+    public static extern IntPtr WindowFromPoint(POINT pt);
+
     // ---------- Hotkey global ----------
 
     public const int WM_HOTKEY = 0x0312;

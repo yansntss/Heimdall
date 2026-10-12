@@ -22,7 +22,7 @@ internal static class WidgetZoneBuilder
         (-1, 1), (0, 1), (1, 1)
     };
 
-    public static List<IWidget> Build(AppConfig cfg, bool vertical, Grid zones, StackPanel start, StackPanel center, StackPanel end, bool isOverlay = false)
+    public static List<IWidget> Build(AppConfig cfg, bool vertical, Grid zones, StackPanel start, StackPanel center, StackPanel end, bool isOverlay = false, bool narrowBar = false)
     {
         var widgets = new List<IWidget>();
         var orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
@@ -49,14 +49,14 @@ internal static class WidgetZoneBuilder
 
         SetupZone(widgets, cfg, start, cfg.Widgets.Start, 0, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Left,
-            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor, drag);
+            vertical ? VerticalAlignment.Top : VerticalAlignment.Center, isOverlay, narrowBar, separatorBrush, style.Hover, outlineColor, drag);
 
         SetupZone(widgets, cfg, center, cfg.Widgets.Center, 1, orientation,
-            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor, drag);
+            HorizontalAlignment.Center, VerticalAlignment.Center, isOverlay, narrowBar, separatorBrush, style.Hover, outlineColor, drag);
 
         SetupZone(widgets, cfg, end, cfg.Widgets.End, 2, orientation,
             vertical ? HorizontalAlignment.Center : HorizontalAlignment.Right,
-            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, separatorBrush, style.Hover, outlineColor, drag);
+            vertical ? VerticalAlignment.Bottom : VerticalAlignment.Center, isOverlay, narrowBar, separatorBrush, style.Hover, outlineColor, drag);
 
         // Separador entre zona e centro, do lado que fica voltado pro centro: último
         // filho de Start (mais próximo do centro, já que Start é alinhado à esquerda/topo)
@@ -68,7 +68,7 @@ internal static class WidgetZoneBuilder
     }
 
     private static void SetupZone(List<IWidget> widgets, AppConfig cfg, StackPanel zone, List<WidgetEntry> entries, int zoneIndex,
-        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, Brush separatorBrush,
+        Orientation orientation, HorizontalAlignment horizontal, VerticalAlignment vertical, bool isOverlay, bool narrowBar, Brush separatorBrush,
         Color hoverColor, Color outlineColor, WidgetDragController? drag)
     {
         zone.Orientation = orientation;
@@ -77,7 +77,7 @@ internal static class WidgetZoneBuilder
 
         foreach (var entry in entries)
         {
-            var widget = WidgetFactory.Create(entry.Id, cfg, isOverlay);
+            var widget = WidgetFactory.Create(entry.Id, cfg, isOverlay, narrowBar);
             if (widget is null) continue;
 
             widget.ApplyOrientation(orientation);

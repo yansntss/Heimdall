@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -37,11 +39,20 @@ public sealed class LauncherWidget : IWidget
     // mouse parado e apertar Esc nunca cancelava, já que nada disparava a checagem.
     private readonly DispatcherTimer _escapeWatchTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
 
+    /// <summary>Barra horizontal num monitor em pé — grupos em modo Auto viram pasta.</summary>
+    private readonly bool _narrowBar;
+
     public FrameworkElement View => _root;
 
-    public LauncherWidget(AppConfig cfg)
+    public LauncherWidget(AppConfig cfg, bool narrowBar = false)
     {
         _cfg = cfg;
+        _narrowBar = narrowBar;
+        _folderCloseTimer.Tick += (_, _) =>
+        {
+            _folderCloseTimer.Stop();
+            CloseFolder();
+        };
         _style = ThemeService.GetEffectiveStyle(cfg);
         _iconSize = Math.Clamp(cfg.Thickness - IconMargin * 2, MinIconSize, MaxIconSize);
         _runningTimer.Tick += (_, _) => CheckRunning();
@@ -63,12 +74,38 @@ public sealed class LauncherWidget : IWidget
 
     private void Rebuild()
     {
+        CloseFolder();
         _root.Children.Clear();
         _runningIndicators.Clear();
         _openWindows.Clear();
+
+        // Atalhos de um grupo em pasta continuam como filhos do _root, só colapsados: o
+        // índice de cada filho segue batendo com _cfg.Launchers (arraste, inserir na
+        // posição do clique) e o ponto de "app aberto" segue sendo atualizado pra lista.
+        bool insideFolder = false;
         foreach (var launcher in _cfg.Launchers)
-            _root.Children.Add(launcher.Type == LauncherItemType.App ? CreateIcon(launcher) : CreateSeparatorItem(launcher));
+        {
+            FrameworkElement child;
+            if (launcher.Type == LauncherItemType.Group)
+            {
+                insideFolder = IsFolder(launcher);
+                child = insideFolder ? CreateFolderItem(launcher) : CreateSeparatorItem(launcher);
+            }
+            else
+            {
+                child = launcher.Type == LauncherItemType.App ? CreateIcon(launcher) : CreateSeparatorItem(launcher);
+                if (insideFolder) child.Visibility = Visibility.Collapsed;
+            }
+            _root.Children.Add(child);
+        }
     }
+
+    private bool IsFolder(LauncherConfig group) => group.Folder switch
+    {
+        GroupFolderMode.Always => true,
+        GroupFolderMode.Never => false,
+        _ => _narrowBar
+    };
 
     /// <summary>Índice em <see cref="AppConfig.Launchers"/> correspondente a um ponto (nas coordenadas do <see cref="View"/>) — usado pelo "Adicionar separador" da barra pra inserir na posição do clique.</summary>
     public int GetInsertIndex(Point pointInView)
@@ -77,7 +114,7 @@ public sealed class LauncherWidget : IWidget
 
         for (int i = 0; i < _root.Children.Count; i++)
         {
-            if (_root.Children[i] is not FrameworkElement child) continue;
+            if (_root.Children[i] is not FrameworkElement { Visibility: Visibility.Visible } child) continue;
 
             var topLeft = child.TranslatePoint(new Point(0, 0), _root);
             double center = _root.Orientation == Orientation.Horizontal
@@ -382,11 +419,300 @@ public sealed class LauncherWidget : IWidget
         space.Click += (_, _) => ChangeSeparatorStyle(group, SeparatorStyle.Space);
         dot.Click += (_, _) => ChangeSeparatorStyle(group, SeparatorStyle.Dot);
 
+        var folder = new MenuItem { Header = Strings.LauncherGroupFolder };
+        foreach (var (mode, header) in new[]
+                 {
+                     (GroupFolderMode.Auto, Strings.LauncherGroupFolderAuto),
+                     (GroupFolderMode.Always, Strings.LauncherGroupFolderAlways),
+                     (GroupFolderMode.Never, Strings.LauncherGroupFolderNever)
+                 })
+        {
+            var item = new MenuItem { Header = header, IsCheckable = true, IsChecked = group.Folder == mode };
+            item.Click += (_, _) =>
+            {
+                group.Folder = mode;
+                ConfigService.Save(_cfg);
+                Rebuild();
+            };
+            folder.Items.Add(item);
+        }
+
         // Só o cabeçalho sai — os atalhos continuam na barra, no grupo anterior.
         var remove = new MenuItem { Header = Strings.LauncherRemoveGroup };
         remove.Click += (_, _) => RemoveLauncher(group);
 
-        return new ContextMenu { Items = { title, new Separator(), rename, line, space, dot, new Separator(), remove } };
+        // Em pasta o traço não aparece — estilo de separador não teria efeito nenhum.
+        var items = new List<object> { title, new Separator(), rename, folder };
+        if (!IsFolder(group)) items.AddRange(new object[] { line, space, dot });
+        items.AddRange(new object[] { new Separator(), remove });
+
+        var menu = new ContextMenu();
+        foreach (var item in items) menu.Items.Add(item);
+        return menu;
+    }
+
+    // ---------- Grupo como pasta (ícone com miniaturas + lista ao clicar) ----------
+
+    private const int FolderCloseDelayMs = 300;
+
+    private readonly DispatcherTimer _folderCloseTimer = new() { Interval = TimeSpan.FromMilliseconds(FolderCloseDelayMs) };
+    private Popup? _folderPopup;
+    private LauncherConfig? _openFolder;
+
+    /// <summary>Atalhos de um grupo: do cabeçalho até o próximo grupo (separadores de fora — numa lista não fazem sentido).</summary>
+    private List<LauncherConfig> AppsInGroup(LauncherConfig group)
+    {
+        var apps = new List<LauncherConfig>();
+        for (int i = _cfg.Launchers.IndexOf(group) + 1; i < _cfg.Launchers.Count; i++)
+        {
+            var item = _cfg.Launchers[i];
+            if (item.Type == LauncherItemType.Group) break;
+            if (item.Type == LauncherItemType.App) apps.Add(item);
+        }
+        return apps;
+    }
+
+    /// <summary>Ícone da pasta: até 4 miniaturas dos atalhos do grupo num quadrado 2x2, sobre um fundo arredondado.</summary>
+    private Border CreateFolderItem(LauncherConfig group)
+    {
+        var apps = AppsInGroup(group);
+        double cell = Math.Floor((_iconSize - 2) / 2.0);
+
+        var grid = new System.Windows.Controls.Primitives.UniformGrid
+        {
+            Rows = 2,
+            Columns = 2,
+            Width = _iconSize,
+            Height = _iconSize
+        };
+        foreach (var app in apps.Take(4))
+        {
+            var source = PathExists(app.Path) ? ResolveIconSource(app) : null;
+            grid.Children.Add(source is null
+                ? new Border { Width = cell, Height = cell }
+                : new Image { Source = source, Width = cell, Height = cell, Stretch = Stretch.Uniform });
+        }
+
+        var tile = new Border
+        {
+            Child = grid,
+            Background = new SolidColorBrush(Color.FromArgb(0x30, _style.Foreground.R, _style.Foreground.G, _style.Foreground.B)),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(1)
+        };
+
+        var background = new SolidColorBrush(Colors.Transparent);
+        var border = new Border
+        {
+            Child = tile,
+            Background = background,
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(IconMargin / 2.0 - 1),
+            Margin = new Thickness(2, 0, 2, 0),
+            Cursor = Cursors.Hand,
+            ToolTip = group.Name
+        };
+
+        border.MouseEnter += (_, _) =>
+        {
+            _folderCloseTimer.Stop();
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(_style.Hover, TimeSpan.FromMilliseconds(150)));
+        };
+        border.MouseLeave += (_, _) =>
+        {
+            ScheduleCloseFolder();
+            if (!ReferenceEquals(_openFolder, group))
+                background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
+        };
+
+        border.MouseLeftButtonUp += (_, _) =>
+        {
+            if (ReferenceEquals(_openFolder, group)) CloseFolder();
+            else OpenFolder(group, border, background);
+        };
+
+        SetupItemInteraction(border, group);
+        border.ContextMenu = BuildGroupContextMenu(group, border);
+
+        return border;
+    }
+
+    private void OpenFolder(LauncherConfig group, Border anchor, SolidColorBrush anchorBackground)
+    {
+        CloseFolder();
+
+        var panel = new StackPanel { MinWidth = 180 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = group.Name,
+            FontWeight = FontWeights.SemiBold,
+            Opacity = 0.7,
+            Margin = new Thickness(8, 4, 8, 6)
+        });
+
+        var apps = AppsInGroup(group);
+        if (apps.Count == 0)
+        {
+            panel.Children.Add(new TextBlock
+            {
+                Text = Strings.LauncherGroupEmpty,
+                Opacity = 0.6,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 220,
+                Margin = new Thickness(8, 0, 8, 6)
+            });
+        }
+
+        foreach (var app in apps) panel.Children.Add(CreateFolderRow(app, anchor));
+
+        var border = new Border
+        {
+            Background = new SolidColorBrush(_style.Background),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, _style.Foreground.R, _style.Foreground.G, _style.Foreground.B)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(4),
+            Child = panel
+        };
+        TextElement.SetForeground(border, new SolidColorBrush(_style.Foreground));
+        TextElement.SetFontFamily(border, new FontFamily(_style.FontFamily));
+
+        // Mouse cruza um vão sem elemento nenhum entre a pasta e a lista — o MouseLeave da
+        // pasta agenda o fechamento e entrar na lista cancela, igual ao popup do "windows".
+        border.MouseEnter += (_, _) => _folderCloseTimer.Stop();
+        border.MouseLeave += (_, _) => ScheduleCloseFolder();
+
+        var popup = new Popup
+        {
+            Placement = _cfg.Edge switch
+            {
+                BarEdge.Bottom => PlacementMode.Top,
+                BarEdge.Left => PlacementMode.Right,
+                BarEdge.Right => PlacementMode.Left,
+                _ => PlacementMode.Bottom
+            },
+            PlacementTarget = anchor,
+            // Barra é WS_EX_NOACTIVATE: com StaysOpen=false o popup fecharia na hora que
+            // abre. Fecha pelo hover (ScheduleCloseFolder), clique num atalho ou na pasta.
+            StaysOpen = true,
+            AllowsTransparency = true,
+            PopupAnimation = PopupAnimation.Fade,
+            Child = border
+        };
+        popup.Closed += (_, _) =>
+        {
+            anchorBackground.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
+            if (ReferenceEquals(_folderPopup, popup))
+            {
+                _folderPopup = null;
+                _openFolder = null;
+            }
+        };
+
+        _folderPopup = popup;
+        _openFolder = group;
+        popup.IsOpen = true;
+    }
+
+    /// <summary>Uma linha da lista da pasta: ícone + nome, ponto se o app já está aberto; clique foca/abre, clique direito tem o mesmo menu do ícone na barra.</summary>
+    /// <param name="folder">Ícone da pasta na barra — âncora dos prompts de renomear/novo grupo, que podem abrir depois da lista já ter fechado.</param>
+    private Border CreateFolderRow(LauncherConfig launcher, Border folder)
+    {
+        bool exists = PathExists(launcher.Path);
+        var source = exists ? IconCacheService.GetOrExtract(string.IsNullOrWhiteSpace(launcher.IconPath) ? launcher.Path : launcher.IconPath, 20) : null;
+        FrameworkElement icon = source is not null
+            ? new Image { Source = source, Width = 20, Height = 20, Stretch = Stretch.Uniform }
+            : new TextBlock
+            {
+                Text = "",
+                FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
+                FontSize = 14,
+                Width = 20,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+        var name = new TextBlock
+        {
+            Text = launcher.Name,
+            Margin = new Thickness(8, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxWidth = 240
+        };
+
+        var dot = new Ellipse
+        {
+            Width = 5,
+            Height = 5,
+            Fill = new SolidColorBrush(_style.Accent),
+            VerticalAlignment = VerticalAlignment.Center,
+            Visibility = _openWindows.ContainsKey(launcher) ? Visibility.Visible : Visibility.Hidden
+        };
+
+        var row = new Grid();
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(icon, 0);
+        Grid.SetColumn(name, 1);
+        Grid.SetColumn(dot, 2);
+        row.Children.Add(icon);
+        row.Children.Add(name);
+        row.Children.Add(dot);
+
+        var background = new SolidColorBrush(Colors.Transparent);
+        var border = new Border
+        {
+            Child = row,
+            Background = background,
+            CornerRadius = new CornerRadius(3),
+            Padding = new Thickness(8, 5, 8, 5),
+            Cursor = exists ? Cursors.Hand : Cursors.Arrow,
+            Opacity = exists ? 1.0 : 0.35,
+            ToolTip = exists ? null : Strings.LauncherTooltipMissing(launcher.Name)
+        };
+
+        border.MouseEnter += (_, _) =>
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(_style.Hover, TimeSpan.FromMilliseconds(150)));
+        border.MouseLeave += (_, _) =>
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(150)));
+
+        border.MouseLeftButtonUp += (_, _) =>
+        {
+            CloseFolder();
+            if (_openWindows.TryGetValue(launcher, out var hwnd)) WindowTrackerService.FocusOrRestore(hwnd);
+            else Launch(launcher, forceAdmin: false);
+        };
+
+        // O menu de contexto é outro popup: o mouse "sai" da lista ao entrar nele, e sem
+        // isso a lista fecharia por baixo do menu aberto.
+        var menu = BuildContextMenu(launcher, folder);
+        menu.Opened += (_, _) => _folderCloseTimer.Stop();
+        menu.Closed += (_, _) =>
+        {
+            if (_folderPopup?.Child is UIElement { IsMouseOver: false }) ScheduleCloseFolder();
+        };
+        border.ContextMenu = menu;
+
+        return border;
+    }
+
+    private void ScheduleCloseFolder()
+    {
+        if (_folderPopup is null) return;
+        _folderCloseTimer.Stop();
+        _folderCloseTimer.Start();
+    }
+
+    private void CloseFolder()
+    {
+        _folderCloseTimer.Stop();
+        if (_folderPopup is null) return;
+        var popup = _folderPopup;
+        _folderPopup = null;
+        _openFolder = null;
+        popup.IsOpen = false;
     }
 
     private void PromptGroupName(FrameworkElement anchor, string currentName, Action<string> onConfirmed)
@@ -541,6 +867,7 @@ public sealed class LauncherWidget : IWidget
     {
         int sourceIndex = _cfg.Launchers.IndexOf(item);
         if (sourceIndex < 0) return;
+        CloseFolder();
 
         bool animate = SystemParameters.ClientAreaAnimation;
         bool vertical = _root.Orientation == Orientation.Vertical;
@@ -554,7 +881,8 @@ public sealed class LauncherWidget : IWidget
 
         var blockElements = _root.Children.OfType<FrameworkElement>().Skip(sourceIndex).Take(blockCount).ToList();
         var first = blockElements[0];
-        var last = blockElements[^1];
+        // Grupo em pasta: os atalhos estão colapsados (tamanho 0) — o bloco visível é só a pasta.
+        var last = blockElements.Last(e => e.Visibility == Visibility.Visible);
         var firstOffset = first.TranslatePoint(new Point(0, 0), _root);
         var lastOffset = last.TranslatePoint(new Point(0, 0), _root);
         // Do início (com margem) do primeiro até o fim (com margem) do último — pra um item
@@ -583,18 +911,36 @@ public sealed class LauncherWidget : IWidget
         foreach (var blockElement in blockElements) blockElement.Opacity = 0;
 
         var others = new List<SiblingInfo>();
+        // Fim (com margem) do último filho visível já visto — atalho colapsado dentro de
+        // uma pasta "mora" logo depois dela, com tamanho 0: soltar além da metade da pasta
+        // põe o item dentro do grupo, antes dela põe no grupo anterior.
+        double lastVisibleEnd = 0;
         for (int i = 0; i < _root.Children.Count; i++)
         {
             if ((i >= sourceIndex && i < sourceIndex + blockCount) || _root.Children[i] is not FrameworkElement child) continue;
 
-            var offset = child.TranslatePoint(new Point(0, 0), _root);
             var transform = new TranslateTransform();
             child.RenderTransform = transform;
+
+            double childOffset, childSize;
+            if (child.Visibility == Visibility.Visible)
+            {
+                var offset = child.TranslatePoint(new Point(0, 0), _root);
+                childOffset = vertical ? offset.Y : offset.X;
+                childSize = vertical ? child.ActualHeight : child.ActualWidth;
+                lastVisibleEnd = childOffset + childSize + (vertical ? child.Margin.Bottom : child.Margin.Right);
+            }
+            else
+            {
+                childOffset = lastVisibleEnd;
+                childSize = 0;
+            }
+
             others.Add(new SiblingInfo
             {
                 Element = child,
-                OriginalOffset = vertical ? offset.Y : offset.X,
-                Size = vertical ? child.ActualHeight : child.ActualWidth,
+                OriginalOffset = childOffset,
+                Size = childSize,
                 Transform = transform,
                 Item = _cfg.Launchers[i]
             });
@@ -841,6 +1187,7 @@ public sealed class LauncherWidget : IWidget
 
     public void Dispose()
     {
+        CloseFolder();
         _runningTimer.Stop();
         _escapeWatchTimer.Stop();
     }

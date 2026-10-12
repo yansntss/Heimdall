@@ -12,15 +12,16 @@ public static class WidgetFactory
     };
 
     /// <summary>Novos widgets (media, reminder...) entram aqui.</summary>
-    public static IWidget? Create(string id, AppConfig config, bool isOverlay = false) => id.Trim().ToLowerInvariant() switch
+    /// <param name="narrowBar">Barra horizontal num monitor em pé — pouco espaço, então quem sabe se compactar (grupos do launcher viram pasta) se compacta.</param>
+    public static IWidget? Create(string id, AppConfig config, bool isOverlay = false, bool narrowBar = false) => id.Trim().ToLowerInvariant() switch
     {
         "clock" => new ClockWidget(config, isOverlay),
-        "media" => new MediaWidget(config, isOverlay),
+        "media" => new MediaWidget(config, isOverlay, narrowBar),
         "reminder" => new ReminderWidget(config),
         // Oculto no overlay: lançar um app clicando em cima do jogo não faz sentido ali.
-        "launcher" => isOverlay ? null : new LauncherWidget(config),
+        "launcher" => isOverlay ? null : new LauncherWidget(config, narrowBar),
         // Oculto no overlay: o clique atravessa a janela ali, então a lista não seria utilizável.
-        "windows" => isOverlay ? null : new WindowsWidget(config),
+        "windows" => isOverlay ? null : new WindowsWidget(config, narrowBar),
         "volume" => new VolumeWidget(config, isMic: false, isOverlay),
         "mic" => new VolumeWidget(config, isMic: true, isOverlay),
         "separator" => new SeparatorWidget(config),

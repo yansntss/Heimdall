@@ -87,6 +87,11 @@ public static class Strings
     public static string LauncherDefaultGroupName(int n) => T($"Grupo {n}", $"Group {n}");
     public static string LauncherRenameGroup => T("Renomear grupo...", "Rename group...");
     public static string LauncherRemoveGroup => T("Remover grupo (mantém os atalhos)", "Remove group (keeps shortcuts)");
+    public static string LauncherGroupFolder => T("Exibir como pasta", "Show as folder");
+    public static string LauncherGroupFolderAuto => T("Automático (só com o monitor em pé)", "Automatic (portrait monitor only)");
+    public static string LauncherGroupFolderAlways => T("Sempre", "Always");
+    public static string LauncherGroupFolderNever => T("Nunca", "Never");
+    public static string LauncherGroupEmpty => T("Grupo vazio — clique direito num atalho → Mover para grupo", "Empty group — right-click a shortcut → Move to group");
 
     // ---------- Widget de atalhos (LauncherWidget) ----------
 
@@ -101,6 +106,7 @@ public static class Strings
     public static string WindowsMinimize => T("Minimizar", "Minimize");
     public static string WindowsPinAsShortcut => T("Fixar como atalho", "Pin as shortcut");
     public static string WindowsOverflowTooltip(int count) => T($"+{count} janela(s)", $"+{count} more window(s)");
+    public static string WindowsFolderTooltip(int count) => T($"{count} janela(s) aberta(s)", $"{count} open window(s)");
     public static string WindowsUntitled => T("(sem título)", "(untitled)");
 
     // ---------- Calendário (clique no widget de relógio) ----------

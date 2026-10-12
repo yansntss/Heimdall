@@ -131,10 +131,14 @@ public sealed class MediaWidget : IWidget
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
 
+    private readonly bool _narrowBar;
+
     public FrameworkElement View => _root;
 
-    public MediaWidget(AppConfig cfg, bool isOverlay = false)
+    /// <param name="narrowBar">Barra horizontal num monitor em pé: versão mínima — capa, play/pause e próxima; título só no tooltip, volume só pela roda do mouse.</param>
+    public MediaWidget(AppConfig cfg, bool isOverlay = false, bool narrowBar = false)
     {
+        _narrowBar = narrowBar;
         var style = ThemeService.GetEffectiveStyle(cfg);
         _popupBackground = style.Background;
         _popupForeground = style.Foreground;
@@ -212,7 +216,13 @@ public sealed class MediaWidget : IWidget
 
         // Barra vertical: sem espaço pros 140px do texto — capa e botões empilhados,
         // texto só no tooltip (setado em RefreshTextAsync).
-        _textClip.Visibility = orientation == Orientation.Vertical ? Visibility.Collapsed : Visibility.Visible;
+        _textClip.Visibility = orientation == Orientation.Vertical || _narrowBar ? Visibility.Collapsed : Visibility.Visible;
+
+        if (_narrowBar)
+        {
+            _previous.Visibility = Visibility.Collapsed;
+            _volume.Visibility = Visibility.Collapsed;
+        }
     }
 
     public void Start()

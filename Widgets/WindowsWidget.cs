@@ -61,8 +61,14 @@ public sealed class WindowsWidget : IWidget
 
     public FrameworkElement View => _root;
 
-    public WindowsWidget(AppConfig cfg)
+    /// <summary>Barra horizontal num monitor em pé: todas as janelas viram uma pasta só, que abre a lista ao clicar.</summary>
+    private readonly bool _narrowBar;
+    private readonly BarEdge _edge;
+
+    public WindowsWidget(AppConfig cfg, bool narrowBar = false)
     {
+        _narrowBar = narrowBar;
+        _edge = cfg.Edge;
         _wcfg = cfg.Windows;
         _style = ThemeService.GetEffectiveStyle(cfg);
         _iconSize = Math.Clamp(cfg.Thickness - IconMargin * 2, MinIconSize, MaxIconSize);
@@ -199,6 +205,12 @@ public sealed class WindowsWidget : IWidget
         var windows = WindowTrackerService.SnapshotAll()
             .Where(w => !excluded.Contains(System.IO.Path.GetFileName(w.ExecutablePath)))
             .ToList();
+
+        if (_narrowBar)
+        {
+            if (windows.Count > 0) _root.Children.Add(CreateFolderItem(windows));
+            return;
+        }
 
         List<AppItem> items = _wcfg.GroupWindows
             ? GroupByExecutable(windows)
@@ -349,6 +361,75 @@ public sealed class WindowsWidget : IWidget
             ScheduleHidePopup();
         };
         border.MouseLeftButtonUp += (_, _) => ShowWindowListPopup(border, overflow);
+
+        return border;
+    }
+
+    /// <summary>
+    /// Pasta com todas as janelas (barra estreita): miniaturas 2x2 dos primeiros apps e um
+    /// contador; clique abre/fecha a lista completa — o mesmo popup do "+N".
+    /// </summary>
+    private Border CreateFolderItem(List<WindowTrackerService.TrackedWindow> windows)
+    {
+        double cell = Math.Floor((_iconSize - 2) / 2.0);
+        var grid = new UniformGrid { Rows = 2, Columns = 2, Width = _iconSize, Height = _iconSize };
+        foreach (var exePath in windows.Select(w => w.ExecutablePath).Distinct(StringComparer.OrdinalIgnoreCase).Take(4))
+            grid.Children.Add(ResolveIconVisual(exePath, cell));
+
+        var tile = new Border
+        {
+            Child = grid,
+            Background = new SolidColorBrush(Color.FromArgb(0x30, _style.Foreground.R, _style.Foreground.G, _style.Foreground.B)),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(1)
+        };
+
+        var overlay = new Grid();
+        overlay.Children.Add(tile);
+        overlay.Children.Add(CreateCountBadge(windows.Count));
+
+        var background = new SolidColorBrush(Colors.Transparent);
+        var border = new Border
+        {
+            Child = overlay,
+            Background = background,
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(IconMargin / 2.0 - 1),
+            Margin = new Thickness(2, 0, 2, 0),
+            Cursor = Cursors.Hand,
+            ToolTip = Strings.WindowsFolderTooltip(windows.Count)
+        };
+
+        border.MouseEnter += (_, _) =>
+        {
+            _popupCloseTimer.Stop();
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(_style.Hover, TimeSpan.FromMilliseconds(HoverMs)));
+        };
+        border.MouseLeave += (_, _) =>
+        {
+            background.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(Colors.Transparent, TimeSpan.FromMilliseconds(HoverMs)));
+            ScheduleHidePopup();
+        };
+        // Preview + Handled + captura própria (igual aos ícones do launcher): sem isso, o
+        // MouseLeftButtonDown borbulha até o wrapper do WidgetDragController, que captura
+        // o mouse — e o MouseLeftButtonUp vai pro wrapper, nunca chegando nesta pasta.
+        border.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            border.CaptureMouse();
+            e.Handled = true;
+        };
+        border.PreviewMouseLeftButtonUp += (_, e) =>
+        {
+            if (!border.IsMouseCaptured) return;
+            border.ReleaseMouseCapture();
+            e.Handled = true;
+            // Soltou fora da pasta: desistiu do clique.
+            var pos = e.GetPosition(border);
+            if (pos.X < 0 || pos.Y < 0 || pos.X > border.ActualWidth || pos.Y > border.ActualHeight) return;
+
+            if (_openPopup is not null) ClosePopup();
+            else ShowWindowListPopup(border, windows);
+        };
 
         return border;
     }
@@ -511,7 +592,13 @@ public sealed class WindowsWidget : IWidget
 
         _openPopup = new Popup
         {
-            Placement = PlacementMode.Bottom,
+            Placement = _edge switch
+            {
+                BarEdge.Bottom => PlacementMode.Top,
+                BarEdge.Left => PlacementMode.Right,
+                BarEdge.Right => PlacementMode.Left,
+                _ => PlacementMode.Bottom
+            },
             PlacementTarget = anchor,
             // true: StaysOpen=false fecha quando a janela dona "desativa" — mas a barra é
             // WS_EX_NOACTIVATE e nunca ativa de verdade, então o popup se fechava sozinho
