@@ -9,6 +9,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 
 ## [Não lançado]
 
+## [1.3.0] - 2026-10-12
+
 ### Adicionado
 
 - Clique triplo numa área vazia da barra + arrastar leva a barra para outro monitor (salva
@@ -18,6 +20,18 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   mudo.
 - Widget `volume`: volume geral do PC (saída padrão do Windows) na barra, com o mesmo
   controle do `mic` — roda do mouse, slider e botão de mudo.
+- Grupos do launcher como pasta: com a barra horizontal num monitor em pé (vertical),
+  cada grupo vira um ícone só, com miniaturas dos atalhos, que abre a lista deles ao
+  clicar. Clique direito no grupo → "Exibir como pasta" (Automático / Sempre / Nunca).
+- Janelas abertas (widget `windows`) como pasta no monitor em pé: um ícone só, com
+  miniaturas dos apps e o total de janelas, que abre a lista completa ao clicar.
+- Player de música mínimo no monitor em pé: só capa, play/pause e próxima faixa — o
+  título fica no tooltip e o volume continua na roda do mouse.
+
+### Corrigido
+
+- Menu de clique direito da barra agora fecha ao clicar em qualquer outro lugar da tela
+  (antes ficava aberto até escolher um item ou clicar de novo na barra).
 
 ## [1.2.0] - 2026-09-30
 
@@ -63,7 +77,8 @@ Primeira versão pública.
 - Tela de Configurações com navegação lateral e pré-visualização.
 - Interface em português e inglês.
 
-[Não lançado]: https://github.com/yansntss/Heimdall/compare/v1.2.0...HEAD
+[Não lançado]: https://github.com/yansntss/Heimdall/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/yansntss/Heimdall/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/yansntss/Heimdall/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yansntss/Heimdall/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yansntss/Heimdall/releases/tag/v1.0.0
