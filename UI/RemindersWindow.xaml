@@ -4,6 +4,7 @@
         xmlns:c="clr-namespace:Heimdall.UI.Controls"
         xmlns:ui="clr-namespace:Heimdall.UI"
         xmlns:vm="clr-namespace:Heimdall.ViewModels"
+        xmlns:rm="clr-namespace:Heimdall.UI.Reminders"
         xmlns:s="clr-namespace:Heimdall.Services"
         Icon="pack://application:,,,/Heimdall;component/Assets/heimdall.ico"
         WindowStyle="None"
@@ -158,10 +159,6 @@
                 <Setter Property="Margin" Value="0,0,6,6"/>
             </Style>
 
-            <!-- Botão de escolha rápida dentro do popup de data. -->
-            <Style x:Key="QuickChoice" TargetType="Button" BasedOn="{StaticResource EditChip}">
-                <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
-            </Style>
 
             <!-- Círculo de concluir (21px): vazio = pendente, verde-água com check = concluído. -->
             <Style x:Key="RoundTaskCheck" TargetType="CheckBox">
@@ -214,13 +211,15 @@
                         </TextBox.InputBindings>
                     </TextBox>
 
+                    <!-- Chips de 28px: data, bandeira, nota, lista e "…" (painel de detalhes). -->
                     <WrapPanel Margin="0,8,0,0">
-                        <!-- Data -->
-                        <Button x:Name="DateChip" Style="{StaticResource EditChip}" Command="{Binding OpenDatePopupCommand}"
+                        <!-- Data: preenchido no acento @16% quando tem data -->
+                        <Button Style="{StaticResource EditChip}" Command="{Binding OpenDetailsCommand}"
+                                CommandParameter="{x:Static vm:DetailsPage.Main}"
                                 Tag="{Binding HasDate}" AutomationProperties.Name="{x:Static s:Strings.ChooseDate}"
                                 AutomationProperties.HelpText="{Binding DateChipText}">
                             <StackPanel Orientation="Horizontal">
-                                <c:Icon Geometry="{DynamicResource H.Icon.Calendar}" Size="12" Margin="0,0,5,0"/>
+                                <c:Icon Geometry="{DynamicResource H.Icon.Calendar}" Size="12" Margin="0,0,6,0"/>
                                 <TextBlock Text="{Binding DateChipText}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
@@ -234,82 +233,28 @@
                                 AutomationProperties.Name="{x:Static s:Strings.ChipNote}" ToolTip="{x:Static s:Strings.ChipNote}">
                             <c:Icon Geometry="{DynamicResource H.Icon.Note}" Size="13"/>
                         </Button>
-                        <!-- Lista -->
-                        <Button x:Name="ListChip" Style="{StaticResource EditChip}" Command="{Binding OpenListPopupCommand}"
+                        <!-- Lista: bolinha da cor + nome -->
+                        <Button Style="{StaticResource EditChip}" Command="{Binding OpenDetailsCommand}"
+                                CommandParameter="{x:Static vm:DetailsPage.List}"
                                 AutomationProperties.Name="{x:Static s:Strings.ChooseList}" AutomationProperties.HelpText="{Binding ListName}">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="8" Height="8" Fill="{Binding ListBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock Text="{Binding ListName}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <!-- "…": painel de detalhes -->
+                        <Button x:Name="MoreChip" Style="{StaticResource EditIconChip}" Command="{Binding OpenDetailsCommand}"
+                                CommandParameter="{x:Static vm:DetailsPage.Main}"
+                                AutomationProperties.Name="{x:Static s:Strings.MoreDetails}" ToolTip="{x:Static s:Strings.MoreDetails}">
+                            <c:Icon Geometry="{DynamicResource H.Icon.More}" Size="14" StrokeThickness="3"/>
+                        </Button>
                     </WrapPanel>
 
-                    <!-- Popup de data: escolhas rápidas, data e hora digitadas, repetição. -->
-                    <Popup IsOpen="{Binding IsDatePopupOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=DateChip}"
+                    <!-- Painel de detalhes, ancorado no "…". Clicar fora fecha (mantendo o que mudou);
+                         "Cancelar" desfaz o que foi feito nele. -->
+                    <Popup IsOpen="{Binding IsDetailsOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=MoreChip}"
                            Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                        <Border Style="{StaticResource H.PopupCard}" Width="260" Margin="0,4,24,32">
-                            <Border.InputBindings>
-                                <KeyBinding Key="Escape" Command="{Binding ClosePopupsCommand}"/>
-                                <KeyBinding Key="Enter" Command="{Binding ClosePopupsCommand}"/>
-                            </Border.InputBindings>
-                            <StackPanel>
-                                <WrapPanel>
-                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.SmartListToday}"
-                                            Command="{Binding QuickDateCommand}" CommandParameter="today"/>
-                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.QuickTomorrow}"
-                                            Command="{Binding QuickDateCommand}" CommandParameter="tomorrow"/>
-                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.QuickNextWeek}"
-                                            Command="{Binding QuickDateCommand}" CommandParameter="nextweek"/>
-                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.ReminderNoDate}"
-                                            Command="{Binding QuickDateCommand}" CommandParameter="none"/>
-                                </WrapPanel>
-                                <Grid Margin="0,6,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="10"/>
-                                        <ColumnDefinition Width="80"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="{x:Static s:Strings.LabelDate}" Style="{StaticResource H.FieldLabel}"/>
-                                        <TextBox Style="{StaticResource H.MonoField}" Text="{Binding DateText, UpdateSourceTrigger=PropertyChanged}"
-                                                 AutomationProperties.Name="{x:Static s:Strings.LabelDate}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <TextBlock Text="{x:Static s:Strings.LabelTime}" Style="{StaticResource H.FieldLabel}"/>
-                                        <TextBox Style="{StaticResource H.MonoField}" Text="{Binding TimeText, UpdateSourceTrigger=PropertyChanged}"
-                                                 AutomationProperties.Name="{x:Static s:Strings.LabelTime}"/>
-                                    </StackPanel>
-                                </Grid>
-                                <TextBlock Text="{x:Static s:Strings.LabelRepeat}" Style="{StaticResource H.FieldLabel}" Margin="0,10,0,0"/>
-                                <ComboBox ItemsSource="{Binding RepeatOptions}" SelectedItem="{Binding SelectedRepeat}" DisplayMemberPath="Label"
-                                          AutomationProperties.Name="{x:Static s:Strings.LabelRepeat}"/>
-                            </StackPanel>
-                        </Border>
-                    </Popup>
-
-                    <!-- Popup de lista. -->
-                    <Popup IsOpen="{Binding IsListPopupOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ListChip}"
-                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-                        <Border Style="{StaticResource H.PopupCard}" Width="220" Padding="6" Margin="0,4,24,32">
-                            <Border.InputBindings>
-                                <KeyBinding Key="Escape" Command="{Binding ClosePopupsCommand}"/>
-                            </Border.InputBindings>
-                            <ItemsControl ItemsSource="{Binding ListOptions}" Focusable="False">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Style="{DynamicResource H.ListButton}" Command="{Binding DataContext.ChooseListCommand, ElementName=ListChip}"
-                                                CommandParameter="{Binding Id}" AutomationProperties.Name="{Binding Name}">
-                                            <DockPanel>
-                                                <c:Icon DockPanel.Dock="Right" Geometry="{DynamicResource H.Icon.Check}" Size="12"
-                                                        Visibility="{Binding IsCurrent, Converter={StaticResource H.BoolToVis}}"/>
-                                                <Ellipse Width="10" Height="10" Fill="{Binding Brush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                                            </DockPanel>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
+                        <rm:ReminderDetailsPanel DataContext="{Binding Details}"/>
                     </Popup>
                 </StackPanel>
             </DataTemplate>

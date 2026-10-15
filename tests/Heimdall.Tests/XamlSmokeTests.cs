@@ -76,15 +76,22 @@ public class XamlSmokeTests
             // Atrasado + 2 de hoje, com os cabeçalhos ATRASADOS e HOJE.
             Assert.Equal(5, items.Items.Count);
 
-            // Edição inline aberta (linha e rascunho) com os popups de data e lista abertos.
+            // Edição inline aberta com o painel de detalhes passando por todas as páginas.
             var vm = (RemindersWindowViewModel)window.DataContext;
             var row = vm.Items.OfType<ReminderRowViewModel>().First();
             row.BeginEditCommand.Execute(null);
-            row.Editor!.IsDatePopupOpen = true;
+            row.Editor!.OpenDetailsCommand.Execute(DetailsPage.Main);
+            row.Editor.HasDate = true;
+            row.Editor.HasTime = true;
             window.UpdateLayout();
-            row.Editor.IsDatePopupOpen = false;
-            row.Editor.IsListPopupOpen = true;
-            window.UpdateLayout();
+            foreach (var page in new[] { DetailsPage.Repeat, DetailsPage.List, DetailsPage.Priority, DetailsPage.Notes })
+            {
+                row.Editor.Details!.NavigateCommand.Execute(page);
+                window.UpdateLayout();
+                row.Editor.Details.BackCommand.Execute(null);
+                window.UpdateLayout();
+            }
+            row.Editor.Details!.CancelCommand.Execute(null);
             row.Editor.CancelCommand.Execute(null);
             vm.NewReminderCommand.Execute(null);
             vm.NewRow!.Editor!.Title = "Teste amanhã 9h";

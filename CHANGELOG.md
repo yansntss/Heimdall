@@ -53,8 +53,11 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
     - Enter salva e já abre outra linha; Esc cancela; clicar fora salva (ou descarta,
       se o título estiver vazio).
     - Apagar o título de um lembrete existente exclui o lembrete.
-    - O chip de data abre atalhos (Hoje, Amanhã, Próx. semana, Sem data), campos de
-      data e hora e a repetição.
+    - O "…" (e os chips de data e de lista) abre o painel de detalhes, com Data
+      (calendário próprio com Hoje, Amanhã, Próxima segunda e +1 semana), Hora (com ▲▼
+      de 15 em 15 min), Repetir, Lista, Prioridade (Nenhuma, Baixa, Média, Alta), Notas
+      e Sinalizar. As opções abrem dentro do próprio painel; Esc volta uma etapa.
+      "Cancelar" desfaz o que foi mexido no painel e "Adicionar" salva.
     - O lembrete novo herda a lista onde foi criado: em Hoje nasce com a data de hoje,
       em Sinalizados vem sinalizado e numa lista sua vai para ela.
   - Data no próprio texto, em português: "amanhã 14h", "sexta 19:00", "dia 20 às 10h",

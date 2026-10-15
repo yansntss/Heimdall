@@ -306,7 +306,7 @@ public class RemindersWindowViewModelTests
     }
 
     [Fact]
-    public void Chosen_date_wins_over_the_title_and_keeps_the_text()
+    public void Chosen_date_wins_over_the_one_in_the_title()
     {
         var vm = CreateVm();
         vm.NewReminderCommand.Execute(null);
@@ -319,6 +319,8 @@ public class RemindersWindowViewModelTests
         var created = Assert.Single(_store.Reminders);
         Assert.Equal(new DateOnly(2026, 10, 16), created.DueDate);
         Assert.Equal(new TimeOnly(20, 0), created.DueTime);
+        // O "14h" foi reconhecido (e corrigido à mão): sai do título do mesmo jeito.
+        Assert.Equal("Ler capítulo", created.Title);
     }
 
     [Fact]

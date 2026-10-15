@@ -345,7 +345,8 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         if (!Items.Contains(row)) return; // o commit acima pode ter tirado a linha da lista
         row.Editor = new NewReminderViewModel(_store, row.Reminder, null,
             submit: () => CommitRow(row, openNew: true),
-            cancel: () => CloseRowEditor(row));
+            cancel: () => CloseRowEditor(row),
+            save: () => CommitRow(row, openNew: false));
         SelectedItem = row;
         OnPropertyChanged(nameof(ActiveEditor));
     }
@@ -376,7 +377,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
     {
         var row = new ReminderRowViewModel(new ReminderConfig(), _store, BeginEdit) { IsNew = true };
         row.Editor = new NewReminderViewModel(_store, null, DefaultsForActive(),
-            submit: () => CommitNew(keepGoing: true), cancel: CancelNew);
+            submit: () => CommitNew(keepGoing: true), cancel: CancelNew, save: () => CommitNew(keepGoing: false));
         return row;
     }
 
