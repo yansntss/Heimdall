@@ -206,7 +206,7 @@ public partial class App : Application
         AudioVolumeService.SetVolume(app, Math.Clamp(current + delta, 0f, 1f));
     }
 
-    private void ToggleBarsVisibility()
+    public void ToggleBarsVisibility()
     {
         bool target = !_bars.Any(b => b.IsVisible);
         foreach (var bar in _bars) bar.SetHidden(!target);

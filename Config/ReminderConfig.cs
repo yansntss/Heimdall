@@ -38,4 +38,7 @@ public sealed class ReminderConfig
 
     /// <summary>Usado só quando Recurrence = Daily/Weekly. Nulo = sem limite nesse lado.</summary>
     public DateOnly? EndDate { get; set; }
+
+    /// <summary>Recorrente concluído antes da hora pela lista de hoje: não dispara mais nesse dia.</summary>
+    public DateOnly? DoneOn { get; set; }
 }

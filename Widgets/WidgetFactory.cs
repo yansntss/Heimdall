@@ -26,7 +26,7 @@ public static class WidgetFactory
         "mic" => new VolumeWidget(config, isMic: true, isOverlay),
         "separator" => new SeparatorWidget(config),
         "brand" => new BrandWidget(isOverlay),
-        "cpu" => new CpuWidget(),
+        "cpu" => new CpuWidget(config, isOverlay),
         "notifications" => new NotificationsWidget(config, isOverlay),
         "network" => new NetworkWidget(isOverlay),
         "ram" => new RamWidget(config.Ram),

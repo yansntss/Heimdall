@@ -12,7 +12,10 @@ using System.Windows.Threading;
 using System.IO;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI;
 using Heimdall.UI.Controls;
+using Heimdall.UI.Popups;
+using Heimdall.ViewModels;
 using Windows.Media.Control;
 
 namespace Heimdall.Widgets;
@@ -31,21 +34,16 @@ public sealed class MediaWidget : IWidget
 
     private const string IconPlay = "H.Icon.Play";
     private const string IconPause = "H.Icon.Pause";
-    private const string IconVolumeOn = "H.Icon.Volume";
-    private const string IconVolumeMuted = "H.Icon.VolumeMute";
 
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
 
     private readonly Icon _previousIcon = WidgetUi.Icon("H.Icon.Previous", 12, filled: true);
     private readonly Icon _playPauseIcon = WidgetUi.Icon(IconPlay, 12, filled: true);
     private readonly Icon _nextIcon = WidgetUi.Icon("H.Icon.Next", 12, filled: true);
-    private readonly Icon _volumeIcon = WidgetUi.Icon(IconVolumeOn, 13);
-    private readonly Icon _muteIcon = WidgetUi.Icon(IconVolumeOn, 16);
 
     private readonly Button _previous;
     private readonly Button _playPause;
     private readonly Button _next;
-    private readonly ToggleButton _volume;
 
     // Capa 22x22 com raio 6 — Border.CornerRadius não recorta o filho, daí o Clip.
     private readonly Image _thumbnail = new()
@@ -111,29 +109,18 @@ public sealed class MediaWidget : IWidget
         VerticalAlignment = VerticalAlignment.Center
     };
 
-    private readonly Slider _volumeSlider = new()
-    {
-        Orientation = Orientation.Vertical,
-        Minimum = 0,
-        Maximum = 100,
-        Height = 90,
-        Width = 24,
-        Margin = new Thickness(0, 8, 0, 8)
-    };
-    private readonly Button _muteButton;
-    private readonly Popup _volumePopup;
 
     private readonly TextBlock _feedbackText = WidgetUi.Text(12, mono: true);
     private readonly Popup _feedbackPopup;
     private readonly DispatcherTimer _feedbackTimer;
     private readonly DispatcherTimer _progressTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 
-    private bool _updatingSliderProgrammatically;
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
 
     private readonly bool _narrowBar;
     private readonly bool _isOverlay;
+    private readonly BarEdge _edge;
 
     public FrameworkElement View => _chip;
 
@@ -142,14 +129,11 @@ public sealed class MediaWidget : IWidget
     {
         _narrowBar = narrowBar;
         _isOverlay = isOverlay;
+        _edge = cfg.Edge;
 
         _previous = WidgetUi.IconButton(_previousIcon, Strings.MediaPrevious, ControlSize);
         _playPause = WidgetUi.IconButton(_playPauseIcon, Strings.MediaPlayPauseTooltip, ControlSize);
         _next = WidgetUi.IconButton(_nextIcon, Strings.MediaNext, ControlSize);
-        _volume = WidgetUi.IconToggleButton(_volumeIcon, Strings.MediaVolume);
-        _volume.Width = ControlSize;
-        _volume.Height = ControlSize;
-        _muteButton = WidgetUi.IconButton(_muteIcon, Strings.MediaMute);
 
         _progressBar.SetResourceReference(Panel.BackgroundProperty, "H.Brush.Track");
         _progressFill.SetResourceReference(Border.BackgroundProperty, "H.Brush.Accent");
@@ -184,7 +168,6 @@ public sealed class MediaWidget : IWidget
             _root.Children.Add(_previous);
             _root.Children.Add(_playPause);
             _root.Children.Add(_next);
-            _root.Children.Add(_volume);
         }
 
         // Pill só na barra normal: no overlay o fundo do jogo aparece direto, com contorno no texto.
@@ -198,20 +181,25 @@ public sealed class MediaWidget : IWidget
         };
         if (!isOverlay) _chip.SetResourceReference(Border.BackgroundProperty, "H.Brush.Selected");
 
-        _volumePopup = BuildVolumePopup();
-
-        // Checked/Unchecked (não Binding pro Popup.IsOpen): IsChecked é bool? e Popup.IsOpen
-        // é bool — o binding entre os dois falha silenciosamente por causa do descasamento
-        // de tipo. ToggleButton + StaysOpen=false é o mesmo padrão do ComboBox: fecha
-        // corretamente ao clicar de novo no próprio ícone, sem o Popup engolir o clique.
-        _volume.Checked += (_, _) => { SyncVolumePopupFromState(); _volumePopup.IsOpen = true; };
-        _volume.Unchecked += (_, _) => _volumePopup.IsOpen = false;
-        _volumePopup.Closed += (_, _) => _volume.IsChecked = false;
+        // Capa e texto abrem o dropdown do player (os botões continuam com a ação deles).
+        if (!isOverlay)
+        {
+            _textClip.Cursor = Cursors.Hand;
+            _thumbnail.Cursor = Cursors.Hand;
+            ClickHelper.Attach(_textClip, OpenFlyout);
+            ClickHelper.Attach(_thumbnail, OpenFlyout);
+        }
 
         _feedbackPopup = BuildFeedbackPopup();
 
         _feedbackTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
         _feedbackTimer.Tick += (_, _) => { _feedbackTimer.Stop(); _feedbackPopup.IsOpen = false; };
+    }
+
+    private void OpenFlyout()
+    {
+        if (_session is not { } session) return;
+        FlyoutWindow.Toggle(_chip, _edge, () => new MediaFlyout(new MediaFlyoutViewModel(session)), Strings.FlyoutMediaTitle);
     }
 
     /// <summary>Capa e botões (22 no design) encolhem quando o chip é mais baixo — Compacta ou barra afinada.</summary>
@@ -224,7 +212,7 @@ public sealed class MediaWidget : IWidget
         _thumbnail.Width = cover;
         _thumbnail.Height = cover;
         _thumbnail.Clip = new RectangleGeometry(new Rect(0, 0, cover, cover), cover * 6 / CoverSize, cover * 6 / CoverSize);
-        foreach (var button in new FrameworkElement[] { _previous, _playPause, _next, _volume })
+        foreach (var button in new FrameworkElement[] { _previous, _playPause, _next })
         {
             button.Width = control;
             button.Height = control;
@@ -259,7 +247,6 @@ public sealed class MediaWidget : IWidget
         if (_narrowBar)
         {
             _previous.Visibility = Visibility.Collapsed;
-            _volume.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -336,7 +323,6 @@ public sealed class MediaWidget : IWidget
 
         if (playing) StartEqualizer(); else StopEqualizer();
 
-        RefreshVolumeIcon();
         UpdateProgress();
     }
 
@@ -452,7 +438,7 @@ public sealed class MediaWidget : IWidget
         }
     }
 
-    private static async Task<BitmapImage?> LoadThumbnailAsync(Windows.Storage.Streams.IRandomAccessStreamReference? thumbnailRef)
+    internal static async Task<BitmapImage?> LoadThumbnailAsync(Windows.Storage.Streams.IRandomAccessStreamReference? thumbnailRef)
     {
         if (thumbnailRef is null) return null;
 
@@ -537,53 +523,7 @@ public sealed class MediaWidget : IWidget
         float next = Math.Clamp(current + (e.Delta > 0 ? VolumeStep : -VolumeStep), 0f, 1f);
         AudioVolumeService.SetVolume(app, next);
 
-        RefreshVolumeIcon();
         ShowVolumeFeedback(next, AudioVolumeService.GetMuted(app));
-    }
-
-    /// <summary>
-    /// Sincroniza slider e glifo de mudo com o estado real ao abrir o popup. O abrir/fechar
-    /// em si é feito pelo binding Popup.IsOpen ↔ ToggleButton.IsChecked (mesmo padrão do
-    /// ComboBox) — StaysOpen=false engole o clique de reabertura se isso for feito na mão
-    /// via Click/PreviewMouseDown do próprio botão que é o PlacementTarget do popup.
-    /// </summary>
-    private void SyncVolumePopupFromState()
-    {
-        string? app = CurrentAppUserModelId;
-        _updatingSliderProgrammatically = true;
-        _volumeSlider.Value = Math.Round(AudioVolumeService.GetVolume(app) * 100);
-        _updatingSliderProgrammatically = false;
-        RefreshMuteButtonGlyph(AudioVolumeService.GetMuted(app));
-    }
-
-    private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_updatingSliderProgrammatically) return;
-
-        string? app = CurrentAppUserModelId;
-        AudioVolumeService.SetVolume(app, (float)(e.NewValue / 100));
-        RefreshVolumeIcon();
-    }
-
-    private void OnMuteButtonClick(object sender, RoutedEventArgs e)
-    {
-        string? app = CurrentAppUserModelId;
-        bool muted = !AudioVolumeService.GetMuted(app);
-        AudioVolumeService.SetMuted(app, muted);
-        RefreshMuteButtonGlyph(muted);
-        RefreshVolumeIcon();
-    }
-
-    private void RefreshVolumeIcon()
-    {
-        bool muted = AudioVolumeService.GetMuted(CurrentAppUserModelId);
-        _volumeIcon.Geometry = WidgetUi.Geometry(muted ? IconVolumeMuted : IconVolumeOn);
-    }
-
-    private void RefreshMuteButtonGlyph(bool muted)
-    {
-        _muteIcon.Geometry = WidgetUi.Geometry(muted ? IconVolumeMuted : IconVolumeOn);
-        _muteButton.ToolTip = muted ? Strings.MediaUnmute : Strings.MediaMute;
     }
 
     private void ShowVolumeFeedback(float volume, bool muted)
@@ -593,27 +533,6 @@ public sealed class MediaWidget : IWidget
         _feedbackPopup.IsOpen = true;
         _feedbackTimer.Stop();
         _feedbackTimer.Start();
-    }
-
-    private Popup BuildVolumePopup()
-    {
-        _volumeSlider.ValueChanged += OnVolumeSliderChanged;
-        _muteButton.Click += OnMuteButtonClick;
-        _muteButton.Margin = new Thickness(0, 0, 0, 4);
-
-        var panel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
-        panel.Children.Add(_volumeSlider);
-        panel.Children.Add(_muteButton);
-
-        return new Popup
-        {
-            Placement = PlacementMode.Top,
-            PlacementTarget = _volume,
-            StaysOpen = false,
-            AllowsTransparency = true,
-            PopupAnimation = PopupAnimation.Fade,
-            Child = PopupSurface(panel, new Thickness(6, 8, 6, 6), "H.Radius.Popup")
-        };
     }
 
     private Popup BuildFeedbackPopup() => new()
@@ -643,7 +562,6 @@ public sealed class MediaWidget : IWidget
         _progressTimer.Stop();
         StopMarquee();
         StopEqualizer();
-        _volumePopup.IsOpen = false;
         _feedbackPopup.IsOpen = false;
 
         // Sem isso, o GlobalSystemMediaTransportControlsSessionManager (que sobrevive além

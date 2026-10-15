@@ -25,6 +25,14 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 - Atalho global **Ctrl+Alt+H** para ocultar/mostrar a barra (o Ctrl+Shift+B continua
   funcionando).
 - Fontes Manrope e JetBrains Mono embutidas no app.
+- Dropdowns na barra, abertos ao clicar e fechados com Esc ou clicando fora:
+  - **Mídia** (clique na capa ou no título): capa grande, barra de progresso arrastável
+    para pular na faixa, controles e volume do app.
+  - **Lembretes de hoje** (clique no sino): lista com checkbox para concluir, horário de
+    cada um e botão "Novo lembrete". Lembretes recorrentes concluídos por aqui não
+    disparam mais naquele dia.
+  - **Sistema** (clique no chip de CPU): uso de CPU, memória e disco, tempo ligado,
+    liga/desliga do modo overlay, ocultar barra e Configurações.
 
 ### Alterado
 
@@ -36,6 +44,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   personalizadas são mantidas.
 - Os widgets não têm mais linhas separadoras automáticas entre si — use o widget
   `separator` onde quiser uma divisão.
+- O volume do app saiu do player da barra e foi para o dropdown de mídia (a roda do
+  mouse sobre o player continua ajustando o volume).
 
 ## [1.3.0] - 2026-10-12
 

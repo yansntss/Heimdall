@@ -101,6 +101,34 @@ public static class Strings
     public static string NetworkDisconnected => T("Sem conexão de rede", "No network connection");
     public static string MediaOpenPlayer => T("Abrir player", "Open player");
 
+    // ---------- Dropdowns da barra (mídia, lembretes, sistema) ----------
+
+    public static string FlyoutMediaTitle => T("Heimdall — Mídia", "Heimdall — Media");
+    public static string MediaNothingPlaying => T("Nada tocando", "Nothing playing");
+    public static string MediaSeek => T("Posição da faixa", "Track position");
+    public static string MediaAppVolume => T("Volume do app", "App volume");
+
+    public static string FlyoutRemindersTitle => T("Heimdall — Lembretes de hoje", "Heimdall — Today's reminders");
+    public static string RemindersToday => T("HOJE", "TODAY");
+    public static string RemindersPending(int pending) => pending == 1 ? T("1 pendente", "1 pending") : T($"{pending} pendentes", $"{pending} pending");
+    public static string RemindersEmpty => T("Nada para hoje", "Nothing for today");
+    public static string RemindersNew => T("Novo lembrete", "New reminder");
+    public static string ReminderMetaFixed => T("Fixo", "Pinned");
+    public static string ReminderMetaOnce => T("Uma vez", "Once");
+    public static string ReminderMetaDaily => T("Todo dia", "Every day");
+    public static string ReminderMetaWeekly => T("Semanal", "Weekly");
+    public static string ReminderCompleteNamed(string text) => T($"Concluir: {text}", $"Complete: {text}");
+
+    public static string FlyoutSystemTitle => T("Heimdall — Sistema", "Heimdall — System");
+    public static string SystemMemory => T("Memória", "Memory");
+    public static string SystemDisk => T("Disco", "Disk");
+    public static string SystemUptime(TimeSpan up) => up.TotalDays >= 1
+        ? T($"Ligado há {(int)up.TotalDays} d {up.Hours} h", $"Up for {(int)up.TotalDays} d {up.Hours} h")
+        : T($"Ligado há {up.Hours} h {up.Minutes} min", $"Up for {up.Hours} h {up.Minutes} min");
+    public static string ActionOverlayMode => T("Modo overlay", "Overlay mode");
+    public static string ActionHideBar => T("Ocultar barra", "Hide bar");
+    public static string ActionSettings => T("Configurações", "Settings");
+
     // ---------- Grupos do launcher ----------
 
     public static string LauncherMoveToGroup => T("Mover para grupo", "Move to group");

@@ -1,8 +1,14 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI;
+using Heimdall.UI.Popups;
+using Heimdall.ViewModels;
 
 namespace Heimdall.Widgets;
 
@@ -26,7 +32,7 @@ public sealed class CpuWidget : IWidget
 
     public FrameworkElement View => _chip;
 
-    public CpuWidget()
+    public CpuWidget(AppConfig cfg, bool isOverlay = false)
     {
         _label.Text = "CPU";
         _value.Text = "—";
@@ -58,6 +64,17 @@ public sealed class CpuWidget : IWidget
         _chip.SetResourceReference(Border.BackgroundProperty, "H.Brush.Selected");
         _chip.SetResourceReference(Border.CornerRadiusProperty, "H.Radius.Chip");
         _chip.SetResourceReference(FrameworkElement.HeightProperty, "H.Size.Chip");
+
+        // Clique abre o dropdown de sistema (CPU/RAM/disco, tempo ligado, ações rápidas).
+        if (!isOverlay)
+        {
+            _chip.Cursor = Cursors.Hand;
+            AutomationProperties.SetName(_chip, Strings.FlyoutSystemTitle);
+            _chip.MouseEnter += (_, _) => _chip.SetResourceReference(Border.BackgroundProperty, "H.Brush.Pressed");
+            _chip.MouseLeave += (_, _) => _chip.SetResourceReference(Border.BackgroundProperty, "H.Brush.Selected");
+            ClickHelper.Attach(_chip, () => FlyoutWindow.Toggle(_chip, cfg.Edge,
+                () => new SystemFlyout(new SystemFlyoutViewModel(cfg)), Strings.FlyoutSystemTitle));
+        }
 
         _timer.Tick += (_, _) => Update();
     }

@@ -43,7 +43,7 @@ internal static class ReminderAgenda
             };
             if (!occursToday) continue;
 
-            bool done = time <= nowTime || (r.Recurrence == ReminderRecurrence.Once && r.Completed);
+            bool done = time <= nowTime || r.DoneOn == today || (r.Recurrence == ReminderRecurrence.Once && r.Completed);
             items.Add(new AgendaItem(r, time, done));
         }
 
@@ -52,6 +52,11 @@ internal static class ReminderAgenda
     }
 
     public static int PendingCount(AppConfig cfg, DateTime now) => Today(cfg, now).Count(i => !i.Done);
+
+    /// <summary>Algum lembrete foi criado, concluído ou excluído — badge e lista se atualizam na hora, sem esperar o timer.</summary>
+    public static event Action? Changed;
+
+    public static void NotifyChanged() => Changed?.Invoke();
 
     private static bool InRange(ReminderConfig r, DateOnly day) =>
         (r.StartDate is not { } start || day >= start) && (r.EndDate is not { } end || day <= end);

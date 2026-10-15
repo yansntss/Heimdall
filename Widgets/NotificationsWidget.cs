@@ -4,6 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI.Popups;
+using Heimdall.ViewModels;
 
 namespace Heimdall.Widgets;
 
@@ -79,6 +81,7 @@ public sealed class NotificationsWidget : IWidget
     {
         Update();
         _timer.Start();
+        ReminderAgenda.Changed += Update;
     }
 
     private void Update()
@@ -96,12 +99,16 @@ public sealed class NotificationsWidget : IWidget
         }
     }
 
-    /// <summary>Por enquanto abre a adição rápida (ou o histórico, sem o widget de lembretes) — a lista de hoje vira dropdown na fase 2.</summary>
-    private static void OpenReminders()
+    private void OpenReminders()
     {
-        if (ReminderWidget.Primary is { } reminders) reminders.OpenQuickAdd();
-        else ((App)Application.Current).OpenReminderHistory();
+        var anchor = _button!;
+        FlyoutWindow.Toggle(anchor, _cfg.Edge,
+            () => new RemindersFlyout(new RemindersFlyoutViewModel(_cfg, anchor)), Strings.FlyoutRemindersTitle);
     }
 
-    public void Dispose() => _timer.Stop();
+    public void Dispose()
+    {
+        _timer.Stop();
+        ReminderAgenda.Changed -= Update;
+    }
 }

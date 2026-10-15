@@ -164,7 +164,7 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | Widget | O que faz |
 |---|---|
 | `clock` | Relógio e data, formato configurável; clique abre um calendário do mês |
-| `media` | Controle de mídia (SMTC), volume por app, capa do álbum |
+| `media` | Controle de mídia (SMTC) em formato de pílula; clique abre o player com progresso arrastável e volume por app |
 | `reminder` | Lembretes fixos e agendados, com histórico |
 | `launcher` | Atalhos de apps, pastas, arquivos e URLs, organizáveis em grupos — que viram pastas com lista ao clicar |
 | `windows` | Janelas abertas no momento, agrupadas por app — uma taskbar leve; em monitor em pé vira uma pasta só |
@@ -174,8 +174,8 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `temp` | Temperatura de CPU/GPU — **precisa do Heimdall rodando como administrador** |
 | `fps` | FPS via RTSS/MSI Afterburner — **precisa do RTSS rodando**; sem ele, o widget simplesmente não aparece |
 | `brand` | Marca (espada Hofuð) — clique abre as Configurações |
-| `cpu` | Uso de CPU com mini gráfico das últimas amostras |
-| `notifications` | Sino com o número de lembretes pendentes hoje |
+| `cpu` | Uso de CPU com mini gráfico; clique abre CPU, memória, disco e ações rápidas |
+| `notifications` | Sino com o número de lembretes pendentes hoje; clique abre a lista do dia |
 | `network` | Estado da rede (Wi-Fi, cabo ou sem conexão) — clique abre as configurações de rede |
 | `separator` | Linha fina pra separar grupos de widgets |
 

@@ -1,9 +1,12 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:c="clr-namespace:Heimdall.UI.Controls">
 
     <!-- Estilos base reaproveitados pela barra, popups, menus e Configurações. Só
          estilos com chave (H.*): nada aqui muda controles que não pediram o estilo.
          Toda cor vem de {DynamicResource H.Brush.*} — troca de tema/acento é ao vivo. -->
+
+    <BooleanToVisibilityConverter x:Key="H.BoolToVis"/>
 
     <!-- ===================== Foco por teclado ===================== -->
     <Style x:Key="H.FocusVisual">
@@ -215,6 +218,253 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- ===================== Slider (seekbar / volume) ===================== -->
+    <Style x:Key="H.SliderFill" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Height="4" CornerRadius="2" Background="{DynamicResource H.Brush.Accent}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="H.SliderRest" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="H.SliderThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Grid Width="16" Height="16" Background="Transparent">
+                        <Ellipse x:Name="Knob" Width="12" Height="12" Fill="{DynamicResource H.Brush.Text}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Knob" Property="Width" Value="14"/>
+                            <Setter TargetName="Knob" Property="Height" Value="14"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Trilho 4px, parte preenchida no acento, thumb 12px. Setas do teclado movem 1 passo. -->
+    <Style x:Key="H.Slider" TargetType="Slider">
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="IsMoveToPointEnabled" Value="True"/>
+        <Setter Property="SmallChange" Value="1"/>
+        <Setter Property="LargeChange" Value="5"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid Background="Transparent">
+                        <Border Height="4" CornerRadius="2" Background="{DynamicResource H.Brush.Track}" VerticalAlignment="Center"/>
+                        <Track x:Name="PART_Track" VerticalAlignment="Center">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource H.SliderFill}"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource H.SliderRest}"/>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb x:Name="Thumb" Style="{StaticResource H.SliderThumb}"/>
+                            </Track.Thumb>
+                        </Track>
+                        <Border x:Name="Focus" CornerRadius="8" BorderThickness="1.5" Margin="-4,-2"
+                                BorderBrush="{DynamicResource H.Brush.Accent}" Visibility="Collapsed" IsHitTestVisible="False"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Focus" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Medidor (barra 5px) ===================== -->
+    <Style x:Key="H.Meter" TargetType="ProgressBar">
+        <Setter Property="Height" Value="5"/>
+        <Setter Property="Minimum" Value="0"/>
+        <Setter Property="Maximum" Value="100"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Accent}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Border x:Name="PART_Track" CornerRadius="2.5" Background="{DynamicResource H.Brush.Track}"/>
+                        <Border x:Name="PART_Indicator" CornerRadius="2.5" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Checkbox de tarefa (17px) ===================== -->
+    <!-- Pendente = borda #5F7183; concluído = fundo verde-água com check. -->
+    <Style x:Key="H.TaskCheck" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Width="17" Height="17">
+                        <Border x:Name="Box" CornerRadius="5" BorderThickness="1.5" BorderBrush="{DynamicResource H.Brush.Muted}" Background="Transparent"/>
+                        <c:Icon x:Name="Mark" Geometry="{DynamicResource H.Icon.Check}" Size="11" StrokeThickness="3"
+                                Foreground="{DynamicResource H.Brush.OnAccent}" Visibility="Collapsed"/>
+                        <Border x:Name="Focus" CornerRadius="7" BorderThickness="1.5" Margin="-3"
+                                BorderBrush="{DynamicResource H.Brush.Accent}" Visibility="Collapsed"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource H.Brush.Ok}"/>
+                            <Setter TargetName="Box" Property="BorderThickness" Value="0"/>
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource H.Brush.Ok}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Focus" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Botão tracejado ("Novo lembrete", 36px) ===================== -->
+    <Style x:Key="H.DashedButton" TargetType="Button">
+        <Setter Property="Height" Value="36"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextSecondary}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Rectangle x:Name="Dash" RadiusX="9" RadiusY="9" StrokeThickness="1" StrokeDashArray="4 3"
+                                   Stroke="{DynamicResource H.Brush.Muted}" Fill="Transparent"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Dash" Property="Fill" Value="{DynamicResource H.Brush.Hover}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Dash" Property="Fill" Value="{DynamicResource H.Brush.Pressed}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Linha de ação (32px, raio 8) ===================== -->
+    <!-- Conteúdo ocupa a largura toda: ícone à esquerda, texto, atalho/valor à direita. -->
+    <Style x:Key="H.ListButton" TargetType="ButtonBase">
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Padding" Value="8,0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ButtonBase">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource H.Radius.Item}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Botão redondo de ação principal (play 46) ===================== -->
+    <Style x:Key="H.RoundAccentButton" TargetType="Button">
+        <Setter Property="Width" Value="46"/>
+        <Setter Property="Height" Value="46"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.OnAccent}"/>
+        <Setter Property="Background" Value="{DynamicResource H.Brush.Accent}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Ellipse x:Name="Bg" Fill="{TemplateBinding Background}"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.88"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.75"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Card de popup (dropdowns da barra) ===================== -->
+    <!-- Raio 14, #12161E @ 94%, borda 9%, sombra 0 18 40 rgba(0,0,0,.45), largura 300. -->
+    <DropShadowEffect x:Key="H.Shadow.Popup" BlurRadius="40" ShadowDepth="18" Direction="270" Color="Black" Opacity="0.45"/>
+
+    <Style x:Key="H.PopupCard" TargetType="Border">
+        <Setter Property="Width" Value="{DynamicResource H.Size.PopupWidth}"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource H.Radius.Popup}"/>
+        <Setter Property="Background" Value="{DynamicResource H.Brush.SurfacePopup}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource H.Brush.Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="14"/>
+        <Setter Property="Effect" Value="{StaticResource H.Shadow.Popup}"/>
     </Style>
 
     <!-- ===================== Divisores ===================== -->

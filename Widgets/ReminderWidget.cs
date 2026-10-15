@@ -102,6 +102,7 @@ public sealed class ReminderWidget : IWidget
             _cfg.Reminders.Add(reminder);
             ConfigService.Save(_cfg);
             RebuildFixedChips();
+            ReminderAgenda.NotifyChanged();
         };
         window.Closed += (_, _) => _quickAddWindow = null;
 
@@ -126,6 +127,7 @@ public sealed class ReminderWidget : IWidget
             ConfigService.Save(_cfg);
             if (isFixed) RebuildFixedChips();
             else RefreshActiveScheduledChip(reminder);
+            ReminderAgenda.NotifyChanged();
         };
         window.Closed += (_, _) => _quickAddWindow = null;
 
@@ -145,6 +147,9 @@ public sealed class ReminderWidget : IWidget
         _root.Children.Insert(0, _activeScheduledChip);
         RefreshBadge();
     }
+
+    /// <summary>Refaz os chips fixos a partir do config — chamado quando a lista de hoje (dropdown do sino) conclui um lembrete.</summary>
+    internal void Refresh() => RebuildFixedChips();
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
 
@@ -191,6 +196,8 @@ public sealed class ReminderWidget : IWidget
 
             if (reminder.Recurrence == ReminderRecurrence.Weekly && !reminder.Days.Contains(now.DayOfWeek))
                 continue;
+
+            if (reminder.DoneOn == DateOnly.FromDateTime(now)) continue;
 
             var today = DateOnly.FromDateTime(now);
             if (reminder.Recurrence != ReminderRecurrence.Once)
@@ -277,6 +284,7 @@ public sealed class ReminderWidget : IWidget
         {
             _cfg.Reminders.Remove(reminder);
             ConfigService.Save(_cfg);
+            ReminderAgenda.NotifyChanged();
             _fixedChips.Remove(chip);
             RemoveChipWithAnimation(chip, _root);
         }
@@ -292,6 +300,7 @@ public sealed class ReminderWidget : IWidget
     {
         _cfg.Reminders.Remove(reminder);
         ConfigService.Save(_cfg);
+        ReminderAgenda.NotifyChanged();
 
         if (isFixed)
         {
