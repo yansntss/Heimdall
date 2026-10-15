@@ -44,8 +44,8 @@ cheia é aberto, e volta ao normal quando ele fecha.
   viram pastas que abrem uma lista ao clicar, e o player de música fica mínimo.
 - **Vários monitores**: clique triplo numa área vazia e arraste pra levar a barra pra
   outro monitor.
-- **9 temas prontos** (Escuro, Claro, Acrílico, Mica, Vidro, Destaque do Windows, Auto...)
-  com suporte a temas próprios em JSON.
+- **4 temas prontos** (Obsidiana, Cristal, Bifröst e Compacta), com cor de acento
+  trocável (inclusive a cor de destaque do Windows) e suporte a temas próprios em JSON.
 - **Modo overlay automático**: em jogos e apps de tela cheia, a barra normal some e um
   overlay discreto e somente informativo assume o lugar, sem interceptar clique.
 - **Leve e nativo**: WPF puro, sem Electron e sem serviço em segundo plano consumindo RAM.
@@ -146,11 +146,13 @@ Quem preferir também pode editar o JSON diretamente em
 ```jsonc
 {
   "Edge": "Top",               // Top | Bottom | Left | Right
-  "Thickness": 28,              // DIPs
+  "Thickness": 38,              // DIPs
   "FloatingMode": false,        // true = barra flutuante (margem + cantos arredondados)
   "MonitorMode": "Primary",     // Primary | Specific | All
-  "Theme": "Escuro",            // tema embutido ou salvo em .../themes/*.json
-  "Widgets": { "Start": [], "Center": [{ "Id": "clock" }], "End": [{ "Id": "media" }, { "Id": "reminder" }, { "Id": "launcher" }] }
+  "Theme": "Obsidiana",         // Obsidiana | Cristal | Bifrost | Compacta, ou nome em .../themes/*.json
+  "AccentColor": null,          // "#RRGGBB", "system" (destaque do Windows) ou null (ouro do tema)
+  "BarOpacity": null,           // 0.2–1 nos temas translúcidos; null = do tema
+  "Widgets": { "Start": [{ "Id": "brand" }, { "Id": "launcher" }], "Center": [{ "Id": "media" }], "End": [{ "Id": "cpu" }, { "Id": "notifications" }, { "Id": "clock" }] }
 }
 ```
 
@@ -171,6 +173,11 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 | `ram` | Uso de memória — funciona sempre, sem dependências |
 | `temp` | Temperatura de CPU/GPU — **precisa do Heimdall rodando como administrador** |
 | `fps` | FPS via RTSS/MSI Afterburner — **precisa do RTSS rodando**; sem ele, o widget simplesmente não aparece |
+| `brand` | Marca (espada Hofuð) — clique abre as Configurações |
+| `cpu` | Uso de CPU com mini gráfico das últimas amostras |
+| `notifications` | Sino com o número de lembretes pendentes hoje |
+| `network` | Estado da rede (Wi-Fi, cabo ou sem conexão) — clique abre as configurações de rede |
+| `separator` | Linha fina pra separar grupos de widgets |
 
 ## Limitações conhecidas
 

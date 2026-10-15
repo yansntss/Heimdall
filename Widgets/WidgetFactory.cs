@@ -8,7 +8,7 @@ public static class WidgetFactory
     public static readonly (string Id, string Icon)[] Catalog =
     {
         ("clock", "🕐"), ("media", "🎵"), ("reminder", "⏰"), ("launcher", "🚀"),
-        ("windows", "🗔"), ("volume", "🔊"), ("mic", "🎤"), ("ram", "🧠"), ("temp", "🌡️"), ("fps", "🎮"), ("separator", "┃")
+        ("windows", "🗔"), ("volume", "🔊"), ("mic", "🎤"), ("ram", "🧠"), ("temp", "🌡️"), ("fps", "🎮"), ("brand", "⚔"), ("cpu", "📈"), ("notifications", "🔔"), ("network", "📶"), ("separator", "┃")
     };
 
     /// <summary>Novos widgets (media, reminder...) entram aqui.</summary>
@@ -25,6 +25,10 @@ public static class WidgetFactory
         "volume" => new VolumeWidget(config, isMic: false, isOverlay),
         "mic" => new VolumeWidget(config, isMic: true, isOverlay),
         "separator" => new SeparatorWidget(config),
+        "brand" => new BrandWidget(isOverlay),
+        "cpu" => new CpuWidget(),
+        "notifications" => new NotificationsWidget(config, isOverlay),
+        "network" => new NetworkWidget(isOverlay),
         "ram" => new RamWidget(config.Ram),
         "temp" => new TempWidget(config.Temp),
         // Sem sentido fora de jogo por padrão (Fps.OnlyInGame) — nem cria o widget na

@@ -7,9 +7,10 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         ShowActivated="False"
-        Topmost="True">
+        Topmost="True"
+        Background="Transparent">
 
-    <Border x:Name="Root" AllowDrop="True" DragEnter="Root_DragEnter" Drop="Root_Drop"
+    <Border x:Name="Root" AllowDrop="True" Background="{DynamicResource H.Brush.BarBg}" DragEnter="Root_DragEnter" Drop="Root_Drop"
             PreviewMouseRightButtonDown="Root_PreviewMouseRightButtonDown"
             MouseLeftButtonDown="Root_MouseLeftButtonDown" MouseMove="Root_MouseMove"
             MouseLeftButtonUp="Root_MouseLeftButtonUp" LostMouseCapture="Root_LostMouseCapture">
@@ -33,19 +34,23 @@
             </ContextMenu>
         </Border.ContextMenu>
 
-        <!-- Botão de atualização fora das zonas (não é widget: não arrasta, não fixa), na
-             ponta final da barra; só aparece quando tem versão nova no GitHub. -->
-        <DockPanel LastChildFill="True">
-            <Button x:Name="UpdateButton" Visibility="Collapsed" Click="UpdateButton_Click"
-                    Background="Transparent" BorderThickness="0" Focusable="False" Cursor="Hand"
-                    Padding="6,0" Margin="2,0" />
+        <Grid>
+            <!-- Botão de atualização fora das zonas (não é widget: não arrasta, não fixa), na
+                 ponta final da barra; só aparece quando tem versão nova no GitHub. -->
+            <DockPanel x:Name="BarContent" LastChildFill="True">
+                <Button x:Name="UpdateButton" Visibility="Collapsed" Click="UpdateButton_Click"
+                        Style="{StaticResource H.IconButton}" Margin="2,0" />
 
-            <!-- Três zonas sobrepostas na mesma célula: início / centro / fim -->
-            <Grid x:Name="Zones">
-                <StackPanel x:Name="StartZone" />
-                <StackPanel x:Name="CenterZone" />
-                <StackPanel x:Name="EndZone" />
-            </Grid>
-        </DockPanel>
+                <!-- Três zonas: início / centro / fim (colunas Auto / * / Auto, ou linhas na vertical) -->
+                <Grid x:Name="Zones">
+                    <StackPanel x:Name="StartZone" />
+                    <StackPanel x:Name="CenterZone" />
+                    <StackPanel x:Name="EndZone" />
+                </Grid>
+            </DockPanel>
+
+            <!-- Fio de acento do tema Bifröst (espessura 0 nos outros temas). -->
+            <Border x:Name="AccentLine" Background="{DynamicResource H.Brush.Accent}" IsHitTestVisible="False" />
+        </Grid>
     </Border>
 </Window>

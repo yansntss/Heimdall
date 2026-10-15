@@ -37,7 +37,7 @@ internal sealed class RenamePromptWindow : Window
             Padding = new Thickness(4, 2, 4, 2),
             Background = Brushes.White,
             Foreground = Brushes.Black,
-            FontFamily = new FontFamily(style.FontFamily),
+            FontFamily = style.FontFamily,
             Text = currentName
         };
 

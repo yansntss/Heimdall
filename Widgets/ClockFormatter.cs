@@ -34,6 +34,29 @@ public static class ClockFormatter
         };
     }
 
+    /// <summary>
+    /// Data e hora separadas, pra barra desenhar cada uma com seu estilo (data secundária,
+    /// hora em mono). Custom não tem como ser separado: vem inteiro em <c>Time</c> com
+    /// <c>Custom = true</c>.
+    /// </summary>
+    public static (string Date, string Time, bool Custom) FormatParts(ClockConfig cfg, DateTime now, bool vertical)
+    {
+        var culture = ResolveCulture(cfg.Culture);
+
+        if (cfg.Mode == ClockMode.Custom)
+            return ("", FormatPart(now, cfg.CustomFormat, culture), true);
+
+        var s = Styles[cfg.Style];
+        string date = FormatPart(now, vertical ? s.VerticalDate : s.Date, culture);
+        string time = FormatPart(now, s.Time, culture);
+        return cfg.Mode switch
+        {
+            ClockMode.TimeOnly => ("", time, false),
+            ClockMode.DateOnly => (date, "", false),
+            _ => (date, time, false)
+        };
+    }
+
     public static CultureInfo ResolveCulture(string? name)
     {
         try { return CultureInfo.GetCultureInfo(string.IsNullOrWhiteSpace(name) ? "pt-BR" : name); }

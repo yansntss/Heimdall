@@ -23,6 +23,7 @@ public sealed class RamWidget : IWidget
     public RamWidget(RamConfig cfg)
     {
         _cfg = cfg;
+        WidgetUi.StyleStatusText(_text);
         _timer.Tick += (_, _) => Update();
     }
 

@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using System.IO;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI.Controls;
 using Windows.Media.Control;
 
 namespace Heimdall.Widgets;
@@ -23,42 +24,38 @@ namespace Heimdall.Widgets;
 /// </summary>
 public sealed class MediaWidget : IWidget
 {
-    private const double TextWidth = 140;
+    private const double TextWidth = 170;
+    private const double CoverSize = 22;
+    private const double ControlSize = 22;
     private const float VolumeStep = 0.05f;
 
-    // Segoe Fluent Icons (Win11) com fallback pra Segoe MDL2 Assets (Win10) — mesmos glifos nas duas.
-    private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
-    private const string GlyphPrevious = "";
-    private const string GlyphNext = "";
-    private const string GlyphPlay = "";
-    private const string GlyphPause = "";
-    private const string GlyphVolumeOn = "";
-    private const string GlyphVolumeMuted = "";
+    private const string IconPlay = "H.Icon.Play";
+    private const string IconPause = "H.Icon.Pause";
+    private const string IconVolumeOn = "H.Icon.Volume";
+    private const string IconVolumeMuted = "H.Icon.VolumeMute";
 
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
-    private readonly Color _popupBackground;
-    private readonly Color _popupForeground;
 
-    // Glifo num TextBlock à parte (não Button.Content = string direto): o Style padrão
-    // do Button no tema Fluent ignora a property Foreground pro conteúdo — só um
-    // TextBlock com Foreground seu garante a cor certa em qualquer tema.
-    private readonly TextBlock _previousIcon = CreateGlyph(GlyphPrevious);
-    private readonly TextBlock _playPauseIcon = CreateGlyph(GlyphPlay);
-    private readonly TextBlock _nextIcon = CreateGlyph(GlyphNext);
-    private readonly TextBlock _volumeIcon = CreateGlyph(GlyphVolumeOn);
-    private readonly TextBlock _muteIcon = CreateGlyph(GlyphVolumeOn);
+    private readonly Icon _previousIcon = WidgetUi.Icon("H.Icon.Previous", 12, filled: true);
+    private readonly Icon _playPauseIcon = WidgetUi.Icon(IconPlay, 12, filled: true);
+    private readonly Icon _nextIcon = WidgetUi.Icon("H.Icon.Next", 12, filled: true);
+    private readonly Icon _volumeIcon = WidgetUi.Icon(IconVolumeOn, 13);
+    private readonly Icon _muteIcon = WidgetUi.Icon(IconVolumeOn, 16);
 
     private readonly Button _previous;
     private readonly Button _playPause;
     private readonly Button _next;
     private readonly ToggleButton _volume;
 
+    // Capa 22x22 com raio 6 — Border.CornerRadius não recorta o filho, daí o Clip.
     private readonly Image _thumbnail = new()
     {
-        Width = 16,
-        Height = 16,
+        Width = CoverSize,
+        Height = CoverSize,
         VerticalAlignment = VerticalAlignment.Center,
         Stretch = Stretch.UniformToFill,
+        Clip = new RectangleGeometry(new Rect(0, 0, CoverSize, CoverSize), 6, 6),
+        Margin = new Thickness(0, 0, 6, 0),
         Visibility = Visibility.Collapsed
     };
 
@@ -67,6 +64,11 @@ public sealed class MediaWidget : IWidget
     {
         VerticalAlignment = VerticalAlignment.Center
     };
+    private readonly Run _title = new() { FontWeight = FontWeights.SemiBold, FontSize = 11.5 };
+    private readonly Run _artist = new() { FontSize = 11 };
+
+    /// <summary>Pill (raio 999, altura 28) que envolve capa, texto e controles.</summary>
+    private readonly Border _chip = new() { VerticalAlignment = VerticalAlignment.Center, Visibility = Visibility.Collapsed };
 
     private const double EqBarMinHeight = 3;
     private const double EqBarMaxHeight = 11;
@@ -106,8 +108,7 @@ public sealed class MediaWidget : IWidget
 
     private readonly StackPanel _root = new()
     {
-        VerticalAlignment = VerticalAlignment.Center,
-        Visibility = Visibility.Collapsed
+        VerticalAlignment = VerticalAlignment.Center
     };
 
     private readonly Slider _volumeSlider = new()
@@ -122,7 +123,7 @@ public sealed class MediaWidget : IWidget
     private readonly Button _muteButton;
     private readonly Popup _volumePopup;
 
-    private readonly TextBlock _feedbackText = new() { FontSize = 12 };
+    private readonly TextBlock _feedbackText = WidgetUi.Text(12, mono: true);
     private readonly Popup _feedbackPopup;
     private readonly DispatcherTimer _feedbackTimer;
     private readonly DispatcherTimer _progressTimer = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -132,47 +133,39 @@ public sealed class MediaWidget : IWidget
     private GlobalSystemMediaTransportControlsSession? _session;
 
     private readonly bool _narrowBar;
+    private readonly bool _isOverlay;
 
-    public FrameworkElement View => _root;
+    public FrameworkElement View => _chip;
 
     /// <param name="narrowBar">Barra horizontal num monitor em pé: versão mínima — capa, play/pause e próxima; título só no tooltip, volume só pela roda do mouse.</param>
     public MediaWidget(AppConfig cfg, bool isOverlay = false, bool narrowBar = false)
     {
         _narrowBar = narrowBar;
-        var style = ThemeService.GetEffectiveStyle(cfg);
-        _popupBackground = style.Background;
-        _popupForeground = style.Foreground;
+        _isOverlay = isOverlay;
 
-        var iconBrush = FrozenBrush(_popupForeground);
-        _previousIcon.Foreground = iconBrush;
-        _playPauseIcon.Foreground = iconBrush;
-        _nextIcon.Foreground = iconBrush;
-        _volumeIcon.Foreground = iconBrush;
-        _muteIcon.Foreground = iconBrush;
+        _previous = WidgetUi.IconButton(_previousIcon, Strings.MediaPrevious, ControlSize);
+        _playPause = WidgetUi.IconButton(_playPauseIcon, Strings.MediaPlayPauseTooltip, ControlSize);
+        _next = WidgetUi.IconButton(_nextIcon, Strings.MediaNext, ControlSize);
+        _volume = WidgetUi.IconToggleButton(_volumeIcon, Strings.MediaVolume);
+        _volume.Width = ControlSize;
+        _volume.Height = ControlSize;
+        _muteButton = WidgetUi.IconButton(_muteIcon, Strings.MediaMute);
 
-        _previous = CreateIconButton(_previousIcon);
-        _previous.ToolTip = Strings.MediaPrevious;
-        _playPause = CreateIconButton(_playPauseIcon);
-        _playPause.ToolTip = Strings.MediaPlayPauseTooltip;
-        _next = CreateIconButton(_nextIcon);
-        _next.ToolTip = Strings.MediaNext;
-        _volume = CreateIconToggleButton(_volumeIcon);
-        _volume.ToolTip = Strings.MediaVolume;
-        _muteButton = CreateIconButton(_muteIcon);
-        _muteButton.ToolTip = Strings.MediaMute;
-
-        _progressBar.Background = FrozenBrush(Color.FromArgb(0x33, _popupForeground.R, _popupForeground.G, _popupForeground.B));
-        _progressFill.Background = FrozenBrush(style.Accent);
+        _progressBar.SetResourceReference(Panel.BackgroundProperty, "H.Brush.Track");
+        _progressFill.SetResourceReference(Border.BackgroundProperty, "H.Brush.Accent");
         _progressBar.Children.Add(_progressFill);
 
-        var accentBrush = FrozenBrush(style.Accent);
-        _eqBar1.Fill = accentBrush;
-        _eqBar2.Fill = accentBrush;
-        _eqBar3.Fill = accentBrush;
-        _equalizer.Children.Add(_eqBar1);
-        _equalizer.Children.Add(_eqBar2);
-        _equalizer.Children.Add(_eqBar3);
+        foreach (var bar in new[] { _eqBar1, _eqBar2, _eqBar3 })
+        {
+            bar.SetResourceReference(Shape.FillProperty, "H.Brush.Accent");
+            _equalizer.Children.Add(bar);
+        }
 
+        // Título semibold 11.5 + artista 11 em texto secundário, na mesma linha.
+        _artist.SetResourceReference(TextElement.ForegroundProperty, "H.Brush.TextSecondary");
+        _text.Inlines.Add(_title);
+        _text.Inlines.Add(new Run("  "));
+        _text.Inlines.Add(_artist);
         _text.RenderTransform = _textScroll;
         _textStack.Children.Add(_text);
         _textStack.Children.Add(_progressBar);
@@ -194,6 +187,17 @@ public sealed class MediaWidget : IWidget
             _root.Children.Add(_volume);
         }
 
+        // Pill só na barra normal: no overlay o fundo do jogo aparece direto, com contorno no texto.
+        _chip.Child = _root;
+        // "Raio 999" do design = metade do lado menor: o WPF não limita o raio sozinho e um
+        // 999 literal vira elipse.
+        _chip.SizeChanged += (_, e) =>
+        {
+            _chip.CornerRadius = new CornerRadius(Math.Min(e.NewSize.Width, e.NewSize.Height) / 2);
+            if (e.HeightChanged && _root.Orientation == Orientation.Horizontal) FitToChipHeight(e.NewSize.Height);
+        };
+        if (!isOverlay) _chip.SetResourceReference(Border.BackgroundProperty, "H.Brush.Selected");
+
         _volumePopup = BuildVolumePopup();
 
         // Checked/Unchecked (não Binding pro Popup.IsOpen): IsChecked é bool? e Popup.IsOpen
@@ -210,13 +214,47 @@ public sealed class MediaWidget : IWidget
         _feedbackTimer.Tick += (_, _) => { _feedbackTimer.Stop(); _feedbackPopup.IsOpen = false; };
     }
 
+    /// <summary>Capa e botões (22 no design) encolhem quando o chip é mais baixo — Compacta ou barra afinada.</summary>
+    private void FitToChipHeight(double height)
+    {
+        double cover = Math.Min(CoverSize, height - 4);
+        double control = Math.Min(ControlSize, height);
+        if (cover <= 0 || control <= 0) return;
+
+        _thumbnail.Width = cover;
+        _thumbnail.Height = cover;
+        _thumbnail.Clip = new RectangleGeometry(new Rect(0, 0, cover, cover), cover * 6 / CoverSize, cover * 6 / CoverSize);
+        foreach (var button in new FrameworkElement[] { _previous, _playPause, _next, _volume })
+        {
+            button.Width = control;
+            button.Height = control;
+        }
+    }
+
     public void ApplyOrientation(Orientation orientation)
     {
+        bool vertical = orientation == Orientation.Vertical;
         _root.Orientation = orientation;
 
-        // Barra vertical: sem espaço pros 140px do texto — capa e botões empilhados,
+        // Pill de 28 na horizontal (capa encostada na borda esquerda, 3px de respiro);
+        // na vertical vira cápsula em pé, com a largura do chip.
+        if (vertical)
+        {
+            _chip.Height = double.NaN;
+            _chip.SetResourceReference(FrameworkElement.WidthProperty, "H.Size.Chip");
+            _chip.Padding = new Thickness(0, 4, 0, 4);
+            _thumbnail.Margin = new Thickness(0, 0, 0, 4);
+        }
+        else
+        {
+            _chip.Width = double.NaN;
+            _chip.SetResourceReference(FrameworkElement.HeightProperty, "H.Size.Chip");
+            _chip.Padding = _isOverlay ? new Thickness(0) : new Thickness(3, 0, 4, 0);
+        }
+
+        // Barra vertical: sem espaço pro texto — capa e botões empilhados,
         // texto só no tooltip (setado em RefreshTextAsync).
-        _textClip.Visibility = orientation == Orientation.Vertical || _narrowBar ? Visibility.Collapsed : Visibility.Visible;
+        _textClip.Visibility = vertical || _narrowBar ? Visibility.Collapsed : Visibility.Visible;
 
         if (_narrowBar)
         {
@@ -293,7 +331,7 @@ public sealed class MediaWidget : IWidget
         SetEnabled(_playPause, (controls?.IsPlayEnabled ?? false) || (controls?.IsPauseEnabled ?? false));
 
         bool playing = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
-        _playPauseIcon.Text = playing ? GlyphPause : GlyphPlay;
+        _playPauseIcon.Geometry = WidgetUi.Geometry(playing ? IconPause : IconPlay);
         _playPause.ToolTip = playing ? Strings.MediaPause : Strings.MediaPlay;
 
         if (playing) StartEqualizer(); else StopEqualizer();
@@ -378,7 +416,7 @@ public sealed class MediaWidget : IWidget
         var session = _session;
         if (session is null)
         {
-            _dispatcher.Invoke(() => _root.Visibility = Visibility.Collapsed);
+            _dispatcher.Invoke(() => _chip.Visibility = Visibility.Collapsed);
             return;
         }
 
@@ -394,14 +432,15 @@ public sealed class MediaWidget : IWidget
             {
                 if (string.IsNullOrWhiteSpace(full))
                 {
-                    _root.Visibility = Visibility.Collapsed;
+                    _chip.Visibility = Visibility.Collapsed;
                     return;
                 }
-                _text.Text = full;
+                _title.Text = string.IsNullOrWhiteSpace(title) ? artist : title;
+                _artist.Text = string.IsNullOrWhiteSpace(title) ? "" : artist;
                 _root.ToolTip = full; // barra vertical: texto some, sobra só o tooltip
                 _thumbnail.Source = thumbnail;
                 _thumbnail.Visibility = thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
-                _root.Visibility = Visibility.Visible;
+                _chip.Visibility = Visibility.Visible;
 
                 StopMarquee();
                 if (_textClip.IsMouseOver) StartMarquee();
@@ -409,7 +448,7 @@ public sealed class MediaWidget : IWidget
         }
         catch
         {
-            _dispatcher.Invoke(() => _root.Visibility = Visibility.Collapsed);
+            _dispatcher.Invoke(() => _chip.Visibility = Visibility.Collapsed);
         }
     }
 
@@ -538,12 +577,12 @@ public sealed class MediaWidget : IWidget
     private void RefreshVolumeIcon()
     {
         bool muted = AudioVolumeService.GetMuted(CurrentAppUserModelId);
-        _volumeIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+        _volumeIcon.Geometry = WidgetUi.Geometry(muted ? IconVolumeMuted : IconVolumeOn);
     }
 
     private void RefreshMuteButtonGlyph(bool muted)
     {
-        _muteIcon.Text = muted ? GlyphVolumeMuted : GlyphVolumeOn;
+        _muteIcon.Geometry = WidgetUi.Geometry(muted ? IconVolumeMuted : IconVolumeOn);
         _muteButton.ToolTip = muted ? Strings.MediaUnmute : Strings.MediaMute;
     }
 
@@ -566,17 +605,6 @@ public sealed class MediaWidget : IWidget
         panel.Children.Add(_volumeSlider);
         panel.Children.Add(_muteButton);
 
-        var border = new Border
-        {
-            Background = FrozenBrush(_popupBackground),
-            BorderBrush = FrozenBrush(Color.FromArgb(0x40, _popupForeground.R, _popupForeground.G, _popupForeground.B)),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(6, 8, 6, 6),
-            Child = panel
-        };
-        TextElement.SetForeground(border, FrozenBrush(_popupForeground));
-
         return new Popup
         {
             Placement = PlacementMode.Top,
@@ -584,78 +612,30 @@ public sealed class MediaWidget : IWidget
             StaysOpen = false,
             AllowsTransparency = true,
             PopupAnimation = PopupAnimation.Fade,
-            Child = border
+            Child = PopupSurface(panel, new Thickness(6, 8, 6, 6), "H.Radius.Popup")
         };
     }
 
-    private Popup BuildFeedbackPopup()
+    private Popup BuildFeedbackPopup() => new()
     {
-        var border = new Border
-        {
-            Background = FrozenBrush(_popupBackground),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(8, 3, 8, 3),
-            Child = _feedbackText
-        };
-        TextElement.SetForeground(border, FrozenBrush(_popupForeground));
-
-        return new Popup
-        {
-            Placement = PlacementMode.Top,
-            StaysOpen = true,
-            AllowsTransparency = true,
-            IsHitTestVisible = false,
-            Child = border
-        };
-    }
-
-    private static SolidColorBrush FrozenBrush(Color color)
-    {
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
-    }
-
-    private static TextBlock CreateGlyph(string glyph)
-    {
-        var text = new TextBlock
-        {
-            Text = glyph,
-            FontFamily = IconFont,
-            FontSize = 13,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        // ClearType (subpixel) quebra em cima de janela translúcida/com blur do DWM —
-        // vira uma franja colorida sem preenchimento sólido, bem visível em traços finos
-        // como os desses glifos. Grayscale AA não depende do fundo, sempre sólido.
-        TextOptions.SetTextRenderingMode(text, TextRenderingMode.Grayscale);
-        TextOptions.SetTextFormattingMode(text, TextFormattingMode.Display);
-
-        return text;
-    }
-
-    private static Button CreateIconButton(TextBlock icon) => new()
-    {
-        Content = icon,
-        Padding = new Thickness(4, 0, 4, 0),
-        Margin = new Thickness(2, 0, 2, 0),
-        Background = Brushes.Transparent,
-        BorderThickness = new Thickness(0),
-        Cursor = Cursors.Hand,
-        Focusable = false
+        Placement = PlacementMode.Top,
+        StaysOpen = true,
+        AllowsTransparency = true,
+        IsHitTestVisible = false,
+        Child = PopupSurface(_feedbackText, new Thickness(8, 3, 8, 3), "H.Radius.Chip")
     };
 
-    private static ToggleButton CreateIconToggleButton(TextBlock icon) => new()
+    /// <summary>Superfície de popup do tema (#12161E @ 94%, borda 9%) — ao vivo via DynamicResource.</summary>
+    private static Border PopupSurface(UIElement child, Thickness padding, string radiusKey)
     {
-        Content = icon,
-        Padding = new Thickness(4, 0, 4, 0),
-        Margin = new Thickness(2, 0, 2, 0),
-        Background = Brushes.Transparent,
-        BorderThickness = new Thickness(0),
-        Cursor = Cursors.Hand,
-        Focusable = false
-    };
+        var border = new Border { BorderThickness = new Thickness(1), Padding = padding, Child = child };
+        border.SetResourceReference(Border.BackgroundProperty, "H.Brush.SurfacePopup");
+        border.SetResourceReference(Border.BorderBrushProperty, "H.Brush.Line");
+        border.SetResourceReference(Border.CornerRadiusProperty, radiusKey);
+        border.SetResourceReference(TextElement.ForegroundProperty, "H.Brush.Text");
+        border.SetResourceReference(TextElement.FontFamilyProperty, "H.Font.UI");
+        return border;
+    }
 
     public void Dispose()
     {

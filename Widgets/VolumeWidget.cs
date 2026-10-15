@@ -3,10 +3,10 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI.Controls;
 
 namespace Heimdall.Widgets;
 
@@ -21,29 +21,14 @@ public sealed class VolumeWidget : IWidget
 {
     private const float VolumeStep = 0.05f;
 
-    // Segoe Fluent Icons (Win11) com fallback pra Segoe MDL2 Assets (Win10) — mesmos glifos nas duas.
-    private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
-    private const string GlyphMicOn = "";
-    private const string GlyphMicOff = "";
-    // Alto-falante com 0 a 3 "ondas" conforme o nível, como o ícone de volume da taskbar.
-    private static readonly string[] GlyphSpeakerLevels = { "", "", "", "" };
-    private const string GlyphSpeakerMuted = "";
-
     private readonly EndpointVolumeService _service;
     private readonly bool _isMic;
     private readonly bool _isOverlay;
-    private readonly Color _popupBackground;
-    private readonly Color _popupForeground;
 
-    private readonly TextBlock _icon = CreateGlyph(GlyphMicOn);
-    private readonly TextBlock _muteIcon = CreateGlyph(GlyphMicOn);
+    private readonly Icon _icon = WidgetUi.Icon("H.Icon.Volume");
+    private readonly Icon _muteIcon = WidgetUi.Icon("H.Icon.Volume");
     // Minimalista: só o ícone; a porcentagem aparece por um instante ao ajustar pela roda.
-    private readonly TextBlock _percent = new()
-    {
-        VerticalAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(4, 0, 0, 0),
-        Visibility = Visibility.Collapsed
-    };
+    private readonly TextBlock _percent = WidgetUi.Text(11, mono: true);
     private readonly DispatcherTimer _percentHideTimer = new() { Interval = TimeSpan.FromSeconds(1.5) };
     private readonly StackPanel _content = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
     private readonly ToggleButton _toggle;
@@ -74,50 +59,33 @@ public sealed class VolumeWidget : IWidget
         _service = isMic ? EndpointVolumeService.Microphone : EndpointVolumeService.Speakers;
         _isOverlay = isOverlay;
 
-        var style = ThemeService.GetEffectiveStyle(cfg);
-        _popupBackground = style.Background;
-        _popupForeground = style.Foreground;
-
-        var iconBrush = FrozenBrush(_popupForeground);
-        _icon.Foreground = iconBrush;
-        _muteIcon.Foreground = iconBrush;
-        // Dentro do ToggleButton o texto herdaria o Foreground do estilo do botão, não o do tema da barra.
-        _percent.Foreground = iconBrush;
-
+        _percent.Margin = new Thickness(4, 0, 0, 0);
+        _percent.Visibility = Visibility.Collapsed;
         _content.Children.Add(_icon);
         _content.Children.Add(_percent);
 
-        _toggle = new ToggleButton
-        {
-            Padding = new Thickness(4, 0, 4, 0),
-            Margin = new Thickness(2, 0, 2, 0),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Cursor = Cursors.Hand,
-            Focusable = false
-        };
+        string name = Strings.WidgetName(isMic ? "mic" : "volume");
+        // No overlay o conteúdo vai pra um Border (só exibe) — um elemento só pode ter um pai.
+        _toggle = WidgetUi.IconToggleButton(isOverlay ? new Border() : _content, name);
+        // Largura automática (mínimo 30): cresce quando a porcentagem aparece ao lado do ícone.
+        _toggle.Width = double.NaN;
+        _toggle.SetResourceReference(FrameworkElement.MinWidthProperty, "H.Size.IconButton");
+        _toggle.Padding = new Thickness(7, 0, 7, 0);
 
         // No overlay o clique atravessa a janela — só exibe o estado, sem botão.
         if (isOverlay)
         {
-            _root = new Border { Child = _content, Padding = new Thickness(4, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
+            var box = new Border { Child = _content, Padding = new Thickness(7, 0, 7, 0), VerticalAlignment = VerticalAlignment.Center };
+            box.SetResourceReference(FrameworkElement.HeightProperty, "H.Size.IconButton");
+            _root = box;
         }
         else
         {
-            _toggle.Content = _content;
             _root = _toggle;
         }
 
-        _muteButton = new Button
-        {
-            Content = _muteIcon,
-            Padding = new Thickness(4, 0, 4, 0),
-            Margin = new Thickness(0, 0, 0, 4),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Cursor = Cursors.Hand,
-            Focusable = false
-        };
+        _muteButton = WidgetUi.IconButton(_muteIcon, Strings.MediaMute);
+        _muteButton.Margin = new Thickness(0, 0, 0, 4);
 
         _volumePopup = BuildVolumePopup();
 
@@ -161,14 +129,14 @@ public sealed class VolumeWidget : IWidget
         var state = _service.GetState();
         if (state is not { } s)
         {
-            _icon.Text = _isMic ? GlyphMicOff : GlyphSpeakerMuted;
+            _icon.Geometry = WidgetUi.Geometry(_isMic ? "H.Icon.MicOff" : "H.Icon.VolumeMute");
             _percent.Text = "—";
             _root.ToolTip = _isMic ? Strings.MicNoDevice : Strings.VolumeNoDevice;
             return;
         }
 
         int pct = (int)Math.Round(s.Volume * 100);
-        _icon.Text = Glyph(s.Volume, s.Muted);
+        _icon.Geometry = WidgetUi.Geometry(IconKey(s.Volume, s.Muted));
         _percent.Text = s.Muted ? Strings.MediaMutedLabel : $"{pct}%";
         _root.ToolTip = $"{s.Name}\n{(s.Muted ? Strings.MediaMutedLabel : $"{pct}%")}";
     }
@@ -214,18 +182,17 @@ public sealed class VolumeWidget : IWidget
     private void RefreshMuteButton(bool muted)
     {
         // Botão mostra o estado atual; no alto-falante usa o ícone "cheio" quando com som.
-        _muteIcon.Text = Glyph(1f, muted);
+        _muteIcon.Geometry = WidgetUi.Geometry(IconKey(1f, muted));
         _muteButton.ToolTip = muted ? Strings.MediaUnmute : Strings.MediaMute;
     }
 
-    private string Glyph(float volume, bool muted)
+    private string IconKey(float volume, bool muted)
     {
-        if (_isMic) return muted ? GlyphMicOff : GlyphMicOn;
-        if (muted) return GlyphSpeakerMuted;
+        if (_isMic) return muted ? "H.Icon.MicOff" : "H.Icon.Mic";
+        if (muted) return "H.Icon.VolumeMute";
 
-        // 0% = sem ondas; o resto divide em terços (1–33, 34–66, 67–100).
-        int level = volume <= 0.005f ? 0 : Math.Min(3, 1 + (int)(volume * 3 - 0.0001f));
-        return GlyphSpeakerLevels[level];
+        // Uma onda até 50%, duas acima — como o ícone de volume da taskbar.
+        return volume <= 0.5f ? "H.Icon.VolumeLow" : "H.Icon.Volume";
     }
 
     private Popup BuildVolumePopup()
@@ -239,14 +206,14 @@ public sealed class VolumeWidget : IWidget
 
         var border = new Border
         {
-            Background = FrozenBrush(_popupBackground),
-            BorderBrush = FrozenBrush(Color.FromArgb(0x40, _popupForeground.R, _popupForeground.G, _popupForeground.B)),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
             Padding = new Thickness(6, 8, 6, 6),
             Child = panel
         };
-        TextElement.SetForeground(border, FrozenBrush(_popupForeground));
+        border.SetResourceReference(Border.BackgroundProperty, "H.Brush.SurfacePopup");
+        border.SetResourceReference(Border.BorderBrushProperty, "H.Brush.Line");
+        border.SetResourceReference(Border.CornerRadiusProperty, "H.Radius.Popup");
+        border.SetResourceReference(TextElement.ForegroundProperty, "H.Brush.Text");
 
         return new Popup
         {
@@ -257,30 +224,6 @@ public sealed class VolumeWidget : IWidget
             PopupAnimation = PopupAnimation.Fade,
             Child = border
         };
-    }
-
-    private static SolidColorBrush FrozenBrush(Color color)
-    {
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
-    }
-
-    private static TextBlock CreateGlyph(string glyph)
-    {
-        var text = new TextBlock
-        {
-            Text = glyph,
-            FontFamily = IconFont,
-            FontSize = 13,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        // Grayscale AA: ClearType franja em cima de janela translúcida (ver MediaWidget.CreateGlyph).
-        TextOptions.SetTextRenderingMode(text, TextRenderingMode.Grayscale);
-        TextOptions.SetTextFormattingMode(text, TextFormattingMode.Display);
-
-        return text;
     }
 
     public void Dispose()

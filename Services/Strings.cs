@@ -32,6 +32,10 @@ public static class Strings
         "ram" => T("RAM", "RAM"),
         "temp" => T("Temperatura", "Temperature"),
         "fps" => T("FPS", "FPS"),
+        "brand" => T("Marca", "Brand"),
+        "cpu" => T("CPU", "CPU"),
+        "notifications" => T("Notificações", "Notifications"),
+        "network" => T("Rede", "Network"),
         "separator" => T("Separador", "Separator"),
         _ => id
     };
@@ -78,6 +82,24 @@ public static class Strings
     public static string UpdateSeeWhatsNew => T("Ver novidades", "See what's new");
     public static string UpdateLater => T("Agora não", "Not now");
     public static string UpdateTooltip(string tag) => T($"Nova versão {tag} disponível — clique para ver o que mudou e baixar", $"New version {tag} available — click to see what changed and download");
+    public static string UpdateButtonName => T("Baixar nova versão", "Download new version");
+
+    // ---------- Widgets novos (marca, CPU, notificações, rede) ----------
+
+    public static string BrandTooltip => T("Heimdall — abrir configurações", "Heimdall — open settings");
+    public static string CpuTooltip(double percent) => T($"Uso de CPU: {percent:0}%", $"CPU usage: {percent:0}%");
+    public static string NotificationsName => T("Lembretes de hoje", "Today's reminders");
+    public static string NotificationsTooltip(int pending) => pending switch
+    {
+        0 => T("Nenhum lembrete pendente hoje", "No pending reminders today"),
+        1 => T("1 lembrete pendente hoje", "1 pending reminder today"),
+        _ => T($"{pending} lembretes pendentes hoje", $"{pending} pending reminders today")
+    };
+    public static string NetworkName => T("Rede", "Network");
+    public static string NetworkConnected(string name, bool wifi) =>
+        wifi ? T($"Wi-Fi: {name}", $"Wi-Fi: {name}") : T($"Cabo: {name}", $"Wired: {name}");
+    public static string NetworkDisconnected => T("Sem conexão de rede", "No network connection");
+    public static string MediaOpenPlayer => T("Abrir player", "Open player");
 
     // ---------- Grupos do launcher ----------
 

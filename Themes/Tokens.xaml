@@ -25,7 +25,6 @@
     <CornerRadius x:Key="H.Radius.Popup">14</CornerRadius>
     <CornerRadius x:Key="H.Radius.Card">10</CornerRadius>
     <CornerRadius x:Key="H.Radius.Window">14</CornerRadius>
-    <CornerRadius x:Key="H.Radius.Pill">999</CornerRadius>
 
     <!-- ===================== Espaçamento (base 4) ===================== -->
     <sys:Double x:Key="H.Space.1">4</sys:Double>

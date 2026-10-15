@@ -21,7 +21,11 @@ public sealed class FpsWidget : IWidget
 
     public FrameworkElement View => _text;
 
-    public FpsWidget() => _timer.Tick += (_, _) => Update();
+    public FpsWidget()
+    {
+        WidgetUi.StyleStatusText(_text);
+        _timer.Tick += (_, _) => Update();
+    }
 
     public void ApplyOrientation(Orientation orientation) { }
 

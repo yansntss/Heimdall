@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -56,6 +57,7 @@ public partial class BarWindow : Window
         BuildAddWidgetMenu();
         UpdateGamingModeMenuItem();
 
+        ThemeManager.Changed += OnThemeChanged;
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
     }
@@ -69,10 +71,10 @@ public partial class BarWindow : Window
             add: NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_NOACTIVATE,
             remove: NativeMethods.WS_EX_APPWINDOW);
 
-        DwmVisuals.Apply(hwnd, ThemeService.GetEffectiveStyle(_cfg), forceRoundedCorners: _cfg.FloatingMode);
+        DwmVisuals.Apply(hwnd, ThemeManager.Palette.Acrylic, roundedCorners: _cfg.FloatingMode);
 
         int floatingMargin = _cfg.FloatingMode ? Math.Clamp(_cfg.FloatingMargin, 0, 100) : 0;
-        AppBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, Math.Clamp(_cfg.Thickness, 16, 400), floatingMargin);
+        AppBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, ThemeService.BarThickness(_cfg), floatingMargin);
         AppBar.FullscreenChanged += fullscreen => FullscreenChanged?.Invoke(fullscreen);
 
         HwndSource.FromHwnd(hwnd)?.AddHook(AppBar.WndProc);
@@ -92,6 +94,7 @@ public partial class BarWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        ThemeManager.Changed -= OnThemeChanged;
         UpdateService.UpdateFound -= OnUpdateFound;
         _monitorDragGhost?.Close();
         AppBar?.Dispose();
@@ -101,20 +104,56 @@ public partial class BarWindow : Window
 
     // ---------- Visual ----------
 
+    /// <summary>
+    /// Cores por {DynamicResource} (Root.Background no XAML, texto aqui): troca de tema,
+    /// acento ou opacidade reflete na hora, sem recriar a janela.
+    /// </summary>
     private void ApplyStyle()
     {
-        var style = ThemeService.GetEffectiveStyle(_cfg);
+        Root.SetResourceReference(TextElement.ForegroundProperty, "H.Brush.Text");
 
-        var background = new SolidColorBrush(style.Background);
-        background.Freeze();
-        Root.Background = background;
+        if (string.IsNullOrWhiteSpace(_cfg.Style.FontFamily))
+            Root.SetResourceReference(TextElement.FontFamilyProperty, "H.Font.UI");
+        else
+            TextElement.SetFontFamily(Root, new FontFamily(_cfg.Style.FontFamily));
+        TextElement.SetFontSize(Root, Math.Clamp(_cfg.Style.FontSize ?? 12, 8, 72));
 
-        var foreground = new SolidColorBrush(style.Foreground);
-        foreground.Freeze();
-        TextElement.SetForeground(Root, foreground);
+        // ClearType (subpixel) franja em cima de fundo translúcido/acrílico — grayscale é sempre sólido.
+        TextOptions.SetTextRenderingMode(Root, TextRenderingMode.Grayscale);
 
-        TextElement.SetFontFamily(Root, new FontFamily(style.FontFamily));
-        TextElement.SetFontSize(Root, style.FontSize);
+        BarMetrics.Apply(Resources, ThemeService.BarThickness(_cfg));
+        BarContent.Margin = IsVertical ? new Thickness(0, 10, 0, 10) : new Thickness(10, 0, 10, 0);
+        ApplyAccentLine();
+    }
+
+    /// <summary>Fio de acento (Bifröst): no topo da barra horizontal, na borda externa da vertical.</summary>
+    private void ApplyAccentLine()
+    {
+        double line = ThemeManager.Palette.AccentLine;
+        AccentLine.Visibility = line > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (line <= 0) return;
+
+        if (IsVertical)
+        {
+            AccentLine.Width = line;
+            AccentLine.Height = double.NaN;
+            AccentLine.HorizontalAlignment = _cfg.Edge == BarEdge.Left ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+            AccentLine.VerticalAlignment = VerticalAlignment.Stretch;
+        }
+        else
+        {
+            AccentLine.Height = line;
+            AccentLine.Width = double.NaN;
+            AccentLine.HorizontalAlignment = HorizontalAlignment.Stretch;
+            AccentLine.VerticalAlignment = VerticalAlignment.Top;
+        }
+    }
+
+    private void OnThemeChanged()
+    {
+        ApplyAccentLine();
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero) DwmVisuals.Apply(hwnd, ThemeManager.Palette.Acrylic, roundedCorners: _cfg.FloatingMode);
     }
 
     // ---------- Widgets ----------
@@ -130,20 +169,13 @@ public partial class BarWindow : Window
     private void SetupUpdateButton()
     {
         DockPanel.SetDock(UpdateButton, IsVertical ? Dock.Bottom : Dock.Right);
-        UpdateButton.Padding = IsVertical ? new Thickness(0, 6, 0, 6) : new Thickness(6, 0, 6, 0);
+        UpdateButton.Margin = IsVertical ? new Thickness(0, 2, 0, 2) : new Thickness(2, 0, 2, 0);
 
         // Cor de destaque (não o texto normal) pra chamar atenção sem precisar de badge.
-        var icon = new TextBlock
-        {
-            Text = "", // Download
-            FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"),
-            FontSize = 14,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = new SolidColorBrush(ThemeService.GetEffectiveStyle(_cfg).Accent)
-        };
-        TextOptions.SetTextRenderingMode(icon, TextRenderingMode.Grayscale);
+        var icon = new Controls.Icon { Geometry = (Geometry)FindResource("H.Icon.Download") };
+        icon.SetResourceReference(Controls.Icon.ForegroundProperty, "H.Brush.Accent");
         UpdateButton.Content = icon;
+        AutomationProperties.SetName(UpdateButton, Strings.UpdateButtonName);
 
         // A barra é recriada a cada Reload — se a checagem já achou versão nova antes,
         // o botão já nasce visível.
@@ -187,7 +219,7 @@ public partial class BarWindow : Window
         {
             var item = new MenuItem
             {
-                Header = name,
+                Header = ThemeManager.DisplayName(name),
                 IsCheckable = true,
                 IsChecked = string.Equals(name, _cfg.Theme, StringComparison.OrdinalIgnoreCase),
                 Tag = name

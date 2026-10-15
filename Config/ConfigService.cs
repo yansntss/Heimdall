@@ -40,8 +40,17 @@ public static class ConfigService
             });
             MigrateClockConfig(node);
             MigrateWidgetLayout(node);
+            bool migratedTheme = MigrateToThemeV2(node);
             var config = node.Deserialize<AppConfig>(Options) ?? new AppConfig();
             Services.Strings.Current = config.Language;
+
+            // Grava já migrado (com backup do original) — senão a migração rodaria de novo a
+            // cada carga e uma troca de tema feita depois seria desfeita na próxima leitura.
+            if (migratedTheme)
+            {
+                File.Copy(ConfigPath, ConfigPath + ".bak-v1", overwrite: true);
+                Save(config);
+            }
             return config;
         }
         catch (Exception ex)
@@ -92,6 +101,59 @@ public static class ConfigService
         MigrateZone(widgets["Start"] as JsonArray);
         MigrateZone(widgets["Center"] as JsonArray);
         MigrateZone(widgets["End"] as JsonArray);
+    }
+
+    /// <summary>Nomes dos 9 temas antigos → id do tema novo mais próximo (fundo sólido vs. translúcido, claro vs. escuro).</summary>
+    private static readonly Dictionary<string, string> LegacyThemes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Escuro"] = "Bifrost",
+        ["Claro"] = "Cristal",
+        ["Translúcido Escuro"] = "Obsidiana",
+        ["Translúcido Claro"] = "Cristal",
+        ["Acrílico"] = "Obsidiana",
+        ["Mica"] = "Obsidiana",
+        ["Vidro"] = "Obsidiana",
+        ["Destaque do Windows"] = "Obsidiana",
+    };
+
+    /// <summary>
+    /// Config sem "ConfigVersion" é de antes do tema novo: troca o nome do tema antigo
+    /// pelo equivalente novo ("Destaque do Windows" vira acento "system"; "Auto" escolhe
+    /// claro/escuro pelo Windows na hora da migração) e sobe a espessura padrão antiga
+    /// (28) pra nova (38) — quem tinha mudado a espessura na mão mantém a dela. Temas
+    /// próprios (themes/*.json) passam intactos. Tolerante: campo ausente ou de tipo
+    /// inesperado só não é migrado, nunca derruba a leitura.
+    /// </summary>
+    private static bool MigrateToThemeV2(JsonNode? root)
+    {
+        if (root is not JsonObject obj) return false;
+        if (obj["ConfigVersion"] is JsonValue v && v.TryGetValue<int>(out int version) && version >= AppConfig.CurrentVersion)
+            return false;
+
+        string? theme = obj["Theme"] is JsonValue t && t.TryGetValue<string>(out var s) ? s : null;
+        if (theme is null)
+        {
+            // Config bem antigo, sem "Theme": o padrão da época era "Escuro" (sólido).
+            obj["Theme"] = "Bifrost";
+        }
+        else if (string.Equals(theme, "Auto", StringComparison.OrdinalIgnoreCase))
+        {
+            obj["Theme"] = Services.ThemeService.IsSystemLightTheme() ? "Cristal" : "Obsidiana";
+        }
+        else if (LegacyThemes.TryGetValue(theme, out var mapped))
+        {
+            obj["Theme"] = mapped;
+            if (string.Equals(theme, "Destaque do Windows", StringComparison.OrdinalIgnoreCase) && obj["AccentColor"] is null)
+                obj["AccentColor"] = "system";
+        }
+
+        bool horizontal = obj["Edge"] is not JsonValue edge || !edge.TryGetValue<string>(out var e)
+            || !(e.Equals("Left", StringComparison.OrdinalIgnoreCase) || e.Equals("Right", StringComparison.OrdinalIgnoreCase));
+        if (horizontal && (obj["Thickness"] is null || (obj["Thickness"] is JsonValue th && th.TryGetValue<int>(out int old) && old == 28)))
+            obj["Thickness"] = 38;
+
+        obj["ConfigVersion"] = AppConfig.CurrentVersion;
+        return true;
     }
 
     private static void MigrateZone(JsonArray? zone)

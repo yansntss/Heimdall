@@ -575,7 +575,7 @@ public sealed class LauncherWidget : IWidget
             Child = panel
         };
         TextElement.SetForeground(border, new SolidColorBrush(_style.Foreground));
-        TextElement.SetFontFamily(border, new FontFamily(_style.FontFamily));
+        TextElement.SetFontFamily(border, _style.FontFamily);
 
         // Mouse cruza um vão sem elemento nenhum entre a pasta e a lista — o MouseLeave da
         // pasta agenda o fechamento e entrar na lista cancela, igual ao popup do "windows".

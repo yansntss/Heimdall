@@ -60,7 +60,7 @@ internal sealed class WidgetDragController
     private readonly AppConfig _cfg;
     private readonly FrameworkElement _zonesRoot;
     private readonly bool _vertical;
-    private readonly Func<FrameworkElement> _createSeparator;
+    private readonly Func<FrameworkElement>? _createSeparator;
     private readonly List<ZoneInfo> _zones = new();
     private readonly HashSet<FrameworkElement> _wrappers = new();
     private readonly Dictionary<WidgetEntry, FrameworkElement> _wrapperByEntry = new();
@@ -74,12 +74,12 @@ internal sealed class WidgetDragController
     private DragState? _drag;
 
     /// <summary>
-    /// <paramref name="createSeparator"/> é o mesmo factory de separador do
+    /// <paramref name="createSeparator"/> (opcional — o visual atual não separa widgets automaticamente) é o mesmo factory de separador do
     /// WidgetZoneBuilder — usado só pra reconstruir os separadores de uma zona depois de
     /// mover um widget nela, sem precisar de <c>App.Reload()</c> (que destruiria e
     /// recriaria a janela inteira, reiniciando timers e reconectando o SMTC à toa).
     /// </summary>
-    public WidgetDragController(AppConfig cfg, FrameworkElement zonesRoot, bool vertical, Func<FrameworkElement> createSeparator)
+    public WidgetDragController(AppConfig cfg, FrameworkElement zonesRoot, bool vertical, Func<FrameworkElement>? createSeparator = null)
     {
         _cfg = cfg;
         _zonesRoot = zonesRoot;
@@ -345,11 +345,11 @@ internal sealed class WidgetDragController
         bool leadingBoundary = zoneIndex == 2; // End
         bool trailingBoundary = zoneIndex == 0; // Start
 
-        if (leadingBoundary && hasAny) zone.Panel.Children.Add(_createSeparator());
+        if (leadingBoundary && hasAny && _createSeparator is not null) zone.Panel.Children.Add(_createSeparator());
 
         for (int i = 0; i < zone.Entries.Count; i++)
         {
-            if (i > 0) zone.Panel.Children.Add(_createSeparator());
+            if (i > 0 && _createSeparator is not null) zone.Panel.Children.Add(_createSeparator());
 
             var wrapper = _wrapperByEntry[zone.Entries[i]];
             wrapper.RenderTransform = null;
@@ -357,7 +357,7 @@ internal sealed class WidgetDragController
             zone.Panel.Children.Add(wrapper);
         }
 
-        if (trailingBoundary && hasAny) zone.Panel.Children.Add(_createSeparator());
+        if (trailingBoundary && hasAny && _createSeparator is not null) zone.Panel.Children.Add(_createSeparator());
     }
 
     /// <summary>Centro de tela de onde o item vai parar se soltar agora — pro fantasma "voar" até lá antes de reordenar.</summary>

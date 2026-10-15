@@ -9,6 +9,34 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 
 ## [Não lançado]
 
+### Adicionado
+
+- Visual novo da barra, inspirado na menu bar do macOS: altura padrão de 38px, botões
+  de ícone 30x30, player de mídia em formato de pílula com capa, título e artista, e
+  relógio com a data discreta e a hora em fonte monoespaçada.
+- Quatro temas novos: **Obsidiana** (escuro translúcido com desfoque, o padrão),
+  **Cristal** (claro translúcido), **Bifröst** (sólido, com um fio na cor de destaque
+  no topo) e **Compacta** (26px, só com marca, mídia, lembretes e hora).
+- Cor de destaque configurável no config (`AccentColor`), inclusive acompanhando a cor
+  de destaque do Windows (`"system"`), e opacidade da barra (`BarOpacity`).
+- Widgets novos: `brand` (a espada do Heimdall, abre as Configurações), `cpu` (uso de
+  CPU com mini gráfico), `notifications` (sino com o número de lembretes pendentes hoje)
+  e `network` (Wi-Fi, cabo ou sem conexão).
+- Atalho global **Ctrl+Alt+H** para ocultar/mostrar a barra (o Ctrl+Shift+B continua
+  funcionando).
+- Fontes Manrope e JetBrains Mono embutidas no app.
+
+### Alterado
+
+- Os 9 temas antigos foram substituídos pelos 4 novos. Configs existentes são migrados
+  sozinhos para o tema mais próximo (Escuro → Bifröst, Claro → Cristal, translúcidos →
+  Obsidiana, "Destaque do Windows" → Obsidiana com o destaque do Windows); o config
+  original fica salvo em `config.json.bak-v1`. Temas próprios em JSON continuam valendo.
+- Quem usava a espessura padrão antiga (28) passa para a nova (38); espessuras
+  personalizadas são mantidas.
+- Os widgets não têm mais linhas separadoras automáticas entre si — use o widget
+  `separator` onde quiser uma divisão.
+
 ## [1.3.0] - 2026-10-12
 
 ### Adicionado

@@ -8,10 +8,16 @@ public enum MonitorMode { Primary, Specific, All }
 
 public sealed class AppConfig
 {
+    /// <summary>Versão do formato do config — sobe quando uma migração muda valores salvos (ver ConfigService).</summary>
+    public const int CurrentVersion = 2;
+
+    /// <summary>Ausente nos configs anteriores ao tema novo (= 0 na leitura) — é isso que dispara a migração.</summary>
+    public int ConfigVersion { get; set; } = CurrentVersion;
+
     public BarEdge Edge { get; set; } = BarEdge.Top;
 
-    /// <summary>Altura (Top/Bottom) ou largura (Left/Right) em DIPs. Sugestão: 28 horizontal, 72 vertical.</summary>
-    public int Thickness { get; set; } = 28;
+    /// <summary>Altura (Top/Bottom) ou largura (Left/Right) em DIPs. Sugestão: 38 horizontal, 72 vertical.</summary>
+    public int Thickness { get; set; } = 38;
 
     /// <summary>Modo flutuante: barra com margem das bordas da tela e cantos arredondados.</summary>
     public bool FloatingMode { get; set; }
@@ -44,8 +50,14 @@ public sealed class AppConfig
 
     public bool StartWithWindows { get; set; }
 
-    /// <summary>Nome de um tema embutido ou de %AppData%\Heimdall\themes\*.json.</summary>
-    public string Theme { get; set; } = "Escuro";
+    /// <summary>Id de um tema embutido (Obsidiana, Cristal, Bifrost, Compacta) ou nome de %AppData%\Heimdall\themes\*.json.</summary>
+    public string Theme { get; set; } = "Obsidiana";
+
+    /// <summary>"#RRGGBB" fixo, "system" = cor de destaque do Windows, nulo = acento do tema (ouro #E0B562).</summary>
+    public string? AccentColor { get; set; }
+
+    /// <summary>Opacidade do fundo da barra (0.2–1) nos temas translúcidos; nulo = a do tema (76% na Obsidiana).</summary>
+    public double? BarOpacity { get; set; }
 
     /// <summary>
     /// true (padrão) = ao detectar tela cheia, a barra vira overlay transparente com
@@ -88,12 +100,20 @@ public sealed class WidgetEntry
     }
 }
 
-/// <summary>Três zonas: início (esq./topo), centro e fim (dir./base).</summary>
+/// <summary>
+/// Três zonas: início (esq./topo), centro e fim (dir./base). O padrão (só pra config
+/// novo — o layout de quem já usa não é tocado) segue o design: marca + atalhos à
+/// esquerda, mídia no centro, status + relógio à direita.
+/// </summary>
 public sealed class WidgetLayout
 {
-    public List<WidgetEntry> Start { get; set; } = new();
-    public List<WidgetEntry> Center { get; set; } = new() { new WidgetEntry("clock") };
-    public List<WidgetEntry> End { get; set; } = new();
+    public List<WidgetEntry> Start { get; set; } = new() { new WidgetEntry("brand"), new WidgetEntry("launcher") };
+    public List<WidgetEntry> Center { get; set; } = new() { new WidgetEntry("media") };
+    public List<WidgetEntry> End { get; set; } = new()
+    {
+        new WidgetEntry("cpu"), new WidgetEntry("notifications"), new WidgetEntry("volume"),
+        new WidgetEntry("network"), new WidgetEntry("separator"), new WidgetEntry("clock")
+    };
 }
 
 public enum ClockMode { TimeOnly, DateOnly, Both, Custom }

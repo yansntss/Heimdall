@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -9,19 +10,18 @@ using Heimdall.UI;
 
 namespace Heimdall.Widgets;
 
+/// <summary>Data (11.5, texto secundário) + hora (mono 13). Clique abre o calendário.</summary>
 public sealed class ClockWidget : IWidget
 {
     private readonly AppConfig _appCfg;
     private readonly ClockConfig _cfg;
     private readonly DispatcherTimer _timer = new();
-    private readonly TextBlock _text = new()
-    {
-        VerticalAlignment = VerticalAlignment.Center,
-        HorizontalAlignment = HorizontalAlignment.Center,
-        TextAlignment = TextAlignment.Center
-    };
+    private readonly TextBlock _date = WidgetUi.Text(11.5, "H.Brush.TextSecondary");
+    private readonly TextBlock _time = WidgetUi.Text(13, mono: true, weight: FontWeights.Medium);
+    private readonly StackPanel _content = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+
     // Fundo transparente (não nulo) pra área inteira ser clicável, não só os glifos do texto.
-    private readonly Border _root = new() { Background = Brushes.Transparent };
+    private readonly Border _root = new() { Background = Brushes.Transparent, Padding = new Thickness(8, 0, 8, 0) };
     private bool _vertical;
 
     private CalendarWindow? _calendar;
@@ -34,7 +34,15 @@ public sealed class ClockWidget : IWidget
     {
         _appCfg = cfg;
         _cfg = cfg.Clock;
-        _root.Child = _text;
+
+        _date.Margin = new Thickness(0, 0, 8, 0);
+        _date.TextAlignment = TextAlignment.Center;
+        _time.TextAlignment = TextAlignment.Center;
+        _content.Children.Add(_date);
+        _content.Children.Add(_time);
+        _root.Child = _content;
+        _root.SetResourceReference(Border.CornerRadiusProperty, "H.Radius.Item");
+        _root.SetResourceReference(FrameworkElement.HeightProperty, "H.Size.IconButton");
         _timer.Tick += (_, _) => Update();
 
         // No overlay o clique atravessa a janela — calendário só na barra normal.
@@ -42,6 +50,9 @@ public sealed class ClockWidget : IWidget
         {
             _root.Cursor = Cursors.Hand;
             _root.ToolTip = Strings.CalendarTitle;
+            AutomationProperties.SetName(_root, Strings.CalendarTitle);
+            _root.MouseEnter += (_, _) => _root.SetResourceReference(Border.BackgroundProperty, "H.Brush.Hover");
+            _root.MouseLeave += (_, _) => _root.Background = Brushes.Transparent;
             _root.MouseLeftButtonDown += OnMouseDown;
             _root.MouseLeftButtonUp += (_, e) => OnMouseUp(e);
         }
@@ -50,6 +61,24 @@ public sealed class ClockWidget : IWidget
     public void ApplyOrientation(Orientation orientation)
     {
         _vertical = orientation == Orientation.Vertical;
+
+        // Vertical: hora em cima, data embaixo, sem altura fixa.
+        _content.Orientation = _vertical ? Orientation.Vertical : Orientation.Horizontal;
+        _content.Children.Clear();
+        if (_vertical)
+        {
+            _content.Children.Add(_time);
+            _content.Children.Add(_date);
+            _date.Margin = new Thickness(0);
+            _root.Height = double.NaN;
+            _root.Padding = new Thickness(2, 6, 2, 6);
+        }
+        else
+        {
+            _content.Children.Add(_date);
+            _content.Children.Add(_time);
+        }
+
         if (_timer.IsEnabled) Update();
     }
 
@@ -62,7 +91,15 @@ public sealed class ClockWidget : IWidget
     private void Update()
     {
         var now = DateTime.Now;
-        _text.Text = ClockFormatter.Format(_cfg, now, _vertical);
+        var (date, time, custom) = ClockFormatter.FormatParts(_cfg, now, _vertical);
+
+        _date.Text = date;
+        _date.Visibility = date.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        _time.Text = time;
+        _time.Visibility = time.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        // Formato livre pode ter texto: fonte da interface em vez de mono.
+        if (custom) _time.SetResourceReference(TextBlock.FontFamilyProperty, "H.Font.UI");
 
         // Alinha o próximo tick à virada do segundo
         _timer.Interval = TimeSpan.FromMilliseconds(1000 - now.Millisecond + 10);

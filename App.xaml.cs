@@ -58,6 +58,8 @@ public partial class App : Application
         RegisterMediaHotkeys();
         _hotkeys.Register(NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, NativeMethods.VK_R,
             () => Widgets.ReminderWidget.Primary?.OpenQuickAdd());
+        // Ctrl+Alt+H: ocultar/mostrar a barra (o Ctrl+Shift+B antigo continua valendo).
+        _hotkeys.Register(NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT, NativeMethods.VK_H, ToggleBarsVisibility);
 
         BuildBars();
         StartUpdateChecks();
@@ -222,9 +224,11 @@ public partial class App : Application
         if (e.Category is not (UserPreferenceCategory.General or UserPreferenceCategory.Color or UserPreferenceCategory.VisualStyle))
             return;
 
-        // Só recarrega se o tema atual acompanha o SO ("Auto" ou "Destaque do Windows") —
-        // outras mudanças de preferência do usuário não afetam a barra.
-        if (ThemeService.IsLiveTheme(ConfigService.Load().Theme)) RestartDebounce();
+        // Só reaplica se o acento acompanha a cor de destaque do Windows ("system") — outras
+        // mudanças de preferência não afetam a barra. Pincéis são DynamicResource: reaplicar o
+        // tema já basta, sem recriar as barras.
+        var cfg = ConfigService.Load();
+        if (ThemeService.FollowsSystem(cfg)) Dispatcher.BeginInvoke(new Action(() => ThemeService.ApplyToApp(cfg)));
     }
 
     private void RestartDebounce() =>
@@ -239,6 +243,8 @@ public partial class App : Application
         CloseBars();
 
         var cfg = ConfigService.Load();
+        ThemeService.ApplyToApp(cfg);
+
         var monitors = MonitorService.GetMonitors();
         if (monitors.Count == 0) return;
 

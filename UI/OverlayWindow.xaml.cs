@@ -73,11 +73,12 @@ public partial class OverlayWindow : Window
     {
         var style = ThemeService.GetEffectiveStyle(_cfg);
 
-        var foreground = new SolidColorBrush(style.Foreground);
-        foreground.Freeze();
-        TextElement.SetForeground(Root, foreground);
-        TextElement.SetFontFamily(Root, new FontFamily(style.FontFamily));
+        Root.SetResourceReference(TextElement.ForegroundProperty, "H.Brush.Text");
+        TextElement.SetFontFamily(Root, style.FontFamily);
         TextElement.SetFontSize(Root, style.FontSize);
+        TextOptions.SetTextRenderingMode(Root, TextRenderingMode.Grayscale);
+        BarMetrics.Apply(Resources, ThemeService.BarThickness(_cfg));
+        Root.Padding = IsVertical ? new Thickness(0, 10, 0, 10) : new Thickness(10, 0, 10, 0);
     }
 
     /// <summary>
@@ -88,7 +89,7 @@ public partial class OverlayWindow : Window
     /// </summary>
     private void ApplyLayout()
     {
-        double thickness = Math.Clamp(_cfg.Thickness, 16, 400);
+        double thickness = ThemeService.BarThickness(_cfg);
 
         switch (_cfg.Edge)
         {

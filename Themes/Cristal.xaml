@@ -6,7 +6,7 @@
     <!-- Só cores e métricas: os pincéis (com acento e opacidade aplicados) são gerados pelo ThemeManager. -->
 
     <Color x:Key="H.Color.BarBg">#F3F5F9</Color>
-    <sys:Double x:Key="H.Theme.BarOpacity">0.72</sys:Double>
+    <sys:Double x:Key="H.Theme.BarOpacity">0.86</sys:Double>
     <sys:String x:Key="H.Theme.Backdrop">Acrylic</sys:String>
     <sys:Double x:Key="H.Theme.AccentLine">0</sys:Double>
     <sys:Double x:Key="H.Size.BarHeight">38</sys:Double>

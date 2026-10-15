@@ -83,7 +83,7 @@ internal sealed class QuickAddReminderWindow : Window
             BorderThickness = new Thickness(0),
             CaretBrush = FrozenBrush(style.Foreground),
             Foreground = FrozenBrush(style.Foreground),
-            FontFamily = new FontFamily(style.FontFamily),
+            FontFamily = style.FontFamily,
             Text = editing?.Text ?? ""
         };
 

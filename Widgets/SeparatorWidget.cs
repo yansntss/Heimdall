@@ -1,42 +1,34 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using Heimdall.Config;
-using Heimdall.Services;
 
 namespace Heimdall.Widgets;
 
-/// <summary>Separador visual entre widgets inteiros de uma zona (ex: entre "clock" e "media") — sem config própria, só uma linha.</summary>
+/// <summary>Separador visual entre widgets inteiros de uma zona (ex: antes do relógio) — linha 1x18 na cor de borda do tema.</summary>
 public sealed class SeparatorWidget : IWidget
 {
-    private readonly Border _line;
+    private const double Length = 18;
+
+    private readonly Border _line = new()
+    {
+        Width = 1,
+        Height = Length,
+        VerticalAlignment = VerticalAlignment.Center,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        Margin = new Thickness(4, 0, 4, 0),
+        SnapsToDevicePixels = true
+    };
 
     public FrameworkElement View => _line;
 
-    public SeparatorWidget(AppConfig cfg)
-    {
-        var style = ThemeService.GetEffectiveStyle(cfg);
-        var brush = new SolidColorBrush(style.Border);
-        brush.Freeze();
-
-        double thickness = Math.Max(1, cfg.Thickness * 0.6);
-        _line = new Border
-        {
-            Background = brush,
-            Width = 1,
-            Height = thickness,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(4, 0, 4, 0)
-        };
-    }
+    public SeparatorWidget(AppConfig cfg) => _line.SetResourceReference(Border.BackgroundProperty, "H.Brush.Line");
 
     public void ApplyOrientation(Orientation orientation)
     {
         // Vertical na barra horizontal, horizontal na barra vertical — sempre cruzando o fluxo dos outros widgets.
         if (orientation == Orientation.Vertical)
         {
-            _line.Width = _line.Height;
+            _line.Width = Length;
             _line.Height = 1;
             _line.Margin = new Thickness(0, 4, 0, 4);
         }

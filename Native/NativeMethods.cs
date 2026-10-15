@@ -183,6 +183,7 @@ internal static class NativeMethods
     public const uint VK_RIGHT = 0x27;
     public const uint VK_DOWN = 0x28;
     public const uint VK_R = 0x52;
+    public const uint VK_H = 0x48;
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);

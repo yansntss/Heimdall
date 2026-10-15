@@ -28,6 +28,7 @@ public sealed class TempWidget : IWidget
     public TempWidget(TempConfig cfg)
     {
         _cfg = cfg;
+        WidgetUi.StyleStatusText(_text);
         _timer.Tick += (_, _) => Update();
     }
 

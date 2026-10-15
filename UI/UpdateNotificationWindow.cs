@@ -123,7 +123,7 @@ internal sealed class UpdateNotificationWindow : Window
             Text = text,
             FontSize = size,
             FontWeight = weight,
-            FontFamily = new FontFamily(_style.FontFamily),
+            FontFamily = _style.FontFamily,
             Foreground = FrozenBrush(_style.Foreground)
         };
         TextOptions.SetTextRenderingMode(block, TextRenderingMode.Grayscale);
