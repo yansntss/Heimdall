@@ -31,6 +31,8 @@
   <ItemGroup>
     <Resource Include="Assets\heimdall.ico" />
     <Resource Include="Assets\heimdall-logo.png" />
+    <!-- Manrope (UI) e JetBrains Mono (números/atalhos), ambas OFL — licenças ao lado dos arquivos. -->
+    <Resource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
   <ItemGroup>

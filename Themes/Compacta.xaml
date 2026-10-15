@@ -1,0 +1,30 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Compacta: cores da Obsidiana, altura 26 e só marca, mídia, badge e hora. -->
+    <!-- Só cores e métricas: os pincéis (com acento e opacidade aplicados) são gerados pelo ThemeManager. -->
+
+    <Color x:Key="H.Color.BarBg">#0E1219</Color>
+    <sys:Double x:Key="H.Theme.BarOpacity">0.76</sys:Double>
+    <sys:String x:Key="H.Theme.Backdrop">Acrylic</sys:String>
+    <sys:Double x:Key="H.Theme.AccentLine">0</sys:Double>
+    <sys:Double x:Key="H.Size.BarHeight">26</sys:Double>
+    <sys:Boolean x:Key="H.Theme.IsCompact">True</sys:Boolean>
+    <sys:Boolean x:Key="H.Theme.IsLight">False</sys:Boolean>
+
+    <Color x:Key="H.Color.Surface">#12161E</Color>
+    <Color x:Key="H.Color.Elevated">#161B23</Color>
+    <Color x:Key="H.Color.Line">#17FFFFFF</Color>
+    <Color x:Key="H.Color.Text">#E8ECF2</Color>
+    <Color x:Key="H.Color.TextSecondary">#AEB8C6</Color>
+    <Color x:Key="H.Color.TextTertiary">#8A94A3</Color>
+    <Color x:Key="H.Color.Accent">#E0B562</Color>
+    <Color x:Key="H.Color.OnAccent">#15181F</Color>
+    <Color x:Key="H.Color.Ok">#8FD3C8</Color>
+    <Color x:Key="H.Color.Danger">#F2A58C</Color>
+    <!-- Base dos estados de hover (7%), pressed (12%) e selecionado (8%). -->
+    <Color x:Key="H.Color.Overlay">#FFFFFF</Color>
+    <Color x:Key="H.Color.Muted">#5F7183</Color>
+
+</ResourceDictionary>
