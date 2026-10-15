@@ -42,7 +42,20 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - A lista ativa aparece com o título na cor dela, e "Minhas listas" fica no rodapé.
   - Navegação pelo teclado: Tab entre as áreas, setas na lista e Espaço para concluir
     o lembrete selecionado.
-  - Clique direito num lembrete: Adiar (vencidos), Sinalizar e Excluir.
+  - Clique direito num lembrete: Editar, Adiar (vencidos), Sinalizar e Excluir.
+  - Cabeçalhos de seção: Hoje separa os atrasados, Agendados agrupa por dia e Todos
+    agrupa por lista.
+  - Edição no próprio lugar: clique no título (ou em "Novo lembrete") e ele vira um
+    campo de texto, com chips de data, bandeira, nota e lista logo abaixo.
+    - Enter salva e já abre uma linha nova; Esc cancela; clicar fora salva.
+    - Apagar o título exclui o lembrete.
+    - O chip de data abre atalhos (Hoje, Amanhã, Próx. semana, Sem data), campos de
+      data e hora e a repetição.
+    - O lembrete novo herda a lista onde foi criado: em Hoje nasce com a data de hoje,
+      em Sinalizados vem sinalizado e numa lista sua vai para ela.
+  - Data no próprio texto, em português: "amanhã 14h", "sexta 19:00", "dia 20 às 10h",
+    "todo dia 9h", "toda segunda e quarta 8h", "todo dia 10" (mensal). O chip de data
+    mostra o que foi entendido enquanto você digita, e esse trecho sai do título ao salvar.
   - **Sistema** (clique no chip de CPU): uso de CPU, memória e disco, tempo ligado,
     liga/desliga do modo overlay, ocultar barra e Configurações.
 - Tela de Configurações nova: janela redimensionável com barra de título própria,

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:Heimdall.UI.Controls"
         xmlns:ui="clr-namespace:Heimdall.UI"
+        xmlns:vm="clr-namespace:Heimdall.ViewModels"
         xmlns:s="clr-namespace:Heimdall.Services"
         Icon="pack://application:,,,/Heimdall;component/Assets/heimdall.ico"
         WindowStyle="None"
@@ -25,6 +26,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Heimdall;component/Themes/Forms.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <ui:InverseBoolToVisibilityConverter x:Key="H.InverseBoolToVis"/>
 
             <!-- Lista rolável e virtualizada (a "Todos" pode crescer bastante). -->
             <Style x:Key="ReminderList" TargetType="ListBox" BasedOn="{StaticResource H.BareList}">
@@ -77,6 +80,22 @@
                 </Setter>
             </Style>
 
+            <!-- Cabeçalho de seção: não foca, não seleciona. -->
+            <Style x:Key="SectionItem" TargetType="ListBoxItem">
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="AutomationProperties.Name" Value="{Binding Title}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <ContentPresenter Margin="10,14,10,4"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <ui:ReminderEntryStyleSelector x:Key="EntryStyles" RowStyle="{StaticResource ReminderRowItem}" SectionStyle="{StaticResource SectionItem}"/>
+
             <!-- Card de lista inteligente: ícone circular na cor dela, contagem mono, nome. -->
             <Style x:Key="SmartCard" TargetType="ListBoxItem">
                 <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
@@ -110,6 +129,277 @@
                 <Setter Property="Height" Value="36"/>
                 <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleName}"/>
             </Style>
+
+            <!-- Caixa de texto da edição inline: sem borda, mesma métrica do título (o -2 compensa a margem interna do TextBox). -->
+            <Style x:Key="InlineBox" TargetType="TextBox">
+                <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource H.Brush.Text}"/>
+                <Setter Property="SelectionBrush" Value="{DynamicResource H.Brush.Accent}"/>
+                <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+                <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+                <Setter Property="Margin" Value="-2,0,0,0"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False" Background="Transparent"
+                                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Chip da barra de ações rápidas: 26px, raio 999. Tag=True = ativo (acento). -->
+            <Style x:Key="EditChip" TargetType="Button">
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Padding" Value="10,0"/>
+                <Setter Property="Margin" Value="0,0,6,6"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextSecondary}"/>
+                <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+                <Setter Property="FontSize" Value="11.5"/>
+                <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" CornerRadius="999" Background="Transparent" BorderThickness="1"
+                                    BorderBrush="{DynamicResource H.Brush.Line}" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                                </Trigger>
+                                <Trigger Property="Tag" Value="True">
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource H.Brush.Accent}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource H.Brush.Accent}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Botão de escolha rápida dentro do popup de data. -->
+            <Style x:Key="QuickChoice" TargetType="Button" BasedOn="{StaticResource EditChip}">
+                <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+            </Style>
+
+            <!-- ===== Editor inline (novo ou existente): título, nota e a barra de chips ===== -->
+            <DataTemplate x:Key="ReminderEditor" DataType="{x:Type vm:ReminderEditorViewModel}">
+                <StackPanel>
+                    <TextBox Style="{StaticResource InlineBox}" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                             ui:FocusOnLoad.Enabled="True" AutomationProperties.Name="{x:Static s:Strings.ReminderTitleField}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding SubmitCommand}"/>
+                            <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+
+                    <TextBox Style="{StaticResource InlineBox}" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}"
+                             Foreground="{DynamicResource H.Brush.TextSecondary}" FontSize="{DynamicResource H.FontSize.S}" Margin="-2,2,0,0"
+                             AutomationProperties.Name="{x:Static s:Strings.ReminderNoteField}"
+                             Visibility="{Binding ShowNote, Converter={StaticResource H.BoolToVis}}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding SubmitCommand}"/>
+                            <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+
+                    <WrapPanel Margin="0,8,0,0">
+                        <!-- Data -->
+                        <Button x:Name="DateChip" Style="{StaticResource EditChip}" Command="{Binding OpenDatePopupCommand}"
+                                Tag="{Binding HasDate}" AutomationProperties.Name="{x:Static s:Strings.ChooseDate}"
+                                AutomationProperties.HelpText="{Binding DateChipText}">
+                            <StackPanel Orientation="Horizontal">
+                                <c:Icon Geometry="{DynamicResource H.Icon.Calendar}" Size="12" Margin="0,0,5,0"/>
+                                <TextBlock Text="{Binding DateChipText}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <!-- Bandeira -->
+                        <Button Style="{StaticResource EditChip}" Command="{Binding ToggleFlagCommand}" Tag="{Binding Flagged}"
+                                Padding="8,0" AutomationProperties.Name="{x:Static s:Strings.ReminderFlag}" ToolTip="{x:Static s:Strings.ReminderFlag}">
+                            <c:Icon Geometry="{DynamicResource H.Icon.Flag}" Size="12"/>
+                        </Button>
+                        <!-- Nota -->
+                        <Button Style="{StaticResource EditChip}" Command="{Binding ToggleNoteCommand}" Tag="{Binding HasNote}"
+                                AutomationProperties.Name="{x:Static s:Strings.ChipNote}">
+                            <StackPanel Orientation="Horizontal">
+                                <c:Icon Geometry="{DynamicResource H.Icon.Pencil}" Size="12" Margin="0,0,5,0"/>
+                                <TextBlock Text="{x:Static s:Strings.ChipNote}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <!-- Lista -->
+                        <Button x:Name="ListChip" Style="{StaticResource EditChip}" Command="{Binding OpenListPopupCommand}"
+                                AutomationProperties.Name="{x:Static s:Strings.ChooseList}" AutomationProperties.HelpText="{Binding ListName}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Fill="{Binding ListBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding ListName}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+
+                    <!-- Popup de data: escolhas rápidas, data e hora digitadas, repetição. -->
+                    <Popup IsOpen="{Binding IsDatePopupOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=DateChip}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Style="{StaticResource H.PopupCard}" Width="260" Margin="0,4,24,32">
+                            <Border.InputBindings>
+                                <KeyBinding Key="Escape" Command="{Binding ClosePopupsCommand}"/>
+                                <KeyBinding Key="Enter" Command="{Binding ClosePopupsCommand}"/>
+                            </Border.InputBindings>
+                            <StackPanel>
+                                <WrapPanel>
+                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.SmartListToday}"
+                                            Command="{Binding QuickDateCommand}" CommandParameter="today"/>
+                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.QuickTomorrow}"
+                                            Command="{Binding QuickDateCommand}" CommandParameter="tomorrow"/>
+                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.QuickNextWeek}"
+                                            Command="{Binding QuickDateCommand}" CommandParameter="nextweek"/>
+                                    <Button Style="{StaticResource QuickChoice}" Content="{x:Static s:Strings.ReminderNoDate}"
+                                            Command="{Binding QuickDateCommand}" CommandParameter="none"/>
+                                </WrapPanel>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="80"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Static s:Strings.LabelDate}" Style="{StaticResource H.FieldLabel}"/>
+                                        <TextBox Style="{StaticResource H.MonoField}" Text="{Binding DateText, UpdateSourceTrigger=PropertyChanged}"
+                                                 AutomationProperties.Name="{x:Static s:Strings.LabelDate}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="{x:Static s:Strings.LabelTime}" Style="{StaticResource H.FieldLabel}"/>
+                                        <TextBox Style="{StaticResource H.MonoField}" Text="{Binding TimeText, UpdateSourceTrigger=PropertyChanged}"
+                                                 AutomationProperties.Name="{x:Static s:Strings.LabelTime}"/>
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="{x:Static s:Strings.LabelRepeat}" Style="{StaticResource H.FieldLabel}" Margin="0,10,0,0"/>
+                                <ComboBox ItemsSource="{Binding RepeatOptions}" SelectedItem="{Binding SelectedRepeat}" DisplayMemberPath="Label"
+                                          AutomationProperties.Name="{x:Static s:Strings.LabelRepeat}"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <!-- Popup de lista. -->
+                    <Popup IsOpen="{Binding IsListPopupOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ListChip}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Style="{StaticResource H.PopupCard}" Width="220" Padding="6" Margin="0,4,24,32">
+                            <Border.InputBindings>
+                                <KeyBinding Key="Escape" Command="{Binding ClosePopupsCommand}"/>
+                            </Border.InputBindings>
+                            <ItemsControl ItemsSource="{Binding ListOptions}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{DynamicResource H.ListButton}" Command="{Binding DataContext.ChooseListCommand, ElementName=ListChip}"
+                                                CommandParameter="{Binding Id}" AutomationProperties.Name="{Binding Name}">
+                                            <DockPanel>
+                                                <c:Icon DockPanel.Dock="Right" Geometry="{DynamicResource H.Icon.Check}" Size="12"
+                                                        Visibility="{Binding IsCurrent, Converter={StaticResource H.BoolToVis}}"/>
+                                                <Ellipse Width="10" Height="10" Fill="{Binding Brush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                            </DockPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- ===== Cabeçalho de seção: 11px, bold, espaçado, terciário ===== -->
+            <DataTemplate DataType="{x:Type vm:ReminderSectionViewModel}">
+                <TextBlock Text="{Binding Title, Converter={x:Static ui:LetterSpacingConverter.Instance}}" FontSize="11" FontWeight="Bold"
+                           FontFamily="{DynamicResource H.Font.UI}" Foreground="{DynamicResource H.Brush.TextTertiary}"/>
+            </DataTemplate>
+
+            <!-- ===== Lembrete ===== -->
+            <DataTemplate DataType="{x:Type vm:ReminderRowViewModel}">
+                <Grid Background="Transparent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{x:Static s:Strings.ReminderEdit}" Command="{Binding BeginEditCommand}">
+                                <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Pencil}" Size="14"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="{Binding SnoozeHeader}" Command="{Binding SnoozeCommand}"
+                                      Visibility="{Binding CanSnooze, Converter={StaticResource H.BoolToVis}}">
+                                <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.AlarmClock}" Size="14"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="{Binding FlagHeader}" Command="{Binding ToggleFlagCommand}">
+                                <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Flag}" Size="14"/></MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Header="{x:Static s:Strings.ReminderDelete}" Command="{Binding DeleteCommand}"
+                                      Style="{DynamicResource H.MenuItem.Danger}">
+                                <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Trash}" Size="14"/></MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </Grid.ContextMenu>
+
+                    <!-- Focusable=False: o Tab para na linha (e Espaço conclui), não no checkbox. -->
+                    <CheckBox Style="{DynamicResource H.TaskCheck}" VerticalAlignment="Top" Margin="0,1,0,0" Focusable="False"
+                              Command="{Binding CompleteCommand}" AutomationProperties.Name="{Binding CompleteName}"/>
+
+                    <!-- Lendo: título (clique edita), nota, quando · repetição · lista -->
+                    <StackPanel Grid.Column="1" Margin="10,0,8,0"
+                                Visibility="{Binding IsEditing, Converter={StaticResource H.InverseBoolToVis}}">
+                        <TextBlock FontSize="{DynamicResource H.FontSize.M}" TextWrapping="Wrap" Style="{StaticResource H.Text}" Cursor="IBeam">
+                            <TextBlock.InputBindings>
+                                <MouseBinding MouseAction="LeftClick" Command="{Binding BeginEditCommand}"/>
+                            </TextBlock.InputBindings>
+                            <Run FontWeight="Bold" Foreground="{DynamicResource H.Brush.Accent}">
+                                <Run.Style>
+                                    <!-- Text só pelo estilo: um Text local venceria o gatilho. -->
+                                    <Style TargetType="Run">
+                                        <Setter Property="Text" Value="!! "/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsHighPriority}" Value="False">
+                                                <Setter Property="Text" Value=""/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Run.Style>
+                            </Run><Run Text="{Binding Title, Mode=OneWay}"/>
+                        </TextBlock>
+                        <TextBlock Text="{Binding Note}" Style="{StaticResource H.Text.Secondary}" FontSize="{DynamicResource H.FontSize.S}"
+                                   TextTrimming="CharacterEllipsis" Margin="0,2,0,0"
+                                   Visibility="{Binding HasNote, Converter={StaticResource H.BoolToVis}}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <Ellipse Width="6" Height="6" Fill="{Binding ListBrush}" VerticalAlignment="Center" Margin="0,1,6,0"/>
+                            <TextBlock Style="{StaticResource H.Text.Tertiary}">
+                                <Run Text="{Binding DateText, Mode=OneWay}">
+                                    <Run.Style>
+                                        <Style TargetType="Run">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLate}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource H.Brush.Danger}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Run.Style>
+                                </Run><Run Text="{Binding ExtraText, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Editando: a caixa de texto no lugar do título + chips -->
+                    <ContentControl Grid.Column="1" Margin="10,0,8,0" Focusable="False" IsTabStop="False"
+                                    Content="{Binding Editor}" ContentTemplate="{StaticResource ReminderEditor}"
+                                    Visibility="{Binding IsEditing, Converter={StaticResource H.BoolToVis}}"/>
+
+                    <c:Icon Grid.Column="2" Geometry="{DynamicResource H.Icon.Flag}" Size="12" VerticalAlignment="Top" Margin="0,3,0,0"
+                            Foreground="{DynamicResource H.Brush.Accent}"
+                            AutomationProperties.Name="{x:Static s:Strings.ReminderFlagged}"
+                            Visibility="{Binding IsFlagged, Converter={StaticResource H.BoolToVis}}"/>
+                </Grid>
+            </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -121,6 +411,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -177,7 +468,7 @@
             </ListBox>
 
             <!-- ===== Cabeçalho da lista ativa: título 20 na cor dela + contagem mono 18 ===== -->
-            <DockPanel Grid.Row="2" Margin="20,8,20,6">
+            <DockPanel Grid.Row="2" Margin="20,8,20,2">
                 <TextBlock DockPanel.Dock="Right" Text="{Binding Active.Count}" Style="{StaticResource H.Text.Mono}" FontSize="18"
                            Foreground="{Binding Active.Brush}" VerticalAlignment="Center"/>
                 <TextBlock Text="{Binding Active.Name}" FontSize="20" FontWeight="Bold" Foreground="{Binding Active.Brush}"
@@ -190,90 +481,47 @@
                            FontSize="{DynamicResource H.FontSize.M}" Margin="20,8"
                            Visibility="{Binding IsEmpty, Converter={StaticResource H.BoolToVis}}"/>
 
-                <ListBox x:Name="ItemsList" Style="{StaticResource ReminderList}" ItemContainerStyle="{StaticResource ReminderRowItem}"
+                <ListBox x:Name="ItemsList" Style="{StaticResource ReminderList}" ItemContainerStyleSelector="{StaticResource EntryStyles}"
                          ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                          Padding="10,0" KeyboardNavigation.TabNavigation="Once"
                          AutomationProperties.Name="{Binding Active.Name}">
                     <ListBox.InputBindings>
                         <KeyBinding Key="Space" Command="{Binding CompleteSelectedCommand}"/>
                     </ListBox.InputBindings>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Background="Transparent">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="{Binding SnoozeHeader}" Command="{Binding SnoozeCommand}"
-                                                  Visibility="{Binding CanSnooze, Converter={StaticResource H.BoolToVis}}">
-                                            <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.AlarmClock}" Size="14"/></MenuItem.Icon>
-                                        </MenuItem>
-                                        <MenuItem Header="{Binding FlagHeader}" Command="{Binding ToggleFlagCommand}">
-                                            <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Flag}" Size="14"/></MenuItem.Icon>
-                                        </MenuItem>
-                                        <Separator/>
-                                        <MenuItem Header="{x:Static s:Strings.ReminderDelete}" Command="{Binding DeleteCommand}"
-                                                  Style="{DynamicResource H.MenuItem.Danger}">
-                                            <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Trash}" Size="14"/></MenuItem.Icon>
-                                        </MenuItem>
-                                    </ContextMenu>
-                                </Grid.ContextMenu>
-
-                                <!-- Focusable=False: o Tab para na linha (e Espaço conclui), não no checkbox. -->
-                                <CheckBox Style="{DynamicResource H.TaskCheck}" VerticalAlignment="Top" Margin="0,1,0,0" Focusable="False"
-                                          Command="{Binding CompleteCommand}" AutomationProperties.Name="{Binding CompleteName}"/>
-
-                                <StackPanel Grid.Column="1" Margin="10,0,8,0">
-                                    <TextBlock FontSize="{DynamicResource H.FontSize.M}" TextWrapping="Wrap" Style="{StaticResource H.Text}">
-                                        <Run FontWeight="Bold" Foreground="{DynamicResource H.Brush.Accent}">
-                                            <Run.Style>
-                                                <!-- Text só pelo estilo: um Text local venceria o gatilho. -->
-                                                <Style TargetType="Run">
-                                                    <Setter Property="Text" Value="!! "/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsHighPriority}" Value="False">
-                                                            <Setter Property="Text" Value=""/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Run.Style>
-                                        </Run><Run Text="{Binding Title, Mode=OneWay}"/>
-                                    </TextBlock>
-                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                        <Ellipse Width="6" Height="6" Fill="{Binding ListBrush}" VerticalAlignment="Center" Margin="0,1,6,0"/>
-                                        <TextBlock Style="{StaticResource H.Text.Tertiary}">
-                                            <Run Text="{Binding DateText, Mode=OneWay}">
-                                                <Run.Style>
-                                                    <Style TargetType="Run">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsLate}" Value="True">
-                                                                <Setter Property="Foreground" Value="{DynamicResource H.Brush.Danger}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Run.Style>
-                                            </Run><Run Text="{Binding ExtraText, Mode=OneWay}"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </StackPanel>
-
-                                <c:Icon Grid.Column="2" Geometry="{DynamicResource H.Icon.Flag}" Size="12" VerticalAlignment="Top" Margin="0,3,0,0"
-                                        Foreground="{DynamicResource H.Brush.Accent}"
-                                        AutomationProperties.Name="{x:Static s:Strings.ReminderFlagged}"
-                                        Visibility="{Binding IsFlagged, Converter={StaticResource H.BoolToVis}}"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
 
+            <!-- ===== Lembrete novo: botão, ou a linha em edição ===== -->
+            <Grid Grid.Row="4" Margin="20,4,20,8">
+                <Button Style="{DynamicResource H.DashedButton}" Command="{Binding NewReminderCommand}" Height="36"
+                        AutomationProperties.Name="{x:Static s:Strings.RemindersNew}"
+                        Visibility="{Binding IsDrafting, Converter={StaticResource H.InverseBoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <c:Icon Geometry="{DynamicResource H.Icon.Plus}" Size="14" Margin="0,0,6,0"/>
+                        <TextBlock Text="{x:Static s:Strings.RemindersNew}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Grid Visibility="{Binding IsDrafting, Converter={StaticResource H.BoolToVis}}" Margin="10,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Círculo vazio no lugar do checkbox, só visual -->
+                    <Ellipse Width="17" Height="17" Stroke="{DynamicResource H.Brush.TextTertiary}" StrokeThickness="1.5"
+                             VerticalAlignment="Top" Margin="0,1,0,0"/>
+                    <ContentControl Grid.Column="1" Margin="10,0,0,0" Focusable="False" IsTabStop="False"
+                                    Content="{Binding Draft}" ContentTemplate="{StaticResource ReminderEditor}"/>
+                </Grid>
+            </Grid>
+
             <!-- ===== Minhas listas ===== -->
-            <Border Grid.Row="4" BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="0,1,0,0" Padding="10,10,10,12">
+            <Border Grid.Row="5" BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="0,1,0,0" Padding="10,10,10,12">
                 <StackPanel>
-                    <TextBlock Text="{x:Static s:Strings.MyLists}" Style="{StaticResource H.Text.Caption}" Margin="10,0,0,4"/>
+                    <TextBlock Text="{Binding Source={x:Static s:Strings.MyLists}, Converter={x:Static ui:LetterSpacingConverter.Instance}}"
+                               AutomationProperties.Name="{x:Static s:Strings.MyLists}"
+                               FontSize="11" FontWeight="Bold" FontFamily="{DynamicResource H.Font.UI}"
+                               Foreground="{DynamicResource H.Brush.TextTertiary}" Margin="10,0,0,4"/>
                     <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto" Focusable="False">
                         <ListBox Style="{StaticResource H.BareList}" ItemContainerStyle="{StaticResource ListRowItem}"
                                  ItemsSource="{Binding UserLists}" SelectedItem="{Binding SelectedList, Mode=TwoWay}"

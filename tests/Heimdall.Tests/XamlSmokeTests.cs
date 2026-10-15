@@ -73,7 +73,30 @@ public class XamlSmokeTests
             window.Show();
             window.UpdateLayout();
             var items = (ListBox)window.FindName("ItemsList");
-            Assert.Equal(3, items.Items.Count);
+            // Atrasado + 2 de hoje, com os cabeçalhos ATRASADOS e HOJE.
+            Assert.Equal(5, items.Items.Count);
+
+            // Edição inline aberta (linha e rascunho) com os popups de data e lista abertos.
+            var vm = (RemindersWindowViewModel)window.DataContext;
+            var row = vm.Items.OfType<ReminderRowViewModel>().First();
+            row.BeginEditCommand.Execute(null);
+            row.Editor!.IsDatePopupOpen = true;
+            window.UpdateLayout();
+            row.Editor.IsDatePopupOpen = false;
+            row.Editor.IsListPopupOpen = true;
+            window.UpdateLayout();
+            row.Editor.CancelCommand.Execute(null);
+            vm.NewReminderCommand.Execute(null);
+            vm.Draft!.Title = "Teste amanhã 9h";
+            vm.Draft.ShowNote = true;
+            window.UpdateLayout();
+            vm.Draft.CancelCommand.Execute(null);
+
+            foreach (var smart in vm.SmartLists)
+            {
+                vm.SelectedSmart = smart;
+                window.UpdateLayout();
+            }
 
             var flyoutHost = new Window { Left = -10000, Top = -10000, ShowActivated = false, Width = 300, Height = 400 };
             flyoutHost.Content = new RemindersFlyout(new RemindersFlyoutViewModel(cfg, new Border()));

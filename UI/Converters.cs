@@ -52,3 +52,17 @@ public sealed class ResourceKeyConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
+
+/// <summary>
+/// Espaçamento entre letras (o WPF não tem): intercala hair spaces (U+200A, ~1px em 11px —
+/// o 0.08em dos cabeçalhos de seção). Só pra exibição: o nome acessível usa o texto original.
+/// </summary>
+public sealed class LetterSpacingConverter : IValueConverter
+{
+    public static readonly LetterSpacingConverter Instance = new();
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is string text ? string.Join(' ', text.ToCharArray()) : value;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}

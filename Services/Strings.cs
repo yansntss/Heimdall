@@ -158,6 +158,18 @@ public static class Strings
     public static string MyListsName => T("Minhas listas", "My lists");
     public static string ReminderNoDate => T("Sem data", "No date");
     public static string RemindersListEmpty => T("Nenhum lembrete aqui", "No reminders here");
+    public static string RepeatNone => T("Não repete", "Doesn't repeat");
+    public static string ChipDate => T("Data", "Date");
+    public static string ChipNote => T("Nota", "Note");
+    public static string ChooseDate => T("Escolher data", "Choose date");
+    public static string ChooseList => T("Escolher lista", "Choose list");
+    public static string ReminderTitleField => T("Título do lembrete", "Reminder title");
+    public static string ReminderNoteField => T("Nota do lembrete", "Reminder note");
+    public static string QuickTomorrow => T("Amanhã", "Tomorrow");
+    public static string QuickNextWeek => T("Próx. semana", "Next week");
+    public static string LabelDate => T("Data", "Date");
+    public static string LabelTime => T("Hora", "Time");
+    public static string LabelRepeat => T("Repetir", "Repeat");
     public static string ReminderListCount(string name, int count) => T($"{name}, {count} lembrete(s)", $"{name}, {count} reminder(s)");
     public static string ReminderCompleteNamed(string text) => T($"Concluir lembrete: {text}", $"Complete reminder: {text}");
 
