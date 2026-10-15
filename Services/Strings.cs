@@ -134,6 +134,14 @@ public static class Strings
     public static string ReminderMetaMonthly => T("Mensal", "Monthly");
     public static string ReminderMetaYearly => T("Anual", "Yearly");
     public static string ReminderDefaultList => T("Lembretes", "Reminders");
+    public static string ReminderMetaToday => T("Hoje", "Today");
+    public static string ReminderMetaAllDay => T("Dia todo", "All day");
+    public static string RemindersOverdue => T("ATRASADOS", "OVERDUE");
+    public static string ReminderSnoozeMinutes(int minutes) => T($"Adiar {minutes} min", $"Snooze {minutes} min");
+    public static string ReminderFlag => T("Sinalizar", "Flag");
+    public static string ReminderUnflag => T("Remover sinalização", "Unflag");
+    public static string ReminderFlagged => T("Sinalizado", "Flagged");
+    public static string ReminderHighPriority => T("Prioridade alta", "High priority");
     public static string ReminderCompleteNamed(string text) => T($"Concluir: {text}", $"Complete: {text}");
 
     public static string FlyoutSystemTitle => T("Heimdall — Sistema", "Heimdall — System");

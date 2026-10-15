@@ -29,8 +29,12 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - **Mídia** (clique na capa ou no título): capa grande, barra de progresso arrastável
     para pular na faixa, controles e volume do app.
   - **Lembretes de hoje** (clique no sino): lista com checkbox para concluir, horário de
-    cada um e botão "Novo lembrete". Lembretes recorrentes concluídos por aqui não
-    disparam mais naquele dia.
+    cada um e botão "Novo lembrete".
+    - Os atrasados de dias anteriores ficam numa seção própria, e a hora que já passou
+      aparece em destaque.
+    - Cada lembrete mostra a cor da lista, a repetição, a bandeira e a prioridade alta.
+    - Clique direito num lembrete: Editar, Adiar (só nos vencidos), Sinalizar e Excluir.
+    - Concluir um lembrete que se repete pula para a próxima ocorrência.
   - **Sistema** (clique no chip de CPU): uso de CPU, memória e disco, tempo ligado,
     liga/desliga do modo overlay, ocultar barra e Configurações.
 - Tela de Configurações nova: janela redimensionável com barra de título própria,

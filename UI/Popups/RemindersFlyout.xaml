@@ -4,6 +4,95 @@
              xmlns:c="clr-namespace:Heimdall.UI.Controls"
              xmlns:s="clr-namespace:Heimdall.Services">
 
+    <UserControl.Resources>
+        <!-- Uma linha: checkbox, título (prioridade e bandeira), meta com a cor da lista, hora à direita.
+             Clique direito: Editar, Adiar (só vencidos), Sinalizar, Excluir. -->
+        <DataTemplate x:Key="ReminderRow">
+            <Grid Margin="2,6" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{x:Static s:Strings.ReminderEdit}" Command="{Binding EditCommand}">
+                            <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Pencil}" Size="14"/></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{Binding SnoozeHeader}" Command="{Binding SnoozeCommand}"
+                                  Visibility="{Binding CanSnooze, Converter={StaticResource H.BoolToVis}}">
+                            <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.AlarmClock}" Size="14"/></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="{Binding FlagHeader}" Command="{Binding ToggleFlagCommand}">
+                            <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Flag}" Size="14"/></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem Header="{x:Static s:Strings.ReminderDelete}" Command="{Binding DeleteCommand}"
+                                  Style="{DynamicResource H.MenuItem.Danger}">
+                            <MenuItem.Icon><c:Icon Geometry="{DynamicResource H.Icon.Trash}" Size="14"/></MenuItem.Icon>
+                        </MenuItem>
+                    </ContextMenu>
+                </Grid.ContextMenu>
+
+                <CheckBox Style="{DynamicResource H.TaskCheck}" VerticalAlignment="Top" Margin="0,1,0,0"
+                          IsChecked="{Binding IsDone, Mode=OneWay}" Command="{Binding CompleteCommand}"
+                          AutomationProperties.Name="{Binding CompleteName}"/>
+
+                <StackPanel Grid.Column="1" Margin="10,0,8,0">
+                    <DockPanel>
+                        <c:Icon DockPanel.Dock="Right" Geometry="{DynamicResource H.Icon.Flag}" Size="12" Margin="6,2,0,0"
+                                VerticalAlignment="Top" Foreground="{DynamicResource H.Brush.Accent}"
+                                AutomationProperties.Name="{x:Static s:Strings.ReminderFlagged}"
+                                Visibility="{Binding IsFlagged, Converter={StaticResource H.BoolToVis}}"/>
+                        <TextBlock FontSize="{DynamicResource H.FontSize.M}" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource H.Text}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextTertiary}"/>
+                                            <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run Foreground="{DynamicResource H.Brush.Accent}" FontWeight="Bold"
+                                 AutomationProperties.Name="{x:Static s:Strings.ReminderHighPriority}">
+                                <Run.Style>
+                                    <!-- Text só pelo estilo: um Text local venceria o gatilho e o "!!" apareceria sempre. -->
+                                    <Style TargetType="Run">
+                                        <Setter Property="Text" Value="!! "/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsHighPriority}" Value="False">
+                                                <Setter Property="Text" Value=""/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Run.Style>
+                            </Run><Run Text="{Binding Text, Mode=OneWay}"/>
+                        </TextBlock>
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <Ellipse Width="6" Height="6" Fill="{Binding ListBrush}" VerticalAlignment="Center" Margin="0,1,6,0"/>
+                        <TextBlock Text="{Binding Meta}" Style="{DynamicResource H.Text.Tertiary}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock Grid.Column="2" Text="{Binding TimeText}" VerticalAlignment="Top" Margin="0,1,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource H.Text.Mono}">
+                            <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextSecondary}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLate}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource H.Brush.Danger}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
     <StackPanel>
         <!-- Cabeçalho: HOJE + contador -->
         <DockPanel Margin="2,0,2,8">
@@ -15,42 +104,15 @@
         <TextBlock Text="{x:Static s:Strings.RemindersEmpty}" Style="{DynamicResource H.Text.Secondary}" FontSize="{DynamicResource H.FontSize.M}"
                    Margin="2,6,2,10" Visibility="{Binding IsEmpty, Converter={StaticResource H.BoolToVis}}"/>
 
-        <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="2,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+        <!-- Atrasados (de dias anteriores) primeiro, com legenda própria -->
+        <StackPanel Visibility="{Binding HasOverdue, Converter={StaticResource H.BoolToVis}}">
+            <TextBlock Text="{x:Static s:Strings.RemindersOverdue}" Style="{DynamicResource H.Text.Caption}"
+                       Foreground="{DynamicResource H.Brush.Danger}" Margin="2,0,2,2"/>
+            <ItemsControl ItemsSource="{Binding Overdue}" ItemTemplate="{StaticResource ReminderRow}" Focusable="False"/>
+            <Border Height="1" Background="{DynamicResource H.Brush.Line}" Margin="2,6,2,6"/>
+        </StackPanel>
 
-                        <CheckBox Style="{DynamicResource H.TaskCheck}" VerticalAlignment="Top" Margin="0,1,0,0"
-                                  IsChecked="{Binding IsDone, Mode=OneWay}" Command="{Binding CompleteCommand}"
-                                  AutomationProperties.Name="{Binding CompleteName}"/>
-
-                        <StackPanel Grid.Column="1" Margin="10,0,8,0">
-                            <TextBlock Text="{Binding Text}" FontSize="{DynamicResource H.FontSize.M}" TextWrapping="Wrap">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock" BasedOn="{StaticResource H.Text}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDone}" Value="True">
-                                                <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextTertiary}"/>
-                                                <Setter Property="TextDecorations" Value="Strikethrough"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Text="{Binding Meta}" Style="{DynamicResource H.Text.Tertiary}" Margin="0,2,0,0"/>
-                        </StackPanel>
-
-                        <TextBlock Grid.Column="2" Text="{Binding TimeText}" Style="{DynamicResource H.Text.Mono}"
-                                   Foreground="{DynamicResource H.Brush.TextSecondary}" VerticalAlignment="Top" Margin="0,1,0,0"/>
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ReminderRow}" Focusable="False"/>
 
         <Button Style="{DynamicResource H.DashedButton}" Margin="0,8,0,0" Command="{Binding NewReminderCommand}"
                 AutomationProperties.Name="{x:Static s:Strings.RemindersNew}">
