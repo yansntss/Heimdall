@@ -158,6 +158,30 @@ public static class Strings
     public static string ReminderNoDate => T("Sem data", "No date");
     public static string SuggestNextMonday => T("Próxima segunda", "Next Monday");
     public static string ToastName => T("Lembrete", "Reminder");
+
+    // ---------- Configurações → Lembretes ----------
+
+    public static string LembretesSubtitle => T("Avisos, adiamento e as suas listas. Os lembretes em si ficam na janela de lembretes.",
+        "Notices, snooze and your lists. The reminders themselves live in the reminders window.");
+    public static string LabelReminderNotices => T("Avisos", "Notices");
+    public static string LabelDefaultTime => T("Hora padrão", "Default time");
+    public static string HintDefaultTime => T("Lembrete com data e sem hora avisa neste horário.", "Reminders with a date but no time notify at this time.");
+    public static string LabelSnoozeMinutes => T("Adiar por (minutos)", "Snooze for (minutes)");
+    public static string HintSnoozeMinutes => T("Usado no \"Adiar\" do aviso e do menu.", "Used by \"Snooze\" in notices and menus.");
+    public static string LabelReminderSound => T("Tocar som no aviso", "Play a sound on notices");
+    public static string HintReminderSound => T("Desligado por padrão.", "Off by default.");
+    public static string LabelShowCompleted => T("Mostrar concluídos", "Show completed");
+    public static string HintShowCompleted => T("Na janela de lembretes, os concluídos aparecem no fim de cada lista.", "In the reminders window, completed ones show at the end of each list.");
+    public static string LabelMyListsSettings => T("Minhas listas", "My lists");
+    public static string HintMyLists => T("Excluir uma lista manda os lembretes dela para a lista padrão.", "Deleting a list moves its reminders to the default list.");
+    public static string AddList => T("Nova lista", "New list");
+    public static string NewListName => T("Nova lista", "New list");
+    public static string ListNameField => T("Nome da lista", "List name");
+    public static string ChangeListColor => T("Trocar cor", "Change color");
+    public static string DeleteList => T("Excluir", "Delete");
+    public static string ConfirmDeleteList => T("Confirmar", "Confirm");
+    public static string DefaultListBadge => T("Padrão", "Default");
+    public static string ReminderCount(int count) => count == 1 ? T("1 lembrete", "1 reminder") : T($"{count} lembretes", $"{count} reminders");
     public static string AllClear => T("Tudo em ordem", "All clear");
     public static string NothingScheduled => T("Nada agendado por enquanto", "Nothing scheduled yet");
     public static string NextUp(string title, string when) => T($"Próximo: {title} · {when}", $"Next: {title} · {when}");
@@ -460,18 +484,6 @@ public static class Strings
 
     // Lembretes
     public static string SectionLembretes => T("Lembretes", "Reminders");
-    public static string AddReminder => T("Adicionar lembrete", "Add reminder");
-    public static string RemoveSelected => T("Remover selecionado", "Remove selected");
-    public static string ColumnText => T("Texto", "Text");
-    public static string ColumnDate => T("Data (dd/MM/aaaa)", "Date (dd/MM/yyyy)");
-    public static string ColumnTime => T("Hora", "Time");
-    public static string ColumnRecurrence => T("Recorrência", "Recurrence");
-    public static string ColumnDays => T("Dias (Weekly)", "Days (Weekly)");
-    public static string ColumnCompleted => T("Concluído", "Completed");
-    public static string NewReminderDefaultText => T("Novo lembrete", "New reminder");
-    public static string InvalidTimeMessage(string text) => T(
-        $"Data ou horário inválido em \"{text}\" — use dd/MM/aaaa e HH:mm (ou deixe vazio).",
-        $"Invalid date or time in \"{text}\" — use dd/MM/yyyy and HH:mm (or leave empty).");
 
     // Sobre
     public static string SectionSobre => T("Sobre", "About");

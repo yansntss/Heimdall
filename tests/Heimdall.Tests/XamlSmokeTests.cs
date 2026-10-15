@@ -134,10 +134,16 @@ public class XamlSmokeTests
             Style S(string key) => (Style)app.FindResource(key);
             var calendar = new Heimdall.UI.Controls.CalendarInline { SelectedDate = new DateOnly(2026, 10, 20) };
             var options = new ListBox { ItemContainerStyle = S("OptionRowStyle"), ItemsSource = new[] { "Nunca", "Diariamente" }, SelectedIndex = 1 };
+            var settingsDraft = SampleConfig();
+            var remindersPanel = new Heimdall.UI.Settings.RemindersPanel
+            {
+                DataContext = new RemindersSettingsViewModel(settingsDraft, settingsDraft.Reminders)
+            };
             var panel = new StackPanel
             {
                 Children =
                 {
+                    remindersPanel,
                     calendar,
                     new System.Windows.Controls.Primitives.ToggleButton { Style = S("SwitchToggleStyle"), IsChecked = true },
                     new Button { Style = S("ChipButtonStyle"), Content = "Hoje, 17:00", Tag = true },

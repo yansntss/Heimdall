@@ -45,11 +45,6 @@
                 <Setter Property="Focusable" Value="False"/>
             </Style>
 
-            <!-- Checkbox das colunas da tabela de lembretes (o DataGrid ignora o estilo implícito). -->
-            <Style x:Key="TableCheck" TargetType="CheckBox" BasedOn="{StaticResource H.TaskCheck}">
-                <Setter Property="HorizontalAlignment" Value="Center"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-            </Style>
 
             <!-- Atalho em "tecla": fundo de campo, mono. -->
             <Style x:Key="KeyChip" TargetType="Border">
@@ -275,32 +270,11 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- ===== Lembretes ===== -->
-                <Grid Margin="32,8,32,24"
-                      Visibility="{Binding SelectedSection, Converter={StaticResource SectionVisibility}, ConverterParameter=lembretes}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="{x:Static s:Strings.SectionLembretes}" Style="{StaticResource H.SectionTitle}" Margin="0,0,0,16"/>
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
-                        <Button Content="{x:Static s:Strings.AddReminder}" Margin="0,0,8,0" Click="AddReminder_Click"/>
-                        <Button Content="{x:Static s:Strings.RemoveSelected}" Click="RemoveReminder_Click"/>
-                    </StackPanel>
-                    <DataGrid x:Name="RemindersGrid" Grid.Row="2" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0"
-                              AutomationProperties.Name="{x:Static s:Strings.SectionLembretes}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="{x:Static s:Strings.ColumnText}" Binding="{Binding Text}" Width="*"/>
-                            <DataGridTextColumn Header="{x:Static s:Strings.ColumnDate}" Binding="{Binding Date}" Width="100"/>
-                            <DataGridTextColumn Header="{x:Static s:Strings.ColumnTime}" Binding="{Binding Time}" Width="70"/>
-                            <DataGridComboBoxColumn x:Name="RecurrenceColumn" Header="{x:Static s:Strings.ColumnRecurrence}" SelectedItemBinding="{Binding Recurrence}" Width="100"/>
-                            <DataGridTextColumn Header="{x:Static s:Strings.ColumnDays}" Binding="{Binding Days}" Width="140"/>
-                            <DataGridCheckBoxColumn Header="{x:Static s:Strings.ColumnCompleted}" Binding="{Binding Completed}" Width="80"
-                                                    ElementStyle="{StaticResource TableCheck}" EditingElementStyle="{StaticResource TableCheck}"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
+                <!-- ===== Lembretes (MVVM) ===== -->
+                <ScrollViewer Style="{StaticResource SectionScroll}"
+                              Visibility="{Binding SelectedSection, Converter={StaticResource SectionVisibility}, ConverterParameter=lembretes}">
+                    <st:RemindersPanel DataContext="{Binding Reminders}"/>
+                </ScrollViewer>
 
                 <!-- ===== Atalhos ===== -->
                 <ScrollViewer Style="{StaticResource SectionScroll}"

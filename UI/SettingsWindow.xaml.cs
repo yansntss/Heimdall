@@ -29,7 +29,6 @@ public partial class SettingsWindow : Window
 
     private readonly SettingsViewModel _vm;
     private readonly AppConfig _cfg;
-    private readonly ObservableCollection<ReminderRow> _reminders;
     private readonly DispatcherTimer _clockPreviewTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly List<ListBox> _widgetLists = new();
     private Point? _widgetDragStart;
@@ -88,10 +87,6 @@ public partial class SettingsWindow : Window
         _widgetLists.AddRange(new[] { StartList, CenterList, EndList });
         foreach (var list in _widgetLists) EnableWidgetDragDrop(list);
 
-        // Lembretes
-        RecurrenceColumn.ItemsSource = Enum.GetValues(typeof(RepeatKind));
-        _reminders = new ObservableCollection<ReminderRow>(_cfg.Reminders.Select(ReminderRow.From));
-        RemindersGrid.ItemsSource = _reminders;
 
         // Atalhos (somente leitura: os globais registrados no App)
         ShortcutsList.ItemsSource = new[]
@@ -168,20 +163,9 @@ public partial class SettingsWindow : Window
     /// <summary>Fechar sem aplicar desfaz a prévia ao vivo (a barra volta ao que está salvo).</summary>
     private void OnClosing(object? sender, CancelEventArgs e) => _vm.Cancel();
 
-    /// <summary>Copia as seções antigas pro rascunho; false se algum lembrete tiver data ou horário inválido.</summary>
+    /// <summary>Copia as seções antigas pro rascunho. (Lembretes e Aparência já editam o rascunho direto.)</summary>
     private bool CollectLegacySections()
     {
-        RemindersGrid.CommitEdit(DataGridEditingUnit.Row, true);
-        foreach (var row in _reminders)
-        {
-            if (!row.IsValid())
-            {
-                MessageBox.Show(this, Strings.InvalidTimeMessage(row.Text), "Heimdall", MessageBoxButton.OK, MessageBoxImage.Warning);
-                _vm.SelectedSection = _vm.Sections.First(s => s.Key == "lembretes");
-                return false;
-            }
-        }
-
         _cfg.FloatingMode = FloatingModeCheck.IsChecked == true;
         _cfg.FloatingMargin = (int)FloatingMarginSlider.Value;
         _cfg.MonitorMode = (MonitorMode)MonitorModeCombo.SelectedItem;
@@ -193,7 +177,6 @@ public partial class SettingsWindow : Window
         _cfg.Clock.Style = (ClockStyle)ClockStyleCombo.SelectedItem;
         _cfg.Clock.Culture = string.IsNullOrWhiteSpace(ClockCultureBox.Text) ? "pt-BR" : ClockCultureBox.Text;
         _cfg.Clock.CustomFormat = string.IsNullOrWhiteSpace(ClockCustomFormatBox.Text) ? null : ClockCustomFormatBox.Text;
-        _cfg.Reminders = _reminders.Select(r => r.ToConfig()).ToList();
         _cfg.Language = (LanguageCombo.SelectedItem as LanguageOption)?.Value ?? _cfg.Language;
         return true;
     }
@@ -350,16 +333,6 @@ public partial class SettingsWindow : Window
         catch { /* sem navegador padrão configurado, etc. — não trava a tela por isso */ }
     }
 
-    // ---------- Lembretes ----------
-
-    private void AddReminder_Click(object sender, RoutedEventArgs e) =>
-        _reminders.Add(new ReminderRow { Text = Strings.NewReminderDefaultText });
-
-    private void RemoveReminder_Click(object sender, RoutedEventArgs e)
-    {
-        if (RemindersGrid.SelectedItem is ReminderRow row) _reminders.Remove(row);
-    }
-
     private sealed record MonitorOption(string Device, string Label)
     {
         public override string ToString() => Label;
@@ -386,72 +359,5 @@ public partial class SettingsWindow : Window
         public static WidgetRow From(WidgetEntry entry) => new() { Id = entry.Id, Pinned = entry.Pinned };
 
         public WidgetEntry ToEntry() => new(Id, Pinned);
-    }
-
-    /// <summary>
-    /// Linha editável da tabela (provisória — a seção Lembretes ganha tela própria). Data
-    /// "dd/MM/yyyy" e hora "HH:mm", vazias = sem data/sem hora. Guarda o lembrete original
-    /// pra não perder o que a tabela não mostra (id, lista, nota, bandeira, criação).
-    /// </summary>
-    private sealed class ReminderRow
-    {
-        private const string DateFormat = "dd/MM/yyyy";
-
-        public ReminderConfig? Source { get; init; }
-        public string Text { get; set; } = "";
-        public string? Date { get; set; }
-        public string? Time { get; set; }
-        public RepeatKind Recurrence { get; set; }
-        public string Days { get; set; } = "";
-        public bool Completed { get; set; }
-
-        public static ReminderRow From(ReminderConfig r) => new()
-        {
-            Text = r.Title,
-            Date = r.DueDate?.ToString(DateFormat, CultureInfo.InvariantCulture),
-            Time = r.DueTime?.ToString("HH:mm", CultureInfo.InvariantCulture),
-            Recurrence = r.Recurrence?.Kind ?? RepeatKind.None,
-            Days = string.Join(",", r.Recurrence?.Days ?? new()),
-            Completed = r.IsCompleted,
-            Source = r
-        };
-
-        public bool IsValid() =>
-            (string.IsNullOrWhiteSpace(Date) || TryDate(out _)) && (string.IsNullOrWhiteSpace(Time) || TryTime(out _));
-
-        public ReminderConfig ToConfig()
-        {
-            var r = Source ?? new ReminderConfig { CreatedAt = DateTime.Now };
-            r.Title = Text;
-            r.DueDate = TryDate(out var date) ? date : null;
-            // Hora sem data vira "hoje" — senão não teria quando disparar.
-            if (r.DueDate is null && TryTime(out _)) r.DueDate = DateOnly.FromDateTime(DateTime.Now);
-            r.DueTime = TryTime(out var time) ? time : null;
-
-            if (Recurrence == RepeatKind.None || r.DueDate is null) r.Recurrence = null;
-            else
-            {
-                var days = Days.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(d => Enum.TryParse<DayOfWeek>(d, true, out var dow) ? (DayOfWeek?)dow : null)
-                    .Where(d => d.HasValue).Select(d => d!.Value).ToList();
-                r.Recurrence = new ReminderRecurrence
-                {
-                    Kind = Recurrence,
-                    Days = days,
-                    Anchor = r.Recurrence?.Anchor ?? r.DueDate,
-                    Until = r.Recurrence?.Until
-                };
-            }
-
-            if (!Completed) r.CompletedAt = null;
-            else r.CompletedAt ??= DateTime.Now;
-            return r;
-        }
-
-        private bool TryDate(out DateOnly date) =>
-            DateOnly.TryParseExact(Date?.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
-
-        private bool TryTime(out TimeOnly time) =>
-            TimeOnly.TryParseExact(Time?.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
     }
 }

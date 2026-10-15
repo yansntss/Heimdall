@@ -77,6 +77,13 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - Com o Assistente de Foco (Não incomodar) ligado, os avisos esperam e aparecem
     juntos quando ele desliga. "Pausar lembretes" da bandeja continua valendo.
   - O som continua opcional e desligado por padrão.
+- Quando não sobra nada pendente, a janela de lembretes e o sino mostram "Tudo em ordem"
+  com o próximo lembrete agendado.
+- Opção "Mostrar concluídos": os concluídos aparecem riscados no fim de cada lista da
+  janela de lembretes, e dá para desmarcar.
+- Seção Lembretes das Configurações: hora padrão dos lembretes sem hora (09:00),
+  minutos do "Adiar" (10), som, mostrar concluídos e as suas listas (criar, renomear,
+  trocar a cor e excluir; os lembretes de uma lista excluída vão para a padrão).
 - Tela de Configurações nova: janela redimensionável com barra de título própria,
   menu lateral (Geral, Aparência, Relógio, Widgets, Lembretes, Atalhos, Sobre) e rodapé
   com **Restaurar padrões**, **Cancelar** e **Aplicar**.
@@ -129,14 +136,16 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   abrem a janela de lembretes com a linha já em edição, em vez do popup de adição rápida.
 - Na hora do lembrete aparece o aviso novo, no lugar do chip piscando no widget de
   lembretes. O widget continua mostrando os lembretes sem data.
-- A tabela de lembretes das Configurações agora tem data e hora em colunas separadas.
+- A tabela de lembretes das Configurações saiu: criar e editar lembretes agora é na
+  janela de lembretes, e a seção Lembretes ficou só com as preferências e as listas.
 
 ### Corrigido
 
+- Clicar em Aplicar nas Configurações desfazia o que tinha mudado nos lembretes com a
+  janela aberta (um lembrete concluído ou criado nesse meio-tempo voltava atrás).
 - Lembretes com hora só avisavam se o widget `reminder` estivesse na barra (e ele não
   vem no layout padrão), e o aviso podia atrasar até 1 minuto. Agora o aviso sai na
   hora marcada, com ou sem o widget.
-
 - "Novo lembrete" (no sino ou no Ctrl+Shift+R) fechava o app quando o widget de
   lembretes estava na barra: o popup era ancorado na cópia escondida do overlay de tela
   cheia. Essa cópia também não "engole" mais os avisos que deviam aparecer na barra.

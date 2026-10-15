@@ -26,6 +26,7 @@ internal sealed class SettingsViewModel : ObservableObject
         Draft = ConfigService.Load();
         _savedStartWithWindows = Draft.StartWithWindows;
         Appearance = new AppearanceViewModel(Draft, Preview);
+        Reminders = new RemindersSettingsViewModel(Draft, Services.Reminders.ReminderStore.Instance.Reminders.ToList());
 
         Sections = new List<SettingsSection>
         {
@@ -47,6 +48,8 @@ internal sealed class SettingsViewModel : ObservableObject
     public AppConfig Draft { get; }
 
     public AppearanceViewModel Appearance { get; }
+
+    public RemindersSettingsViewModel Reminders { get; }
 
     public IReadOnlyList<SettingsSection> Sections { get; }
 
@@ -82,6 +85,7 @@ internal sealed class SettingsViewModel : ObservableObject
             _savedStartWithWindows = Draft.StartWithWindows;
         }
 
+        Reminders.PrepareForSave(Services.Reminders.ReminderStore.Instance.Reminders);
         ConfigService.Save(Draft);
         _previewing = false;
         CurrentApp.Reload();
