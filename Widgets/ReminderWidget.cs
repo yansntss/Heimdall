@@ -26,9 +26,6 @@ public sealed class ReminderWidget : IWidget
     /// <summary>Último widget de lembretes construído — é nele que o hotkey global Ctrl+Shift+R abre o popup.</summary>
     internal static ReminderWidget? Primary { get; private set; }
 
-    /// <summary>"Pausar lembretes" da bandeja: agendados não disparam enquanto true (só nesta sessão).</summary>
-    internal static bool Paused { get; set; }
-
     private readonly AppConfig _cfg;
     private readonly Color _accent;
     private readonly EffectiveStyle _style;
@@ -36,6 +33,9 @@ public sealed class ReminderWidget : IWidget
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMinutes(1) };
     private readonly Queue<ReminderConfig> _pendingScheduled = new();
     private readonly List<Border> _fixedChips = new();
+    private readonly List<ReminderConfig> _fixedReminders = new();
+    private readonly Dictionary<ReminderConfig, string> _fixedTitles = new();
+    private readonly ReminderStore _store = ReminderStore.Instance;
 
     private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center, Background = Brushes.Transparent };
     private readonly Button _addButton;
@@ -99,13 +99,7 @@ public sealed class ReminderWidget : IWidget
 
         var window = new QuickAddReminderWindow(_style);
         window.AnchorTo(_root, _cfg.Edge);
-        window.Saved += reminder =>
-        {
-            _cfg.Reminders.Add(reminder);
-            ConfigService.Save(_cfg);
-            RebuildFixedChips();
-            ReminderAgenda.NotifyChanged();
-        };
+        window.Saved += _store.Add;
         window.Closed += (_, _) => _quickAddWindow = null;
 
         _quickAddWindow = window;
@@ -126,10 +120,9 @@ public sealed class ReminderWidget : IWidget
         window.AnchorTo(chip, _cfg.Edge);
         window.Saved += _ =>
         {
-            ConfigService.Save(_cfg);
-            if (isFixed) RebuildFixedChips();
-            else RefreshActiveScheduledChip(reminder);
-            ReminderAgenda.NotifyChanged();
+            if (!isFixed) RefreshActiveScheduledChip(reminder);
+            // Chips fixos se refazem pelo Changed (o lembrete pode ter ganhado data e saído deles).
+            _store.Update(reminder);
         };
         window.Closed += (_, _) => _quickAddWindow = null;
 
@@ -150,57 +143,47 @@ public sealed class ReminderWidget : IWidget
         RefreshBadge();
     }
 
-    /// <summary>Refaz os chips fixos a partir do config — chamado quando a lista de hoje (dropdown do sino) conclui um lembrete.</summary>
-    internal void Refresh() => RebuildFixedChips();
-
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
 
     public void Start()
     {
         RebuildFixedChips();
+        _store.Changed += RebuildFixedChips;
         CheckSchedule();
         _clock.Start();
     }
 
+    /// <summary>
+    /// Refaz os chips fixos (lembretes sem data) quando o conjunto muda — criado, concluído
+    /// pela lista do sino, ganhou data, renomeado. Igual = não mexe, pra não piscar a cada salvamento.
+    /// </summary>
     private void RebuildFixedChips()
     {
+        var undated = _store.Undated();
+        if (undated.SequenceEqual(_fixedReminders) && undated.All(r => _fixedTitles.TryGetValue(r, out var t) && t == r.Title))
+            return;
+
         foreach (var chip in _fixedChips) _root.Children.Remove(chip);
         _fixedChips.Clear();
+        _fixedReminders.Clear();
+        _fixedTitles.Clear();
 
         // O botão "+" fica sempre por último (índice mais alto) — os chips fixos
         // entram antes dele, na ordem em que aparecem no config.
         int insertAt = _root.Children.IndexOf(_addButton);
-        foreach (var reminder in _cfg.Reminders.Where(r => r.DueDate is null && !r.IsCompleted && !string.IsNullOrWhiteSpace(r.Title)))
+        foreach (var reminder in undated)
         {
             var chip = CreateChip(reminder, isFixed: true, out _);
             _fixedChips.Add(chip);
+            _fixedReminders.Add(reminder);
+            _fixedTitles[reminder] = reminder.Title;
             _root.Children.Insert(insertAt++, chip);
         }
     }
 
     private void CheckSchedule()
     {
-        var now = DateTimeOffset.Now;
-        var tz = TimeZoneInfo.Local;
-        var defaultTime = _cfg.ReminderOptions.DefaultTime;
-        bool changed = false;
-
-        foreach (var reminder in _cfg.Reminders.ToList())
-        {
-            changed |= ReminderSchedule.CatchUp(reminder, now, defaultTime, tz);
-            if (!ReminderSchedule.IsDue(reminder, now, defaultTime, tz)) continue;
-
-            // Pausado: a ocorrência passa sem avisar (não acumula pra disparar tudo ao despausar).
-            ReminderSchedule.MarkNotified(reminder, now);
-            changed = true;
-            if (!Paused) Fire(reminder);
-        }
-
-        if (changed)
-        {
-            ConfigService.Save(_cfg);
-            ReminderAgenda.NotifyChanged();
-        }
+        foreach (var reminder in _store.CollectDue()) Fire(reminder);
     }
 
     private void Fire(ReminderConfig reminder)
@@ -210,7 +193,7 @@ public sealed class ReminderWidget : IWidget
         // agora — calcular o badge só na criação do chip perderia quem chegou depois
         // (o chip do primeiro já existia quando o segundo foi enfileirado).
         RefreshBadge();
-        if (_cfg.ReminderOptions.PlaySound) SystemSounds.Exclamation.Play();
+        if (_store.Options.PlaySound) SystemSounds.Exclamation.Play();
 
         if (!_highlighting) ShowNextHighlight();
     }
@@ -260,35 +243,32 @@ public sealed class ReminderWidget : IWidget
 
     // ---------- Concluir / Excluir ----------
 
+    // O chip sai (com animação) antes de avisar o store — o Changed refaz os fixos e
+    // tiraria o chip na hora, sem animação.
+
     private void Complete(ReminderConfig reminder, bool isFixed, Border chip)
     {
-        var now = DateTimeOffset.Now;
-        ReminderHistoryService.AppendCompleted(reminder.Title, reminder.CreatedAt, now.LocalDateTime);
+        RemoveChip(isFixed, chip);
         // Recorrente avança pra próxima ocorrência e dispara de novo nela.
-        ReminderSchedule.Complete(reminder, now);
-        ConfigService.Save(_cfg);
-        ReminderAgenda.NotifyChanged();
-
-        if (isFixed)
-        {
-            _fixedChips.Remove(chip);
-            RemoveChipWithAnimation(chip, _root);
-        }
-        else
-        {
-            DismissActiveScheduled();
-        }
+        _store.Complete(reminder);
     }
 
     private void Delete(ReminderConfig reminder, bool isFixed, Border chip)
     {
-        _cfg.Reminders.Remove(reminder);
-        ConfigService.Save(_cfg);
-        ReminderAgenda.NotifyChanged();
+        RemoveChip(isFixed, chip);
+        _store.Delete(reminder);
+    }
 
+    private void RemoveChip(bool isFixed, Border chip)
+    {
         if (isFixed)
         {
-            _fixedChips.Remove(chip);
+            int index = _fixedChips.IndexOf(chip);
+            if (index >= 0)
+            {
+                _fixedChips.RemoveAt(index);
+                _fixedReminders.RemoveAt(index);
+            }
             RemoveChipWithAnimation(chip, _root);
         }
         else
@@ -410,6 +390,7 @@ public sealed class ReminderWidget : IWidget
     public void Dispose()
     {
         _clock.Stop();
+        _store.Changed -= RebuildFixedChips;
         _quickAddWindow?.Close();
         if (Primary == this) Primary = null;
     }

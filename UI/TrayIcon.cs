@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.Services.Reminders;
 using Heimdall.UI.Menus;
 using Heimdall.Widgets;
 using Forms = System.Windows.Forms;
@@ -51,7 +52,7 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(MenuFactory.Item(Strings.TrayShowBar, "H.Icon.Eye", app.ToggleBarsVisibility, "Ctrl+Alt+H", isChecked: app.AreBarsVisible));
         _menu.Items.Add(MenuFactory.Item(Strings.MenuOverlayMode, "H.Icon.Gamepad", app.ToggleGamingMode, isChecked: cfg.GamingMode));
         _menu.Items.Add(MenuFactory.Item(Strings.TrayPauseReminders, "H.Icon.BellOff",
-            () => ReminderWidget.Paused = !ReminderWidget.Paused, isChecked: ReminderWidget.Paused));
+            () => ReminderStore.Instance.Paused = !ReminderStore.Instance.Paused, isChecked: ReminderStore.Instance.Paused));
         _menu.Items.Add(MenuFactory.Separator());
         _menu.Items.Add(MenuFactory.Item(Strings.MenuSettingsShort, "H.Icon.Settings", () => app.OpenSettings()));
         _menu.Items.Add(MenuFactory.Item(Strings.TrayCheckUpdates, "H.Icon.Download", () => _ = CheckUpdatesAsync(version), version));

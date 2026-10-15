@@ -54,6 +54,7 @@ internal sealed class ReminderItemViewModel : ObservableObject
 internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
 {
     private readonly AppConfig _cfg;
+    private readonly ReminderStore _store = ReminderStore.Instance;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private string _pendingText = "";
     private bool _isEmpty;
@@ -68,7 +69,7 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
         });
 
         Reload();
-        ReminderAgenda.Changed += Reload;
+        _store.Changed += Reload;
         // Virada do dia (e recorrentes avançando) com o dropdown aberto.
         _timer.Tick += (_, _) => Reload();
         _timer.Start();
@@ -93,9 +94,9 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
     private void Reload()
     {
         Items.Clear();
-        var now = DateTime.Now;
-        foreach (var reminder in ReminderAgenda.Today(_cfg, now))
-            Items.Add(new ReminderItemViewModel(reminder, DateOnly.FromDateTime(now), Complete));
+        var today = _store.Today;
+        foreach (var reminder in _store.TodayAgenda())
+            Items.Add(new ReminderItemViewModel(reminder, today, Complete));
 
         IsEmpty = Items.Count == 0;
         PendingText = Strings.RemindersPending(Items.Count(i => !i.IsDone));
@@ -105,13 +106,13 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
     {
         if (item.IsDone) return;
         item.IsDone = true;
-        // Dispara ReminderAgenda.Changed → Reload: fixo some da lista, agendado fica marcado.
-        ReminderActions.Complete(_cfg, item.Reminder);
+        // Dispara Changed → Reload: concluído sai da lista, recorrente some até a próxima.
+        _store.Complete(item.Reminder);
     }
 
     public void Dispose()
     {
-        ReminderAgenda.Changed -= Reload;
+        _store.Changed -= Reload;
         _timer.Stop();
     }
 }

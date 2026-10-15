@@ -247,6 +247,7 @@ public partial class App : Application
 
         cfg ??= ConfigService.Load();
         ThemeService.ApplyToApp(cfg);
+        Services.Reminders.ReminderStore.Instance.Attach(cfg);
 
         var monitors = MonitorService.GetMonitors();
         if (monitors.Count == 0) return;

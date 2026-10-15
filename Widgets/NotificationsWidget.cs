@@ -4,13 +4,14 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.Services.Reminders;
 using Heimdall.UI.Popups;
 using Heimdall.ViewModels;
 
 namespace Heimdall.Widgets;
 
 /// <summary>
-/// Sino com badge numérico = lembretes pendentes hoje (<see cref="ReminderAgenda"/>).
+/// Sino com badge numérico = lembretes pendentes hoje (<see cref="ReminderStore.TodayAgenda"/>).
 /// Lê o mesmo AppConfig que o widget de lembretes altera, então basta reconsultar.
 /// </summary>
 public sealed class NotificationsWidget : IWidget, IWidgetMenuProvider
@@ -81,12 +82,12 @@ public sealed class NotificationsWidget : IWidget, IWidgetMenuProvider
     {
         Update();
         _timer.Start();
-        ReminderAgenda.Changed += Update;
+        ReminderStore.Instance.Changed += Update;
     }
 
     private void Update()
     {
-        int pending = ReminderAgenda.PendingCount(_cfg, DateTime.Now);
+        int pending = ReminderStore.Instance.PendingToday;
         _count.Text = pending > 9 ? "9+" : pending.ToString();
         _badge.Visibility = pending > 0 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -116,6 +117,6 @@ public sealed class NotificationsWidget : IWidget, IWidgetMenuProvider
     public void Dispose()
     {
         _timer.Stop();
-        ReminderAgenda.Changed -= Update;
+        ReminderStore.Instance.Changed -= Update;
     }
 }
