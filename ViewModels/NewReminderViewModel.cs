@@ -18,7 +18,7 @@ internal sealed record RepeatOption(RepeatKind Kind, string Label);
 /// natural rodando ao vivo (o chip de data já mostra o que foi entendido) e a barra de
 /// chips — data, bandeira, nota e lista. Só grava no lembrete em <see cref="ApplyTo"/>.
 /// </summary>
-internal sealed class ReminderEditorViewModel : ObservableObject
+internal sealed class NewReminderViewModel : ObservableObject
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
@@ -43,7 +43,7 @@ internal sealed class ReminderEditorViewModel : ObservableObject
     private ParsedReminder? _parsed;
 
     /// <param name="source">Nulo = lembrete novo, com os padrões de <paramref name="defaults"/>.</param>
-    public ReminderEditorViewModel(ReminderStore store, ReminderConfig? source, ReminderConfig? defaults,
+    public NewReminderViewModel(ReminderStore store, ReminderConfig? source, ReminderConfig? defaults,
         Action submit, Action cancel)
     {
         _store = store;

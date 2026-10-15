@@ -130,13 +130,14 @@
                 <Setter Property="AutomationProperties.Name" Value="{Binding AccessibleName}"/>
             </Style>
 
-            <!-- Caixa de texto da edição inline: sem borda, mesma métrica do título (o -2 compensa a margem interna do TextBox). -->
+            <!-- Caixa de texto da edição inline: sem borda, mesma métrica do título (13px; o -2
+                 compensa a margem interna do TextBox) — a linha não "pula" ao entrar em edição. -->
             <Style x:Key="InlineBox" TargetType="TextBox">
                 <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
                 <Setter Property="CaretBrush" Value="{DynamicResource H.Brush.Text}"/>
                 <Setter Property="SelectionBrush" Value="{DynamicResource H.Brush.Accent}"/>
                 <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
-                <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+                <Setter Property="FontSize" Value="13"/>
                 <Setter Property="Margin" Value="-2,0,0,0"/>
                 <Setter Property="TextWrapping" Value="Wrap"/>
                 <Setter Property="Template">
@@ -149,35 +150,12 @@
                 </Setter>
             </Style>
 
-            <!-- Chip da barra de ações rápidas: 26px, raio 999. Tag=True = ativo (acento). -->
-            <Style x:Key="EditChip" TargetType="Button">
-                <Setter Property="Height" Value="26"/>
-                <Setter Property="Padding" Value="10,0"/>
+            <!-- Chips da linha em edição (estilos compartilhados de Themes/Controls.xaml). -->
+            <Style x:Key="EditChip" TargetType="Button" BasedOn="{StaticResource ChipButtonStyle}">
                 <Setter Property="Margin" Value="0,0,6,6"/>
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextSecondary}"/>
-                <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
-                <Setter Property="FontSize" Value="11.5"/>
-                <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bd" CornerRadius="999" Background="Transparent" BorderThickness="1"
-                                    BorderBrush="{DynamicResource H.Brush.Line}" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
-                                </Trigger>
-                                <Trigger Property="Tag" Value="True">
-                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource H.Brush.Accent}"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource H.Brush.Accent}"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
+            </Style>
+            <Style x:Key="EditIconChip" TargetType="Button" BasedOn="{StaticResource ChipIconButtonStyle}">
+                <Setter Property="Margin" Value="0,0,6,6"/>
             </Style>
 
             <!-- Botão de escolha rápida dentro do popup de data. -->
@@ -185,8 +163,38 @@
                 <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
             </Style>
 
+            <!-- Círculo de concluir (21px): vazio = pendente, verde-água com check = concluído. -->
+            <Style x:Key="RoundTaskCheck" TargetType="CheckBox">
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Grid Width="21" Height="21" Background="Transparent">
+                                <Ellipse x:Name="Ring" Stroke="{DynamicResource H.Brush.Muted}" StrokeThickness="1.5"/>
+                                <c:Icon x:Name="Mark" Geometry="{DynamicResource H.Icon.Check}" Size="12" StrokeThickness="3"
+                                        Foreground="{DynamicResource H.Brush.OnAccent}" Visibility="Collapsed"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource H.Brush.Ok}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource H.Brush.Ok}"/>
+                                    <Setter TargetName="Ring" Property="StrokeThickness" Value="0"/>
+                                    <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Cursor" Value="Arrow"/>
+                                    <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource H.Brush.Faint}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- ===== Editor inline (novo ou existente): título, nota e a barra de chips ===== -->
-            <DataTemplate x:Key="ReminderEditor" DataType="{x:Type vm:ReminderEditorViewModel}">
+            <DataTemplate x:Key="ReminderEditor" DataType="{x:Type vm:NewReminderViewModel}">
                 <StackPanel>
                     <TextBox Style="{StaticResource InlineBox}" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
                              ui:FocusOnLoad.Enabled="True" AutomationProperties.Name="{x:Static s:Strings.ReminderTitleField}">
@@ -216,18 +224,15 @@
                                 <TextBlock Text="{Binding DateChipText}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
-                        <!-- Bandeira -->
-                        <Button Style="{StaticResource EditChip}" Command="{Binding ToggleFlagCommand}" Tag="{Binding Flagged}"
-                                Padding="8,0" AutomationProperties.Name="{x:Static s:Strings.ReminderFlag}" ToolTip="{x:Static s:Strings.ReminderFlag}">
-                            <c:Icon Geometry="{DynamicResource H.Icon.Flag}" Size="12"/>
+                        <!-- Bandeira (28x28) -->
+                        <Button Style="{StaticResource EditIconChip}" Command="{Binding ToggleFlagCommand}" Tag="{Binding Flagged}"
+                                AutomationProperties.Name="{x:Static s:Strings.ReminderFlag}" ToolTip="{x:Static s:Strings.ReminderFlag}">
+                            <c:Icon Geometry="{DynamicResource H.Icon.Flag}" Size="13"/>
                         </Button>
-                        <!-- Nota -->
-                        <Button Style="{StaticResource EditChip}" Command="{Binding ToggleNoteCommand}" Tag="{Binding HasNote}"
-                                AutomationProperties.Name="{x:Static s:Strings.ChipNote}">
-                            <StackPanel Orientation="Horizontal">
-                                <c:Icon Geometry="{DynamicResource H.Icon.Pencil}" Size="12" Margin="0,0,5,0"/>
-                                <TextBlock Text="{x:Static s:Strings.ChipNote}" VerticalAlignment="Center"/>
-                            </StackPanel>
+                        <!-- Nota (28x28) -->
+                        <Button Style="{StaticResource EditIconChip}" Command="{Binding ToggleNoteCommand}" Tag="{Binding HasNote}"
+                                AutomationProperties.Name="{x:Static s:Strings.ChipNote}" ToolTip="{x:Static s:Strings.ChipNote}">
+                            <c:Icon Geometry="{DynamicResource H.Icon.Note}" Size="13"/>
                         </Button>
                         <!-- Lista -->
                         <Button x:Name="ListChip" Style="{StaticResource EditChip}" Command="{Binding OpenListPopupCommand}"
@@ -343,14 +348,15 @@
                         </ContextMenu>
                     </Grid.ContextMenu>
 
-                    <!-- Focusable=False: o Tab para na linha (e Espaço conclui), não no checkbox. -->
-                    <CheckBox Style="{DynamicResource H.TaskCheck}" VerticalAlignment="Top" Margin="0,1,0,0" Focusable="False"
+                    <!-- Focusable=False: o Tab para na linha (e Espaço conclui), não no checkbox.
+                         Na linha nova fica vazio e desabilitado (não há o que concluir ainda). -->
+                    <CheckBox Style="{StaticResource RoundTaskCheck}" VerticalAlignment="Top" Margin="0,-1,0,0" Focusable="False"
                               Command="{Binding CompleteCommand}" AutomationProperties.Name="{Binding CompleteName}"/>
 
                     <!-- Lendo: título (clique edita), nota, quando · repetição · lista -->
                     <StackPanel Grid.Column="1" Margin="10,0,8,0"
                                 Visibility="{Binding IsEditing, Converter={StaticResource H.InverseBoolToVis}}">
-                        <TextBlock FontSize="{DynamicResource H.FontSize.M}" TextWrapping="Wrap" Style="{StaticResource H.Text}" Cursor="IBeam">
+                        <TextBlock FontSize="13" TextWrapping="Wrap" Style="{StaticResource H.Text}" Cursor="IBeam">
                             <TextBlock.InputBindings>
                                 <MouseBinding MouseAction="LeftClick" Command="{Binding BeginEditCommand}"/>
                             </TextBlock.InputBindings>
@@ -412,7 +418,6 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- ===== Barra de título ===== -->
@@ -468,7 +473,12 @@
             </ListBox>
 
             <!-- ===== Cabeçalho da lista ativa: título 20 na cor dela + contagem mono 18 ===== -->
-            <DockPanel Grid.Row="2" Margin="20,8,20,2">
+            <DockPanel Grid.Row="2" Margin="20,8,14,2">
+                <!-- Novo lembrete: linha em edição no topo da lista -->
+                <Button DockPanel.Dock="Right" Style="{DynamicResource H.IconButton}" Command="{Binding NewReminderCommand}" Margin="8,0,0,0"
+                        AutomationProperties.Name="{x:Static s:Strings.RemindersNew}" ToolTip="{x:Static s:Strings.RemindersNew}">
+                    <c:Icon Geometry="{DynamicResource H.Icon.Plus}" Size="16"/>
+                </Button>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding Active.Count}" Style="{StaticResource H.Text.Mono}" FontSize="18"
                            Foreground="{Binding Active.Brush}" VerticalAlignment="Center"/>
                 <TextBlock Text="{Binding Active.Name}" FontSize="20" FontWeight="Bold" Foreground="{Binding Active.Brush}"
@@ -491,32 +501,8 @@
                 </ListBox>
             </Grid>
 
-            <!-- ===== Lembrete novo: botão, ou a linha em edição ===== -->
-            <Grid Grid.Row="4" Margin="20,4,20,8">
-                <Button Style="{DynamicResource H.DashedButton}" Command="{Binding NewReminderCommand}" Height="36"
-                        AutomationProperties.Name="{x:Static s:Strings.RemindersNew}"
-                        Visibility="{Binding IsDrafting, Converter={StaticResource H.InverseBoolToVis}}">
-                    <StackPanel Orientation="Horizontal">
-                        <c:Icon Geometry="{DynamicResource H.Icon.Plus}" Size="14" Margin="0,0,6,0"/>
-                        <TextBlock Text="{x:Static s:Strings.RemindersNew}" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-
-                <Grid Visibility="{Binding IsDrafting, Converter={StaticResource H.BoolToVis}}" Margin="10,0,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <!-- Círculo vazio no lugar do checkbox, só visual -->
-                    <Ellipse Width="17" Height="17" Stroke="{DynamicResource H.Brush.TextTertiary}" StrokeThickness="1.5"
-                             VerticalAlignment="Top" Margin="0,1,0,0"/>
-                    <ContentControl Grid.Column="1" Margin="10,0,0,0" Focusable="False" IsTabStop="False"
-                                    Content="{Binding Draft}" ContentTemplate="{StaticResource ReminderEditor}"/>
-                </Grid>
-            </Grid>
-
             <!-- ===== Minhas listas ===== -->
-            <Border Grid.Row="5" BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="0,1,0,0" Padding="10,10,10,12">
+            <Border Grid.Row="4" BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="0,1,0,0" Padding="10,10,10,12">
                 <StackPanel>
                     <TextBlock Text="{Binding Source={x:Static s:Strings.MyLists}, Converter={x:Static ui:LetterSpacingConverter.Instance}}"
                                AutomationProperties.Name="{x:Static s:Strings.MyLists}"

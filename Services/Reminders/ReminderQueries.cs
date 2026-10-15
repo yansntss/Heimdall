@@ -41,14 +41,14 @@ internal static class ReminderQueries
 
     /// <summary>
     /// Com data antes dos sem data; por data; "dia todo" antes dos com hora; por hora.
-    /// Empate: prioridade alta, depois sinalizado, depois o mais antigo.
+    /// Empate: maior prioridade, depois sinalizado, depois o mais antigo.
     /// </summary>
     public static List<ReminderConfig> Order(IEnumerable<ReminderConfig> reminders) => reminders
         .OrderBy(r => r.DueDate is null)
         .ThenBy(r => r.DueDate ?? DateOnly.MaxValue)
         .ThenBy(r => r.DueTime is not null)
         .ThenBy(r => r.DueTime ?? TimeOnly.MinValue)
-        .ThenBy(r => r.Priority == ReminderPriority.High ? 0 : 1)
+        .ThenByDescending(r => r.Priority)
         .ThenBy(r => r.Flagged ? 0 : 1)
         .ThenBy(r => r.CreatedAt ?? DateTime.MinValue)
         .ToList();

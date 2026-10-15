@@ -110,3 +110,26 @@ public class ReminderMigrationTests
         Assert.Null(r.DueDate);
     }
 }
+
+public class PriorityMigrationTests
+{
+    [Fact]
+    public void Normal_and_unknown_become_none_high_stays()
+    {
+        var root = JsonNode.Parse("""
+            {"Reminders": [
+              {"Title": "a", "Priority": "Normal"},
+              {"Title": "b", "Priority": "High"},
+              {"Title": "c", "Priority": "Urgente"},
+              {"Title": "d"}
+            ]}
+            """)!.AsObject();
+
+        ReminderMigration.MigratePriorities(root);
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } };
+        var reminders = root["Reminders"].Deserialize<List<ReminderConfig>>(options)!;
+
+        Assert.Equal(new[] { ReminderPriority.None, ReminderPriority.High, ReminderPriority.None, ReminderPriority.None },
+            reminders.Select(r => r.Priority));
+    }
+}

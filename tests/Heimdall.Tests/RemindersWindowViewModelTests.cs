@@ -36,7 +36,11 @@ public class RemindersWindowViewModelTests
         return r;
     }
 
-    private static List<ReminderRowViewModel> Rows(RemindersWindowViewModel vm) => vm.Items.OfType<ReminderRowViewModel>().ToList();
+    /// <summary>Linhas de lembrete já existentes (sem a linha nova em edição).</summary>
+    private static List<ReminderRowViewModel> Rows(RemindersWindowViewModel vm) => vm.Items.OfType<ReminderRowViewModel>().Where(r => !r.IsNew).ToList();
+
+    /// <summary>Editor da linha nova no topo (nulo fora da criação).</summary>
+    private static NewReminderViewModel? Draft(RemindersWindowViewModel vm) => vm.NewRow?.Editor;
 
     private static string[] Titles(RemindersWindowViewModel vm) => Rows(vm).Select(i => i.Title).ToArray();
 
@@ -203,7 +207,7 @@ public class RemindersWindowViewModelTests
     {
         var vm = CreateVm();
         vm.NewReminderCommand.Execute(null);
-        var draft = vm.Draft!;
+        var draft = Draft(vm)!;
         Assert.Same(draft, vm.ActiveEditor);
 
         draft.Title = "Comprar pão";
@@ -216,9 +220,9 @@ public class RemindersWindowViewModelTests
         Assert.Equal(new[] { "Comprar pão" }, Titles(vm));
 
         // Enter abre outra linha em branco, pronta pra digitar.
-        Assert.NotNull(vm.Draft);
-        Assert.NotSame(draft, vm.Draft);
-        Assert.True(vm.Draft!.IsBlank);
+        Assert.NotNull(Draft(vm));
+        Assert.NotSame(draft, Draft(vm));
+        Assert.True(Draft(vm)!.IsBlank);
     }
 
     [Fact]
@@ -226,11 +230,11 @@ public class RemindersWindowViewModelTests
     {
         var vm = CreateVm();
         vm.NewReminderCommand.Execute(null);
-        vm.Draft!.Title = "Dentista amanhã 14h";
-        Assert.Equal("Amanhã, 14:00", vm.Draft.DateChipText);
-        Assert.True(vm.Draft.IsDateFromTitle);
+        Draft(vm)!.Title = "Dentista amanhã 14h";
+        Assert.Equal("Amanhã, 14:00", Draft(vm).DateChipText);
+        Assert.True(Draft(vm).IsDateFromTitle);
 
-        vm.Draft.SubmitCommand.Execute(null);
+        Draft(vm).SubmitCommand.Execute(null);
 
         var created = Assert.Single(_store.Reminders);
         Assert.Equal("Dentista", created.Title);
@@ -243,8 +247,8 @@ public class RemindersWindowViewModelTests
     {
         var vm = CreateVm();
         vm.NewReminderCommand.Execute(null);
-        vm.Draft!.Title = "Academia toda segunda e quarta 8h";
-        vm.Draft.SubmitCommand.Execute(null);
+        Draft(vm)!.Title = "Academia toda segunda e quarta 8h";
+        Draft(vm).SubmitCommand.Execute(null);
 
         var created = Assert.Single(_store.Reminders);
         Assert.Equal("Academia", created.Title);
@@ -258,13 +262,13 @@ public class RemindersWindowViewModelTests
         var vm = CreateVm();
         vm.SelectedList = vm.UserLists.Single(l => l.ListId == "mercado");
         vm.NewReminderCommand.Execute(null);
-        vm.Draft!.Title = "Leite";
-        vm.Draft.SubmitCommand.Execute(null);
+        Draft(vm)!.Title = "Leite";
+        Draft(vm).SubmitCommand.Execute(null);
 
         vm.SelectedSmart = vm.SmartLists[2];
         vm.NewReminderCommand.Execute(null);
-        vm.Draft!.Title = "Importante";
-        vm.Draft.SubmitCommand.Execute(null);
+        Draft(vm)!.Title = "Importante";
+        Draft(vm).SubmitCommand.Execute(null);
 
         Assert.Equal("mercado", _store.Reminders.Single(r => r.Title == "Leite").ListId);
         Assert.Null(_store.Reminders.Single(r => r.Title == "Leite").DueDate);
@@ -276,12 +280,12 @@ public class RemindersWindowViewModelTests
     {
         var vm = CreateVm();
         vm.NewReminderCommand.Execute(null);
-        vm.Draft!.Title = "Ligar pro banco";
+        Draft(vm)!.Title = "Ligar pro banco";
 
         vm.CommitActiveEditor();
 
         Assert.Single(_store.Reminders);
-        Assert.Null(vm.Draft);
+        Assert.Null(Draft(vm));
         Assert.Null(vm.ActiveEditor);
     }
 
@@ -290,15 +294,15 @@ public class RemindersWindowViewModelTests
     {
         var vm = CreateVm();
         vm.NewReminderCommand.Execute(null);
-        vm.Draft!.Title = "Esquece";
-        vm.Draft.CancelCommand.Execute(null);
-        Assert.Null(vm.Draft);
+        Draft(vm)!.Title = "Esquece";
+        Draft(vm).CancelCommand.Execute(null);
+        Assert.Null(Draft(vm));
 
         vm.NewReminderCommand.Execute(null);
-        vm.Draft!.SubmitCommand.Execute(null);
+        Draft(vm)!.SubmitCommand.Execute(null);
 
         Assert.Empty(_store.Reminders);
-        Assert.Null(vm.Draft);
+        Assert.Null(Draft(vm));
     }
 
     [Fact]
@@ -306,7 +310,7 @@ public class RemindersWindowViewModelTests
     {
         var vm = CreateVm();
         vm.NewReminderCommand.Execute(null);
-        var draft = vm.Draft!;
+        var draft = Draft(vm)!;
         draft.Title = "Ler capítulo 14h";
         draft.QuickDateCommand.Execute("tomorrow");
         draft.TimeText = "20:00";
@@ -315,6 +319,70 @@ public class RemindersWindowViewModelTests
         var created = Assert.Single(_store.Reminders);
         Assert.Equal(new DateOnly(2026, 10, 16), created.DueDate);
         Assert.Equal(new TimeOnly(20, 0), created.DueTime);
+    }
+
+    [Fact]
+    public void New_row_sits_at_the_top_above_the_sections()
+    {
+        Add("ontem", 14);
+        Add("hoje");
+        var vm = CreateVm();
+        vm.NewReminderCommand.Execute(null);
+
+        var first = Assert.IsType<ReminderRowViewModel>(vm.Items[0]);
+        Assert.True(first.IsNew);
+        Assert.True(first.IsEditing);
+        Assert.Same(first, vm.SelectedItem);
+        Assert.Equal("§ATRASADOS", Layout(vm)[1]);
+        Assert.False(first.CompleteCommand.CanExecute(null));
+        Assert.False(vm.CompleteSelectedCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void Saved_new_row_becomes_the_regular_row_of_the_reminder()
+    {
+        Add("08h", hour: 8);
+        var vm = CreateVm();
+        vm.NewReminderCommand.Execute(null);
+        var row = vm.NewRow!;
+        row.Editor!.Title = "Café 11h";
+
+        row.Editor.SubmitCommand.Execute(null);
+
+        // Mesmo objeto, agora no lugar dele na lista e fora do estado "novo".
+        Assert.False(row.IsNew);
+        Assert.False(row.IsEditing);
+        Assert.Equal("Café", row.Title);
+        Assert.Equal(new[] { "08h", "Café" }, Titles(vm));
+        Assert.Same(row, Rows(vm)[1]);
+        // E outra linha nova já no topo.
+        Assert.NotSame(row, vm.NewRow);
+        Assert.Same(vm.NewRow, vm.Items[0]);
+    }
+
+    [Fact]
+    public void Blank_new_row_disappears_on_click_outside()
+    {
+        Add("hoje");
+        var vm = CreateVm();
+        vm.NewReminderCommand.Execute(null);
+
+        vm.CommitActiveEditor();
+
+        Assert.Null(vm.NewRow);
+        Assert.Equal(new[] { "hoje" }, Layout(vm));
+    }
+
+    [Fact]
+    public void Edit_from_the_bar_finds_the_reminder_in_another_list()
+    {
+        var future = Add("semana que vem", 22);
+        var vm = CreateVm(); // abre em Hoje, onde ele não aparece
+
+        vm.BeginEdit(future);
+
+        Assert.Equal(SmartList.All, vm.Active.Smart);
+        Assert.True(Rows(vm).Single(r => r.Reminder == future).IsEditing);
     }
 
     // ---------- Edição de linha ----------
@@ -357,8 +425,8 @@ public class RemindersWindowViewModelTests
         row.Editor.SubmitCommand.Execute(null);
 
         Assert.Equal("depois", row.Title);
-        Assert.NotNull(vm.Draft);
-        Assert.Same(vm.Draft, vm.ActiveEditor);
+        Assert.NotNull(Draft(vm));
+        Assert.Same(Draft(vm), vm.ActiveEditor);
     }
 
     [Fact]

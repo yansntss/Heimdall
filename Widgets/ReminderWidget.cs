@@ -23,10 +23,6 @@ public sealed class ReminderWidget : IWidget
     private const string GlyphAdd = "";
     private const string GlyphCheck = "";
 
-    /// <summary>Último widget de lembretes construído — é nele que o hotkey global Ctrl+Shift+R abre o popup.</summary>
-    internal static ReminderWidget? Primary { get; private set; }
-
-    private readonly AppConfig _cfg;
     private readonly bool _isOverlay;
     private readonly Color _accent;
     private readonly EffectiveStyle _style;
@@ -44,18 +40,15 @@ public sealed class ReminderWidget : IWidget
     private Border? _activeScheduledChip;
     private Border? _activeBadge;
     private bool _highlighting;
-    private QuickAddReminderWindow? _quickAddWindow;
 
     public FrameworkElement View => _root;
 
     /// <param name="isOverlay">
-    /// Cópia no overlay de tela cheia (janela escondida fora do jogo): não vira o
-    /// <see cref="Primary"/> — ancorar o popup numa janela escondida derrubava o app — e não
-    /// coleta disparos, que o store entrega uma vez só e a cópia escondida "engoliria".
+    /// Cópia no overlay de tela cheia (janela escondida fora do jogo): não coleta disparos,
+    /// que o store entrega uma vez só e a cópia escondida "engoliria".
     /// </param>
     public ReminderWidget(AppConfig cfg, bool isOverlay = false)
     {
-        _cfg = cfg;
         _isOverlay = isOverlay;
         _style = ThemeService.GetEffectiveStyle(cfg);
         _accent = _style.Accent;
@@ -83,7 +76,8 @@ public sealed class ReminderWidget : IWidget
             Focusable = false,
             ToolTip = Strings.ReminderNewTooltip
         };
-        _addButton.Click += (_, _) => OpenQuickAdd();
+        // Criar e editar acontecem na janela de lembretes, com a linha já em edição.
+        _addButton.Click += (_, _) => ReminderActions.OpenNew();
 
         _root.MouseEnter += (_, _) =>
             _addButton.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
@@ -92,63 +86,8 @@ public sealed class ReminderWidget : IWidget
 
         _root.Children.Add(_addButton);
 
-        if (!isOverlay) Primary = this;
     }
 
-    /// <summary>Abre o popup de adição rápida ancorado a esta barra, no lado oposto à borda configurada.</summary>
-    public void OpenQuickAdd()
-    {
-        if (_quickAddWindow is not null)
-        {
-            _quickAddWindow.Activate();
-            return;
-        }
-
-        var window = new QuickAddReminderWindow(_style);
-        window.AnchorTo(_root, _cfg.Edge);
-        window.Saved += _store.Add;
-        window.Closed += (_, _) => _quickAddWindow = null;
-
-        _quickAddWindow = window;
-        window.Show();
-        window.Activate();
-    }
-
-    /// <summary>Editar reutiliza o mesmo popup, pré-preenchido — Saved atualiza o mesmo objeto (mesma referência).</summary>
-    private void Edit(ReminderConfig reminder, bool isFixed, Border chip)
-    {
-        if (_quickAddWindow is not null)
-        {
-            _quickAddWindow.Activate();
-            return;
-        }
-
-        var window = new QuickAddReminderWindow(_style, editing: reminder);
-        window.AnchorTo(chip, _cfg.Edge);
-        window.Saved += _ =>
-        {
-            if (!isFixed) RefreshActiveScheduledChip(reminder);
-            // Chips fixos se refazem pelo Changed (o lembrete pode ter ganhado data e saído deles).
-            _store.Update(reminder);
-        };
-        window.Closed += (_, _) => _quickAddWindow = null;
-
-        _quickAddWindow = window;
-        window.Show();
-        window.Activate();
-    }
-
-    /// <summary>Recria o chip agendado em destaque pra refletir o texto/badge após editar.</summary>
-    private void RefreshActiveScheduledChip(ReminderConfig reminder)
-    {
-        if (_activeScheduledChip is null) return;
-
-        _root.Children.Remove(_activeScheduledChip);
-        _activeScheduledChip = CreateChip(reminder, isFixed: false, out _activeBadge);
-        _activeScheduledChip.Background = CreatePulsingBrush();
-        _root.Children.Insert(0, _activeScheduledChip);
-        RefreshBadge();
-    }
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
 
@@ -364,7 +303,7 @@ public sealed class ReminderWidget : IWidget
             completeButton.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
 
         var editItem = new MenuItem { Header = Strings.ReminderEdit };
-        editItem.Click += (_, _) => Edit(reminder, isFixed, chip);
+        editItem.Click += (_, _) => ReminderActions.OpenEdit(reminder);
         var deleteItem = new MenuItem { Header = Strings.ReminderDelete };
         deleteItem.Click += (_, _) => Delete(reminder, isFixed, chip);
         chip.ContextMenu = new ContextMenu { Items = { editItem, deleteItem } };
@@ -399,7 +338,5 @@ public sealed class ReminderWidget : IWidget
     {
         _clock.Stop();
         _store.Changed -= RebuildFixedChips;
-        _quickAddWindow?.Close();
-        if (Primary == this) Primary = null;
     }
 }

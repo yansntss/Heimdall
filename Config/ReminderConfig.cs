@@ -4,7 +4,7 @@ namespace Heimdall.Config;
 
 public enum RepeatKind { None, Daily, Weekly, Monthly, Yearly }
 
-public enum ReminderPriority { Normal, High }
+public enum ReminderPriority { None, Low, Medium, High }
 
 /// <summary>Regra de repetição. A data da ocorrência pendente fica no próprio lembrete (<see cref="ReminderConfig.DueDate"/>).</summary>
 public sealed class ReminderRecurrence
@@ -21,8 +21,14 @@ public sealed class ReminderRecurrence
     /// </summary>
     public DateOnly? Anchor { get; set; }
 
+    /// <summary>"A cada N" dias/semanas/meses/anos (contados a partir de <see cref="Anchor"/>). 1 = todo.</summary>
+    public int Interval { get; set; } = 1;
+
     /// <summary>Último dia em que ainda pode ocorrer. Nulo = sem fim.</summary>
     public DateOnly? Until { get; set; }
+
+    /// <summary>"Após N vezes": total de ocorrências da série, contando a da âncora. Nulo = sem limite.</summary>
+    public int? Count { get; set; }
 }
 
 /// <summary>Lista do usuário ("Mercado", "Trabalho"...) — todo lembrete pertence a uma.</summary>
@@ -69,7 +75,7 @@ public sealed class ReminderConfig
 
     public bool Flagged { get; set; }
 
-    public ReminderPriority Priority { get; set; } = ReminderPriority.Normal;
+    public ReminderPriority Priority { get; set; } = ReminderPriority.None;
 
     public string ListId { get; set; } = ReminderListConfig.DefaultId;
 

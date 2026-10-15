@@ -105,7 +105,7 @@ public sealed class NotificationsWidget : IWidget, IWidgetMenuProvider
         if (_button is null) yield break;
         yield return new WidgetMenuEntry(Strings.MenuTodayReminders, "H.Icon.Bell", OpenReminders);
         yield return new WidgetMenuEntry(Strings.MenuOpenReminders, "H.Icon.ListChecks", () => ((App)Application.Current).OpenReminders());
-        yield return new WidgetMenuEntry(Strings.RemindersNew, "H.Icon.Plus", () => ReminderActions.OpenQuickAdd(_cfg, _button), "Ctrl+Shift+R");
+        yield return new WidgetMenuEntry(Strings.RemindersNew, "H.Icon.Plus", ReminderActions.OpenNew, "Ctrl+Shift+R");
     }
 
     private void OpenReminders()

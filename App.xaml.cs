@@ -59,7 +59,7 @@ public partial class App : Application
         _hotkeys.Pressed += ToggleBarsVisibility;
         RegisterMediaHotkeys();
         _hotkeys.Register(NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, NativeMethods.VK_R,
-            () => Widgets.ReminderWidget.Primary?.OpenQuickAdd());
+            ReminderActions.OpenNew);
         // Ctrl+Alt+H: ocultar/mostrar a barra (o Ctrl+Shift+B antigo continua valendo).
         _hotkeys.Register(NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT, NativeMethods.VK_H, ToggleBarsVisibility);
 
@@ -422,20 +422,27 @@ public partial class App : Application
         Reload();
     }
 
-    /// <summary>Janela de lembretes — uma só; se já está aberta, vem pra frente.</summary>
-    public void OpenReminders()
+    /// <summary>
+    /// Janela de lembretes — uma só; se já está aberta, vem pra frente. É também onde se
+    /// cria e edita lembrete: <paramref name="newReminder"/> abre uma linha nova em edição
+    /// no topo, <paramref name="edit"/> põe a linha desse lembrete em edição.
+    /// </summary>
+    public void OpenReminders(bool newReminder = false, ReminderConfig? edit = null)
     {
-        if (_remindersWindow is not null)
+        if (_remindersWindow is null)
         {
-            if (_remindersWindow.WindowState == WindowState.Minimized) _remindersWindow.WindowState = WindowState.Normal;
-            BringToFront(_remindersWindow);
-            return;
+            _remindersWindow = new RemindersWindow();
+            _remindersWindow.Closed += (_, _) => _remindersWindow = null;
+            _remindersWindow.Show();
+        }
+        else if (_remindersWindow.WindowState == WindowState.Minimized)
+        {
+            _remindersWindow.WindowState = WindowState.Normal;
         }
 
-        _remindersWindow = new RemindersWindow();
-        _remindersWindow.Closed += (_, _) => _remindersWindow = null;
-        _remindersWindow.Show();
         BringToFront(_remindersWindow);
+        if (edit is not null) _remindersWindow.BeginEdit(edit);
+        else if (newReminder) _remindersWindow.BeginNewReminder();
     }
 
     public void OpenReminderHistory()

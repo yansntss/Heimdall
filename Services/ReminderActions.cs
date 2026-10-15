@@ -1,27 +1,14 @@
 using System.Windows;
 using Heimdall.Config;
-using Heimdall.Services.Reminders;
-using Heimdall.UI;
-using Heimdall.Widgets;
 
 namespace Heimdall.Services;
 
-/// <summary>Ações de interface sobre lembretes disparadas fora do widget de lembretes (sino, atalho global).</summary>
+/// <summary>Criar e editar lembrete a partir da barra (sino, chips, atalho global): tudo acontece na janela de lembretes.</summary>
 internal static class ReminderActions
 {
-    /// <summary>Adição rápida: pelo widget de lembretes se ele estiver na barra (popup ancorado nele), senão um popup ancorado em <paramref name="anchor"/>.</summary>
-    public static void OpenQuickAdd(AppConfig cfg, FrameworkElement anchor)
-    {
-        if (ReminderWidget.Primary is { } widget)
-        {
-            widget.OpenQuickAdd();
-            return;
-        }
+    /// <summary>Abre a janela de lembretes com uma linha nova em edição no topo.</summary>
+    public static void OpenNew() => ((App)Application.Current).OpenReminders(newReminder: true);
 
-        var window = new QuickAddReminderWindow(ThemeService.GetEffectiveStyle(cfg));
-        window.AnchorTo(anchor, cfg.Edge);
-        window.Saved += ReminderStore.Instance.Add;
-        window.Show();
-        window.Activate();
-    }
+    /// <summary>Abre a janela de lembretes com a linha desse lembrete em edição.</summary>
+    public static void OpenEdit(ReminderConfig reminder) => ((App)Application.Current).OpenReminders(edit: reminder);
 }

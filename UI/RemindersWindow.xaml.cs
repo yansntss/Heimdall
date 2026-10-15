@@ -27,8 +27,10 @@ public partial class RemindersWindow : Window
         ItemsList.SelectionChanged += (_, _) => KeepKeyboardFocusOnSelection();
         PreviewMouseDown += CommitEditOnOutsideClick;
         // Trocar de janela salva a edição em andamento (os popups de data/lista não ativam
-        // janela própria, então não caem aqui).
-        Deactivated += (_, _) => _vm.CommitActiveEditor();
+        // janela própria, então não caem aqui). Só com título: aberta por atalho global, o
+        // Windows às vezes manda um Deactivated espúrio antes de ativar — e uma linha nova
+        // vazia seria descartada antes de a pessoa digitar.
+        Deactivated += (_, _) => { if (_vm.ActiveEditor is { IsBlank: false }) _vm.CommitActiveEditor(); };
         Closing += (_, _) => _vm.CommitActiveEditor();
         Closed += (_, _) => _vm.Dispose();
     }
@@ -50,6 +52,12 @@ public partial class RemindersWindow : Window
     /// <summary>Sobe pela árvore visual; Run e outros elementos de texto só têm pai lógico.</summary>
     private static DependencyObject? ParentOf(DependencyObject node) =>
         node is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node);
+
+    /// <summary>Atalhos da barra (sino, Ctrl+Shift+R, "+" do widget): linha nova já em edição.</summary>
+    internal void BeginNewReminder() => _vm.BeginNew();
+
+    /// <summary>"Editar" vindo da barra: a linha do lembrete em edição.</summary>
+    internal void BeginEdit(Heimdall.Config.ReminderConfig reminder) => _vm.BeginEdit(reminder);
 
     // ---------- Chrome (só visual) ----------
 
@@ -76,8 +84,14 @@ public partial class RemindersWindow : Window
     /// </summary>
     private void KeepKeyboardFocusOnSelection()
     {
-        if (!ItemsList.IsKeyboardFocusWithin && Keyboard.FocusedElement is not null and not Window) return;
         if (ItemsList.SelectedItem is not { } item) return;
+        // Linha em edição: o foco é da caixa de texto dela (FocusOnLoad); só garante que está à vista.
+        if (item is ReminderRowViewModel { IsEditing: true })
+        {
+            ItemsList.ScrollIntoView(item);
+            return;
+        }
+        if (!ItemsList.IsKeyboardFocusWithin && Keyboard.FocusedElement is not null and not Window) return;
 
         Dispatcher.BeginInvoke(() =>
         {

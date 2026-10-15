@@ -109,7 +109,7 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
         NewReminderCommand = new RelayCommand(() =>
         {
             FlyoutWindow.CloseCurrent();
-            ReminderActions.OpenQuickAdd(_cfg, anchor);
+            ReminderActions.OpenNew();
         });
         OpenAllCommand = new RelayCommand(() =>
         {
@@ -175,15 +175,11 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
         _store.Complete(item.Reminder);
     }
 
-    /// <summary>Fecha o dropdown e edita no popup de adição rápida, ancorado no sino.</summary>
-    private void Edit(ReminderConfig reminder)
+    /// <summary>Fecha o dropdown e edita na janela de lembretes, com a linha já em edição.</summary>
+    private static void Edit(ReminderConfig reminder)
     {
         FlyoutWindow.CloseCurrent();
-        var window = new QuickAddReminderWindow(ThemeService.GetEffectiveStyle(_cfg), editing: reminder);
-        window.AnchorTo(_anchor, _cfg.Edge);
-        window.Saved += _store.Update;
-        window.Show();
-        window.Activate();
+        ReminderActions.OpenEdit(reminder);
     }
 
     public void Dispose()

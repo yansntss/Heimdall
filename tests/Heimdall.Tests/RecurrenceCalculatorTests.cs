@@ -98,6 +98,79 @@ public class RecurrenceCalculatorTests
     }
 
     [Fact]
+    public void Every_two_days_keeps_the_phase_of_the_anchor()
+    {
+        var rule = new ReminderRecurrence { Kind = RepeatKind.Daily, Interval = 2 };
+        var anchor = D(2026, 10, 15);
+        Assert.Equal(D(2026, 10, 17), RecurrenceCalculator.NextDate(rule, anchor, anchor));
+        Assert.Equal(D(2026, 10, 19), RecurrenceCalculator.NextDate(rule, anchor, D(2026, 10, 17)));
+        // Concluído num dia fora de fase: vai pro próximo da série, não pro dia seguinte.
+        Assert.Equal(D(2026, 10, 19), RecurrenceCalculator.NextDate(rule, anchor, D(2026, 10, 18)));
+    }
+
+    [Fact]
+    public void Every_two_weeks_on_monday_and_wednesday()
+    {
+        var rule = Rule(RepeatKind.Weekly, DayOfWeek.Monday, DayOfWeek.Wednesday);
+        rule.Interval = 2;
+        var anchor = D(2026, 10, 19); // segunda
+        Assert.Equal(D(2026, 10, 21), RecurrenceCalculator.NextDate(rule, anchor, anchor));
+        Assert.Equal(D(2026, 11, 2), RecurrenceCalculator.NextDate(rule, anchor, D(2026, 10, 21)));
+        Assert.Equal(D(2026, 11, 4), RecurrenceCalculator.NextDate(rule, anchor, D(2026, 11, 2)));
+    }
+
+    [Fact]
+    public void Weekdays_skip_the_weekend()
+    {
+        var rule = Rule(RepeatKind.Weekly, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday);
+        Assert.Equal(D(2026, 10, 19), RecurrenceCalculator.NextDate(rule, D(2026, 10, 1), D(2026, 10, 16)));
+    }
+
+    [Fact]
+    public void Every_three_months_keeps_the_31()
+    {
+        var rule = new ReminderRecurrence { Kind = RepeatKind.Monthly, Interval = 3 };
+        var anchor = D(2026, 1, 31);
+        var apr = RecurrenceCalculator.NextDate(rule, anchor, anchor);
+        Assert.Equal(D(2026, 4, 30), apr);
+        Assert.Equal(D(2026, 7, 31), RecurrenceCalculator.NextDate(rule, anchor, apr!.Value));
+    }
+
+    [Fact]
+    public void Every_two_years()
+    {
+        var rule = new ReminderRecurrence { Kind = RepeatKind.Yearly, Interval = 2 };
+        Assert.Equal(D(2028, 3, 1), RecurrenceCalculator.NextDate(rule, D(2026, 3, 1), D(2026, 3, 1)));
+    }
+
+    [Fact]
+    public void After_n_times_counts_the_anchor()
+    {
+        var rule = new ReminderRecurrence { Kind = RepeatKind.Daily, Count = 3 };
+        var anchor = D(2026, 10, 15);
+        Assert.Equal(D(2026, 10, 16), RecurrenceCalculator.NextDate(rule, anchor, anchor));
+        Assert.Equal(D(2026, 10, 17), RecurrenceCalculator.NextDate(rule, anchor, D(2026, 10, 16)));
+        Assert.Null(RecurrenceCalculator.NextDate(rule, anchor, D(2026, 10, 17)));
+    }
+
+    [Fact]
+    public void After_n_times_with_weekdays()
+    {
+        var rule = Rule(RepeatKind.Weekly, DayOfWeek.Monday, DayOfWeek.Friday);
+        rule.Count = 2;
+        var anchor = D(2026, 10, 16); // sexta
+        Assert.Equal(D(2026, 10, 19), RecurrenceCalculator.NextDate(rule, anchor, anchor));
+        Assert.Null(RecurrenceCalculator.NextDate(rule, anchor, D(2026, 10, 19)));
+    }
+
+    [Fact]
+    public void FirstOnOrAfter_respects_the_phase()
+    {
+        var rule = new ReminderRecurrence { Kind = RepeatKind.Daily, Interval = 3 };
+        Assert.Equal(D(2026, 10, 18), RecurrenceCalculator.FirstOnOrAfter(rule, D(2026, 10, 15), D(2026, 10, 16)));
+    }
+
+    [Fact]
     public void FirstOnOrAfter_includes_the_day_itself_when_it_matches()
     {
         var rule = Rule(RepeatKind.Weekly, DayOfWeek.Thursday);

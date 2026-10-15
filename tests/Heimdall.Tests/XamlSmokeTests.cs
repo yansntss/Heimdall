@@ -87,10 +87,10 @@ public class XamlSmokeTests
             window.UpdateLayout();
             row.Editor.CancelCommand.Execute(null);
             vm.NewReminderCommand.Execute(null);
-            vm.Draft!.Title = "Teste amanhã 9h";
-            vm.Draft.ShowNote = true;
+            vm.NewRow!.Editor!.Title = "Teste amanhã 9h";
+            vm.NewRow!.Editor!.ShowNote = true;
             window.UpdateLayout();
-            vm.Draft.CancelCommand.Execute(null);
+            vm.NewRow!.Editor!.CancelCommand.Execute(null);
 
             foreach (var smart in vm.SmartLists)
             {
@@ -152,20 +152,16 @@ public class XamlSmokeTests
     }
 
     [Fact]
-    public void Quick_add_anchored_to_a_detached_element_does_not_crash()
+    public void Popup_anchored_to_a_detached_element_does_not_crash()
     {
         RunSta(() =>
         {
             _ = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             ThemeManager.Initialize();
-            var cfg = SampleConfig();
 
-            // Overlay de tela cheia: a cópia escondida não pode virar o alvo do "Novo lembrete".
-            using var overlayWidget = new Heimdall.Widgets.ReminderWidget(cfg, isOverlay: true);
-            Assert.Null(Heimdall.Widgets.ReminderWidget.Primary);
-
-            var popup = new QuickAddReminderWindow(ThemeService.GetEffectiveStyle(cfg)) { ShowActivated = false };
-            popup.AnchorTo(new Border(), BarEdge.Top);
+            // Âncora fora de qualquer janela visível (era o overlay escondido): abre perto do mouse.
+            var popup = new Window { ShowActivated = false, Width = 200, Height = 100 };
+            PopupPlacement.AnchorTo(popup, new Border(), BarEdge.Top);
             popup.Show();
             popup.UpdateLayout();
             popup.Close();

@@ -43,6 +43,7 @@ public static class ConfigService
             int version = ReadVersion(node);
             if (version < 2) MigrateToThemeV2(node);
             if (version < 3 && node is JsonObject root) ReminderMigration.Migrate(root, DateTime.Now);
+            if (version < 4 && node is JsonObject v4) ReminderMigration.MigratePriorities(v4);
             if (version < AppConfig.CurrentVersion && node is JsonObject versioned) versioned["ConfigVersion"] = AppConfig.CurrentVersion;
 
             var config = node.Deserialize<AppConfig>(Options) ?? new AppConfig();

@@ -83,13 +83,14 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
     private bool _canSnooze;
     private string _flagHeader = "";
     private Brush _listBrush = Brushes.Gray;
-    private ReminderEditorViewModel? _editor;
+    private NewReminderViewModel? _editor;
+    private bool _isNew;
 
     public ReminderRowViewModel(ReminderConfig reminder, ReminderStore store, Action<ReminderRowViewModel> beginEdit)
     {
         Reminder = reminder;
         _store = store;
-        CompleteCommand = new RelayCommand(() => store.Complete(reminder));
+        CompleteCommand = new RelayCommand(() => store.Complete(reminder), () => !IsNew);
         BeginEditCommand = new RelayCommand(() => beginEdit(this), () => !IsEditing);
         SnoozeCommand = new RelayCommand(() => store.Snooze(reminder));
         ToggleFlagCommand = new RelayCommand(() =>
@@ -126,13 +127,23 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
     public Brush ListBrush { get => _listBrush; private set => SetProperty(ref _listBrush, value); }
 
     /// <summary>Editando inline: o título vira caixa de texto e aparecem os chips.</summary>
-    public ReminderEditorViewModel? Editor
+    public NewReminderViewModel? Editor
     {
         get => _editor;
         set { if (SetProperty(ref _editor, value)) OnPropertyChanged(nameof(IsEditing)); }
     }
 
     public bool IsEditing => _editor is not null;
+
+    /// <summary>
+    /// Lembrete que ainda não existe (a linha em edição no topo). Ao salvar, esta mesma
+    /// linha vira a linha normal do lembrete criado — o mesmo controle em outro estado.
+    /// </summary>
+    public bool IsNew
+    {
+        get => _isNew;
+        set => SetProperty(ref _isNew, value);
+    }
 
     public string CompleteName => Strings.ReminderCompleteNamed(Title);
     public string SnoozeHeader { get; }
@@ -169,19 +180,23 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
 
 /// <summary>
 /// Janela de lembretes: listas inteligentes no topo, lista ativa no meio (com cabeçalhos de
-/// seção), linha de "Novo lembrete" embaixo dela e "Minhas listas" no rodapé. As linhas são
-/// sincronizadas no lugar a cada mudança do store (sem recriar), pra seleção, foco, rolagem
-/// e uma edição em andamento sobreviverem.
+/// seção) e "Minhas listas" no rodapé. "Novo lembrete" põe uma linha em edição no topo da
+/// lista — uma <see cref="ReminderRowViewModel"/> como as outras, em outro estado. As linhas
+/// são sincronizadas no lugar a cada mudança do store (sem recriar), pra seleção, foco,
+/// rolagem e uma edição em andamento sobreviverem.
 /// </summary>
 internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
 {
+    /// <summary>Chave da linha nova na sincronização (ela não tem lembrete no store ainda).</summary>
+    private sealed record NewRowKey(ReminderRowViewModel Row);
+
     private readonly ReminderStore _store;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(30) };
     private ReminderSourceViewModel _active;
     private ReminderSourceViewModel? _selectedSmart;
     private ReminderSourceViewModel? _selectedList;
     private ReminderEntryViewModel? _selectedItem;
-    private ReminderEditorViewModel? _draft;
+    private ReminderRowViewModel? _newRow;
     private bool _isEmpty;
 
     /// <param name="themeBrush">Pincel de um token do tema ("H.Brush.Accent") — vem da view, que é quem conhece os recursos.</param>
@@ -195,8 +210,8 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         _active = _selectedSmart = SmartLists[0];
 
         CompleteSelectedCommand = new RelayCommand(CompleteSelected,
-            () => SelectedItem is ReminderRowViewModel { IsEditing: false });
-        NewReminderCommand = new RelayCommand(BeginDraft);
+            () => SelectedItem is ReminderRowViewModel { IsEditing: false, IsNew: false });
+        NewReminderCommand = new RelayCommand(BeginNew);
 
         Reload();
         _store.Changed += Reload;
@@ -209,28 +224,30 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ReminderSourceViewModel> UserLists { get; } = new();
 
-    /// <summary>Cabeçalhos de seção e lembretes, na ordem de exibição.</summary>
+    /// <summary>Linha nova (se houver) no topo, depois cabeçalhos de seção e lembretes, na ordem de exibição.</summary>
     public ObservableCollection<ReminderEntryViewModel> Items { get; } = new();
 
     /// <summary>Espaço na linha selecionada.</summary>
     public ICommand CompleteSelectedCommand { get; }
 
-    /// <summary>Abre a linha de lembrete novo embaixo da lista.</summary>
+    /// <summary>Põe uma linha em edição no topo da lista.</summary>
     public ICommand NewReminderCommand { get; }
 
-    /// <summary>Lembrete novo sendo digitado; nulo = mostra o botão "Novo lembrete".</summary>
-    public ReminderEditorViewModel? Draft
+    /// <summary>A linha de lembrete novo em edição (topo da lista); nula fora da criação.</summary>
+    public ReminderRowViewModel? NewRow
     {
-        get => _draft;
-        private set { if (SetProperty(ref _draft, value)) OnPropertyChanged(nameof(IsDrafting)); }
+        get => _newRow;
+        private set
+        {
+            if (!SetProperty(ref _newRow, value)) return;
+            OnPropertyChanged(nameof(ActiveEditor));
+        }
     }
 
-    public bool IsDrafting => _draft is not null;
+    /// <summary>A edição aberta agora (linha nova ou existente) — a view salva ela num clique fora.</summary>
+    public NewReminderViewModel? ActiveEditor => _newRow?.Editor ?? EditingRow?.Editor;
 
-    /// <summary>A edição aberta agora (rascunho ou linha) — a view salva ela num clique fora.</summary>
-    public ReminderEditorViewModel? ActiveEditor => _draft ?? EditingRow?.Editor;
-
-    private ReminderRowViewModel? EditingRow => Items.OfType<ReminderRowViewModel>().FirstOrDefault(r => r.IsEditing);
+    private ReminderRowViewModel? EditingRow => Items.OfType<ReminderRowViewModel>().FirstOrDefault(r => r.IsEditing && !r.IsNew);
 
     public ReminderSourceViewModel Active
     {
@@ -284,26 +301,57 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
 
     // ---------- Edição ----------
 
-    /// <summary>Salva o que estiver aberto (clique fora, janela perdeu o foco, troca de lista).</summary>
+    /// <summary>
+    /// Salva o que estiver aberto (clique fora, janela perdeu o foco, troca de lista): a
+    /// linha nova vira lembrete se tiver título e some se estiver vazia.
+    /// </summary>
     public void CommitActiveEditor()
     {
-        if (_draft is not null) CommitDraft(keepGoing: false);
-        if (EditingRow is { } row) CommitRow(row, openDraft: false);
+        if (_newRow is not null) CommitNew(keepGoing: false);
+        if (EditingRow is { } row) CommitRow(row, openNew: false);
     }
+
+    /// <summary>Linha nova no topo da lista, já em edição (também usado pelos atalhos da barra).</summary>
+    public void BeginNew()
+    {
+        if (EditingRow is { } row) CommitRow(row, openNew: false);
+        if (_newRow is not null)
+        {
+            SelectedItem = _newRow;
+            return;
+        }
+
+        NewRow = CreateNewRow();
+        Reload();
+        SelectedItem = _newRow;
+    }
+
+    /// <summary>
+    /// Edita um lembrete vindo de fora (sino, chip da barra). Se ele não aparece na lista
+    /// ativa, vai pra "Todos", onde todo lembrete pendente aparece.
+    /// </summary>
+    public void BeginEdit(ReminderConfig reminder)
+    {
+        if (FindRow(reminder) is null) SelectedSmart = SmartLists.First(s => s.Smart == SmartList.All);
+        if (FindRow(reminder) is { } row) BeginEdit(row);
+    }
+
+    private ReminderRowViewModel? FindRow(ReminderConfig reminder) =>
+        Items.OfType<ReminderRowViewModel>().FirstOrDefault(r => !r.IsNew && ReferenceEquals(r.Reminder, reminder));
 
     private void BeginEdit(ReminderRowViewModel row)
     {
         CommitActiveEditor();
         if (!Items.Contains(row)) return; // o commit acima pode ter tirado a linha da lista
-        row.Editor = new ReminderEditorViewModel(_store, row.Reminder, null,
-            submit: () => CommitRow(row, openDraft: true),
+        row.Editor = new NewReminderViewModel(_store, row.Reminder, null,
+            submit: () => CommitRow(row, openNew: true),
             cancel: () => CloseRowEditor(row));
         SelectedItem = row;
         OnPropertyChanged(nameof(ActiveEditor));
     }
 
     /// <summary>Título apagado = exclui (como no app de Lembretes do macOS).</summary>
-    private void CommitRow(ReminderRowViewModel row, bool openDraft)
+    private void CommitRow(ReminderRowViewModel row, bool openNew)
     {
         if (row.Editor is not { } editor) return;
         CloseRowEditor(row);
@@ -315,7 +363,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
             _store.Update(row.Reminder);
         }
 
-        if (openDraft) BeginDraft();
+        if (openNew) BeginNew();
     }
 
     private void CloseRowEditor(ReminderRowViewModel row)
@@ -324,38 +372,40 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ActiveEditor));
     }
 
-    private void BeginDraft()
+    private ReminderRowViewModel CreateNewRow()
     {
-        if (EditingRow is { } row) CommitRow(row, openDraft: false);
-        if (_draft is not null) return;
-        Draft = NewDraft();
-        OnPropertyChanged(nameof(ActiveEditor));
+        var row = new ReminderRowViewModel(new ReminderConfig(), _store, BeginEdit) { IsNew = true };
+        row.Editor = new NewReminderViewModel(_store, null, DefaultsForActive(),
+            submit: () => CommitNew(keepGoing: true), cancel: CancelNew);
+        return row;
     }
 
-    private ReminderEditorViewModel NewDraft() =>
-        new(_store, null, DefaultsForActive(), submit: () => CommitDraft(keepGoing: true), cancel: CancelDraft);
-
-    /// <summary>Enter salva e já abre outra linha; clique fora salva e fecha.</summary>
-    private void CommitDraft(bool keepGoing)
+    /// <summary>
+    /// Enter salva e já abre outra linha nova no topo; clique fora salva e fecha. A linha
+    /// salva continua sendo o mesmo objeto: só sai do estado "novo" e vai pro lugar dela.
+    /// </summary>
+    private void CommitNew(bool keepGoing)
     {
-        if (_draft is not { } draft) return;
-        if (draft.IsBlank)
+        if (_newRow is not { Editor: { } editor } row) return;
+        if (editor.IsBlank)
         {
-            CancelDraft();
+            CancelNew();
             return;
         }
 
-        var reminder = new ReminderConfig();
-        draft.ApplyTo(reminder);
-        Draft = keepGoing ? NewDraft() : null;
-        OnPropertyChanged(nameof(ActiveEditor));
-        _store.Add(reminder);
+        editor.ApplyTo(row.Reminder);
+        row.Editor = null;
+        row.IsNew = false;
+        NewRow = keepGoing ? CreateNewRow() : null;
+        _store.Add(row.Reminder);
+        if (keepGoing) SelectedItem = _newRow;
     }
 
-    private void CancelDraft()
+    private void CancelNew()
     {
-        Draft = null;
-        OnPropertyChanged(nameof(ActiveEditor));
+        if (_newRow is null) return;
+        NewRow = null;
+        Reload();
     }
 
     /// <summary>Lembrete novo nasce com a cara da lista onde foi criado: em Hoje tem data de hoje, em Sinalizados vem sinalizado.</summary>
@@ -385,8 +435,10 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         }
 
         var reminders = _active.Query(all, today);
-        SyncItems(WithSections(reminders, today));
-        IsEmpty = reminders.Count == 0;
+        var target = WithSections(reminders, today);
+        if (_newRow is not null) target.Insert(0, new NewRowKey(_newRow));
+        SyncItems(target);
+        IsEmpty = reminders.Count == 0 && _newRow is null;
     }
 
     private void SyncUserLists(List<ReminderConfig> all)
@@ -461,7 +513,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         {
             if (i < Items.Count && Matches(Items[i], target[i]))
             {
-                if (Items[i] is ReminderRowViewModel same) same.Refresh(showList);
+                if (Items[i] is ReminderRowViewModel { IsNew: false } same) same.Refresh(showList);
                 continue;
             }
 
@@ -471,7 +523,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
 
             if (existing >= 0) Items.Move(existing, i);
             else Items.Insert(i, Create(target[i]));
-            if (Items[i] is ReminderRowViewModel row) row.Refresh(showList);
+            if (Items[i] is ReminderRowViewModel { IsNew: false } row) row.Refresh(showList);
         }
 
         // A linha selecionada saiu (concluída): a seleção passa pra que ficou no lugar dela.
@@ -482,29 +534,31 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
     private ReminderRowViewModel? NearestRow(int index)
     {
         for (int i = Math.Min(index, Items.Count - 1); i >= 0 && i < Items.Count; i++)
-            if (Items[i] is ReminderRowViewModel row) return row;
+            if (Items[i] is ReminderRowViewModel { IsNew: false } row) return row;
         for (int i = Math.Min(index, Items.Count - 1); i >= 0; i--)
-            if (Items[i] is ReminderRowViewModel row) return row;
+            if (Items[i] is ReminderRowViewModel { IsNew: false } row) return row;
         return null;
     }
 
     private static bool Matches(ReminderEntryViewModel entry, object key) => (entry, key) switch
     {
         (ReminderSectionViewModel s, string title) => s.Title == title,
-        (ReminderRowViewModel r, ReminderConfig reminder) => ReferenceEquals(r.Reminder, reminder),
+        (ReminderRowViewModel r, NewRowKey k) => ReferenceEquals(r, k.Row),
+        (ReminderRowViewModel { IsNew: false } r, ReminderConfig reminder) => ReferenceEquals(r.Reminder, reminder),
         _ => false
     };
 
     private ReminderEntryViewModel Create(object key) => key switch
     {
         string title => new ReminderSectionViewModel(title),
+        NewRowKey k => k.Row,
         ReminderConfig reminder => new ReminderRowViewModel(reminder, _store, BeginEdit),
         _ => throw new ArgumentException("Item desconhecido", nameof(key))
     };
 
     private void CompleteSelected()
     {
-        if (SelectedItem is ReminderRowViewModel row) _store.Complete(row.Reminder);
+        if (SelectedItem is ReminderRowViewModel { IsNew: false } row) _store.Complete(row.Reminder);
     }
 
     public void Dispose()

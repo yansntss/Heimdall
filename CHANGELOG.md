@@ -36,6 +36,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
     - Clique direito num lembrete: Editar, Adiar (só nos vencidos), Sinalizar e Excluir.
     - Concluir um lembrete que se repete pula para a próxima ocorrência.
     - "Ver todos" abre a janela de lembretes.
+  - **Sistema** (clique no chip de CPU): uso de CPU, memória e disco, tempo ligado,
+    liga/desliga do modo overlay, ocultar barra e Configurações.
 - Janela de lembretes (420px, redimensionável), aberta pelo "Ver todos" do sino, pelo
   menu do sino ou pela bandeja:
   - Listas inteligentes Hoje, Agendados, Sinalizados e Todos, com a contagem de cada.
@@ -45,10 +47,12 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - Clique direito num lembrete: Editar, Adiar (vencidos), Sinalizar e Excluir.
   - Cabeçalhos de seção: Hoje separa os atrasados, Agendados agrupa por dia e Todos
     agrupa por lista.
-  - Edição no próprio lugar: clique no título (ou em "Novo lembrete") e ele vira um
-    campo de texto, com chips de data, bandeira, nota e lista logo abaixo.
-    - Enter salva e já abre uma linha nova; Esc cancela; clicar fora salva.
-    - Apagar o título exclui o lembrete.
+  - Criar e editar acontecem na própria lista. O "+" do cabeçalho põe uma linha em
+    edição no topo; clicar no título de um lembrete edita no lugar. Embaixo do título
+    ficam chips de data, bandeira, nota e lista.
+    - Enter salva e já abre outra linha; Esc cancela; clicar fora salva (ou descarta,
+      se o título estiver vazio).
+    - Apagar o título de um lembrete existente exclui o lembrete.
     - O chip de data abre atalhos (Hoje, Amanhã, Próx. semana, Sem data), campos de
       data e hora e a repetição.
     - O lembrete novo herda a lista onde foi criado: em Hoje nasce com a data de hoje,
@@ -56,8 +60,6 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - Data no próprio texto, em português: "amanhã 14h", "sexta 19:00", "dia 20 às 10h",
     "todo dia 9h", "toda segunda e quarta 8h", "todo dia 10" (mensal). O chip de data
     mostra o que foi entendido enquanto você digita, e esse trecho sai do título ao salvar.
-  - **Sistema** (clique no chip de CPU): uso de CPU, memória e disco, tempo ligado,
-    liga/desliga do modo overlay, ocultar barra e Configurações.
 - Tela de Configurações nova: janela redimensionável com barra de título própria,
   menu lateral (Geral, Aparência, Relógio, Widgets, Lembretes, Atalhos, Sobre) e rodapé
   com **Restaurar padrões**, **Cancelar** e **Aplicar**.
@@ -104,6 +106,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
     concluir, ele avisa de novo na ocorrência seguinte.
   - Lembrete com data e sem hora avisa às 09:00.
   - O som do aviso virou uma opção geral, não mais por lembrete.
+- "Novo lembrete" (no sino, no "+" do widget de lembretes e no Ctrl+Shift+R) e "Editar"
+  abrem a janela de lembretes com a linha já em edição, em vez do popup de adição rápida.
   - Lembrete sem data concluído fica marcado como concluído em vez de ser apagado do
     config (continua indo para o histórico).
 - A tabela de lembretes das Configurações agora tem data e hora em colunas separadas.

@@ -13,7 +13,7 @@ public class ReminderQueriesTests
         Title = title,
         DueDate = dayOffset is { } d ? Today.AddDays(d) : null,
         DueTime = hour is { } h ? new TimeOnly(h, 0) : null,
-        Priority = high ? ReminderPriority.High : ReminderPriority.Normal,
+        Priority = high ? ReminderPriority.High : ReminderPriority.None,
         Flagged = flagged,
         CreatedAt = Created.AddMinutes(createdOffset)
     };

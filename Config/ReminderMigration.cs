@@ -23,6 +23,23 @@ internal static class ReminderMigration
             if (node is JsonObject reminder && !reminder.ContainsKey("Title")) MigrateOne(reminder, now);
     }
 
+    /// <summary>
+    /// v4: prioridade passou de Normal/High pra None/Low/Medium/High. "Normal" (ou qualquer
+    /// valor desconhecido) vira "None" — sem isso o conversor de enum derrubaria a leitura
+    /// do config inteiro.
+    /// </summary>
+    public static void MigratePriorities(JsonObject root)
+    {
+        if (root["Reminders"] is not JsonArray reminders) return;
+
+        foreach (var node in reminders)
+        {
+            if (node is not JsonObject r || !r.ContainsKey("Priority")) continue;
+            var value = String(r, "Priority");
+            if (value is null || !Enum.TryParse<ReminderPriority>(value, ignoreCase: true, out _)) r["Priority"] = "None";
+        }
+    }
+
     private static void MigrateOne(JsonObject r, DateTime now)
     {
         var today = DateOnly.FromDateTime(now);
