@@ -13,7 +13,7 @@ namespace Heimdall.Widgets;
 /// Sino com badge numérico = lembretes pendentes hoje (<see cref="ReminderAgenda"/>).
 /// Lê o mesmo AppConfig que o widget de lembretes altera, então basta reconsultar.
 /// </summary>
-public sealed class NotificationsWidget : IWidget
+public sealed class NotificationsWidget : IWidget, IWidgetMenuProvider
 {
     private readonly AppConfig _cfg;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(20) };
@@ -97,6 +97,13 @@ public sealed class NotificationsWidget : IWidget
             _button.ToolTip = tooltip;
             AutomationProperties.SetHelpText(_button, tooltip);
         }
+    }
+
+    public IEnumerable<WidgetMenuEntry> GetMenuEntries()
+    {
+        if (_button is null) yield break;
+        yield return new WidgetMenuEntry(Strings.MenuTodayReminders, "H.Icon.ListChecks", OpenReminders);
+        yield return new WidgetMenuEntry(Strings.RemindersNew, "H.Icon.Plus", () => ReminderActions.OpenQuickAdd(_cfg, _button), "Ctrl+Shift+R");
     }
 
     private void OpenReminders()

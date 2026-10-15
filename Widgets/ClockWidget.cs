@@ -11,7 +11,7 @@ using Heimdall.UI;
 namespace Heimdall.Widgets;
 
 /// <summary>Data (11.5, texto secundário) + hora (mono 13). Clique abre o calendário.</summary>
-public sealed class ClockWidget : IWidget
+public sealed class ClockWidget : IWidget, IWidgetMenuProvider
 {
     private readonly AppConfig _appCfg;
     private readonly ClockConfig _cfg;
@@ -145,6 +145,11 @@ public sealed class ClockWidget : IWidget
             return;
         }
         OpenCalendar();
+    }
+
+    public IEnumerable<WidgetMenuEntry> GetMenuEntries()
+    {
+        yield return new WidgetMenuEntry(Strings.MenuOpenCalendar, "H.Icon.Calendar", OpenCalendar);
     }
 
     private void OpenCalendar()

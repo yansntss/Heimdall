@@ -64,6 +64,7 @@ internal static class ThemeManager
         _brushDictionary = new ResourceDictionary();
         merged.Add(_brushDictionary);
         merged.Add(Load("Controls"));
+        merged.Add(Load("Menus"));
 
         Apply(DefaultTheme);
     }

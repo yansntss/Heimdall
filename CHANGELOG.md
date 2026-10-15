@@ -44,6 +44,15 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 - **Ocultar automaticamente** (`AutoHide`): a barra some e volta ao encostar o mouse na
   borda da tela.
 - Aba **Atalhos** com a lista dos atalhos globais.
+- Menus de clique direito novos, no visual do tema (ícones, atalhos à direita, submenus):
+  - **Área vazia da barra**: Configurações, Posição da barra ▸ (borda e monitor, com o
+    atual marcado), Widgets ▸ (adicionar widget, atalhos, histórico, config.json), Modo
+    overlay, Ocultar barra, Recarregar widgets e Sair.
+  - **Widget**: ações do próprio widget (abrir player, calendário, lembretes de hoje...),
+    Mover ▸ entre as zonas, Fixar, Configurar widget e Ocultar widget.
+- Ícone na bandeja do Windows: Mostrar barra, Modo overlay, **Pausar lembretes**,
+  Configurações, Verificar atualizações (com a versão atual) e Sair.
+- Esc fecha os menus de clique direito.
 
 ### Alterado
 
@@ -59,6 +68,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   mouse sobre o player continua ajustando o volume).
 - As opções de cor de fundo, cor do texto, fonte e tamanho da fonte saíram da tela de
   Configurações; continuam funcionando pelo `config.json` (`Style`).
+- A troca de tema e a lista de monitores saíram do menu de clique direito: tema fica em
+  Configurações → Aparência; monitores em Posição da barra ▸.
 
 ### Corrigido
 

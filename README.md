@@ -48,6 +48,8 @@ cheia é aberto, e volta ao normal quando ele fecha.
   trocável (inclusive a cor de destaque do Windows) e suporte a temas próprios em JSON.
 - **Modo overlay automático**: em jogos e apps de tela cheia, a barra normal some e um
   overlay discreto e somente informativo assume o lugar, sem interceptar clique.
+- **Dropdowns e menus no mesmo visual**: player com progresso arrastável, lembretes do dia,
+  monitor do sistema e ícone na bandeja com atalhos rápidos.
 - **Leve e nativo**: WPF puro, sem Electron e sem serviço em segundo plano consumindo RAM.
 
 ## Screenshots

@@ -5,6 +5,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.UI.Menus;
 using Heimdall.Widgets;
 
 namespace Heimdall.UI;
@@ -110,7 +111,10 @@ internal static class WidgetZoneBuilder
             else
             {
                 var wrapper = WrapSlot(widget.View, orientation, entry.Pinned);
-                wrapper.ContextMenu = BuildWidgetContextMenu(cfg, entry);
+                // Montado a cada abertura: zona e "fixado" podem ter mudado por arraste.
+                var menu = new ContextMenu();
+                wrapper.ContextMenu = menu;
+                wrapper.ContextMenuOpening += (_, _) => FillWidgetMenu(menu, cfg, entry, widget);
                 drag?.RegisterSlot(wrapper, entry, zoneIndex);
                 zone.Children.Add(wrapper);
             }
@@ -120,28 +124,52 @@ internal static class WidgetZoneBuilder
         }
     }
 
-    /// <summary>Fixar/desafixar ou remover um widget inteiro (clique direito em qualquer parte dele que não tenha o próprio menu, como o ícone de um atalho).</summary>
-    private static ContextMenu BuildWidgetContextMenu(AppConfig cfg, WidgetEntry entry)
+    /// <summary>
+    /// Menu genérico de widget: cabeçalho "WIDGET · NOME", ações próprias do widget
+    /// (<see cref="IWidgetMenuProvider"/>), Mover ▸, Fixar, Configurar e Ocultar.
+    /// </summary>
+    private static void FillWidgetMenu(ContextMenu menu, AppConfig cfg, WidgetEntry entry, IWidget widget)
     {
-        var toggle = new MenuItem { Header = entry.Pinned ? Strings.Unpin : Strings.Pin };
-        toggle.Click += (_, _) =>
+        var app = (App)Application.Current;
+        var zones = new[] { cfg.Widgets.Start, cfg.Widgets.Center, cfg.Widgets.End };
+        var zoneNames = new[] { Strings.ZoneStart, Strings.ZoneCenter, Strings.ZoneEnd };
+        int current = Array.FindIndex(zones, z => z.Contains(entry));
+
+        menu.Items.Clear();
+        menu.Items.Add(MenuFactory.Caption(Strings.WidgetMenuCaption(Strings.WidgetName(entry.Id))));
+
+        if (widget is IWidgetMenuProvider provider)
+            foreach (var action in provider.GetMenuEntries())
+                menu.Items.Add(MenuFactory.Item(action.Header, action.IconKey, action.Execute, action.Gesture));
+
+        menu.Items.Add(MenuFactory.Submenu(Strings.MenuMove, "H.Icon.Move", zones.Select((zone, i) => (object)MenuFactory.Item(
+            zoneNames[i], isChecked: i == current,
+            onClick: () =>
+            {
+                if (i == current) return;
+                zones[current].Remove(entry);
+                zone.Add(entry);
+                ConfigService.Save(cfg);
+                app.Reload();
+            }))));
+
+        menu.Items.Add(MenuFactory.Item(entry.Pinned ? Strings.Unpin : Strings.Pin, "H.Icon.Pin", () =>
         {
             entry.Pinned = !entry.Pinned;
             ConfigService.Save(cfg);
-            ((App)Application.Current).Reload();
-        };
+            app.Reload();
+        }));
 
-        var remove = new MenuItem { Header = Strings.RemoveWidget };
-        remove.Click += (_, _) =>
+        menu.Items.Add(MenuFactory.Item(Strings.MenuConfigureWidget, "H.Icon.Sliders", () => app.OpenSettings("widgets")));
+        menu.Items.Add(MenuFactory.Separator());
+
+        menu.Items.Add(MenuFactory.Item(Strings.MenuHideWidget, "H.Icon.EyeOff", danger: true, onClick: () =>
         {
             // Mesma referência que está numa das 3 zonas do cfg — remove de onde estiver.
-            if (!cfg.Widgets.Start.Remove(entry) && !cfg.Widgets.Center.Remove(entry))
-                cfg.Widgets.End.Remove(entry);
+            if (current >= 0) zones[current].Remove(entry);
             ConfigService.Save(cfg);
-            ((App)Application.Current).Reload();
-        };
-
-        return new ContextMenu { Items = { toggle, new Separator(), remove } };
+            app.Reload();
+        }));
     }
 
     private static FrameworkElement WrapWithMargin(FrameworkElement view, Orientation orientation)

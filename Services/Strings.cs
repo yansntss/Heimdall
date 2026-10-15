@@ -42,7 +42,6 @@ public static class Strings
 
     // ---------- Menu de contexto da barra (BarWindow) ----------
 
-    public static string MenuSettings => T("Configurações...", "Settings...");
     public static string MenuEditConfig => T("Editar config.json", "Edit config.json");
     public static string MenuReminderHistory => T("Ver histórico de lembretes", "View reminder history");
     public static string MenuAddShortcut => T("Adicionar atalho", "Add shortcut");
@@ -50,19 +49,34 @@ public static class Strings
     public static string MenuAddShortcutFromInstalled => T("Escolher app instalado...", "Choose installed app...");
     public static string MenuAddSeparator => T("Adicionar separador", "Add separator");
     public static string MenuAddWidget => T("Adicionar widget", "Add widget");
-    public static string MenuTheme => T("Tema", "Theme");
-    public static string MenuGamingModeOn => T("Modo gaming: Ativado", "Gaming mode: On");
-    public static string MenuGamingModeOff => T("Modo gaming: Desativado", "Gaming mode: Off");
-    public static string MenuReload => T("Recarregar", "Reload");
-    public static string MenuMonitors => T("Monitores detectados", "Detected monitors");
-    public static string MenuExit => T("Sair", "Exit");
+    public static string MenuSettingsShort => T("Configurações", "Settings");
+    public static string MenuBarPosition => T("Posição da barra", "Bar position");
+    public static string MenuAllMonitors => T("Todos os monitores", "All monitors");
+    public static string MenuWidgets => T("Widgets", "Widgets");
+    public static string MenuOverlayMode => T("Modo overlay", "Overlay mode");
+    public static string MenuHideBar => T("Ocultar barra", "Hide bar");
+    public static string MenuReloadWidgets => T("Recarregar widgets", "Reload widgets");
+    public static string MenuExitApp => T("Sair do Heimdall", "Quit Heimdall");
+
+    // Menu de um widget
+    public static string WidgetMenuCaption(string name) => $"WIDGET · {name.ToUpperInvariant()}";
+    public static string MenuMove => T("Mover", "Move");
+    public static string MenuConfigureWidget => T("Configurar widget", "Configure widget");
+    public static string MenuHideWidget => T("Ocultar widget", "Hide widget");
+    public static string MenuOpenCalendar => T("Abrir calendário", "Open calendar");
+    public static string MenuTodayReminders => T("Ver lembretes de hoje", "View today's reminders");
+    public static string MenuSystemMonitor => T("Abrir monitor do sistema", "Open system monitor");
+    public static string MenuNetworkSettings => T("Configurações de rede", "Network settings");
+
+    // Ícone da bandeja
+    public static string TrayShowBar => T("Mostrar barra", "Show bar");
+    public static string TrayPauseReminders => T("Pausar lembretes", "Pause reminders");
+    public static string TrayCheckUpdates => T("Verificar atualizações", "Check for updates");
+    public static string TrayUpToDate(string version) => T($"Você já está na versão mais recente ({version}).", $"You are on the latest version ({version}).");
 
     public static string DialogChooseFileTitle => T("Escolher arquivo ou atalho", "Choose file or shortcut");
     public static string DialogAllFiles => T("Todos os arquivos", "All files");
 
-    public static string MonitorsDialogBody(string list) => T(
-        $"Use o nome em \"MonitorDevice\" com \"MonitorMode\": \"Specific\":\n\n{list}\n\n(Ctrl+C copia este texto)",
-        $"Use the name in \"MonitorDevice\" with \"MonitorMode\": \"Specific\":\n\n{list}\n\n(Ctrl+C copies this text)");
     public static string MonitorPrimarySuffix => T("  [principal]", "  [primary]");
 
     // ---------- Separador do launcher (submenu de estilo) ----------

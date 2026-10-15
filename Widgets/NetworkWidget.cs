@@ -15,7 +15,7 @@ namespace Heimdall.Widgets;
 /// Atualiza nos eventos de NetworkChange (sem polling). Clique abre as configurações de
 /// rede do Windows.
 /// </summary>
-public sealed class NetworkWidget : IWidget
+public sealed class NetworkWidget : IWidget, IWidgetMenuProvider
 {
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
     private readonly Icon _icon = WidgetUi.Icon("H.Icon.Wifi");
@@ -90,6 +90,11 @@ public sealed class NetworkWidget : IWidget
         {
             return null;
         }
+    }
+
+    public IEnumerable<WidgetMenuEntry> GetMenuEntries()
+    {
+        yield return new WidgetMenuEntry(Strings.MenuNetworkSettings, "H.Icon.Settings", OpenNetworkSettings);
     }
 
     private static void OpenNetworkSettings()

@@ -21,6 +21,7 @@ public partial class App : Application
     private ReminderHistoryWindow? _historyWindow;
     private DispatcherTimer? _updateTimer;
     private UpdateNotificationWindow? _updateNotification;
+    private TrayIcon? _tray;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -62,6 +63,7 @@ public partial class App : Application
         _hotkeys.Register(NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT, NativeMethods.VK_H, ToggleBarsVisibility);
 
         BuildBars();
+        _tray = new TrayIcon();
         StartUpdateChecks();
     }
 
@@ -311,23 +313,6 @@ public partial class App : Application
         _previewDebounce.Start();
     }
 
-    public void SetTheme(string name)
-    {
-        var cfg = ConfigService.Load();
-        cfg.Theme = name;
-
-        // Trocar pelo menu rápido é um "usa este tema inteiro" — limpa overrides
-        // antigos de cor/fonte que, senão, ficariam escondendo a troca de tema.
-        // Overrides finos continuam disponíveis na tela de Configurações.
-        cfg.Style.Background = null;
-        cfg.Style.Foreground = null;
-        cfg.Style.FontFamily = null;
-        cfg.Style.FontSize = null;
-
-        ConfigService.Save(cfg);
-        Reload();
-    }
-
     /// <summary>Atalho rápido do menu de clique direito — inverte GamingMode e salva na hora, sem precisar abrir Configurações.</summary>
     public void ToggleGamingMode()
     {
@@ -337,18 +322,42 @@ public partial class App : Application
         Reload();
     }
 
-    public void OpenSettings()
+    /// <param name="section">Chave da seção a mostrar ("widgets", "aparencia"...); null = a última aberta / padrão.</param>
+    public void OpenSettings(string? section = null)
     {
-        if (_settingsWindow is not null)
+        if (_settingsWindow is null)
         {
-            BringToFront(_settingsWindow);
-            return;
+            _settingsWindow = new SettingsWindow();
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show();
         }
 
-        _settingsWindow = new SettingsWindow();
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
-        _settingsWindow.Show();
+        if (section is not null) _settingsWindow.SelectSection(section);
         BringToFront(_settingsWindow);
+    }
+
+    /// <summary>Barra visível em algum monitor (não oculta pelo atalho) — check do "Mostrar barra" da bandeja.</summary>
+    public bool AreBarsVisible => _bars.Any(b => b.IsVisible);
+
+    /// <summary>Menu "Posição da barra": troca a borda (e a espessura padrão, se mudou entre horizontal e vertical).</summary>
+    public void SetEdge(BarEdge edge)
+    {
+        var cfg = ConfigService.Load();
+        bool wasVertical = cfg.Edge is BarEdge.Left or BarEdge.Right;
+        bool vertical = edge is BarEdge.Left or BarEdge.Right;
+        cfg.Edge = edge;
+        if (wasVertical != vertical) cfg.Thickness = vertical ? 72 : 38;
+        ConfigService.Save(cfg);
+        Reload();
+    }
+
+    /// <summary>Menu "Posição da barra" → "Todos os monitores".</summary>
+    public void ShowOnAllMonitors()
+    {
+        var cfg = ConfigService.Load();
+        cfg.MonitorMode = MonitorMode.All;
+        ConfigService.Save(cfg);
+        Reload();
     }
 
     /// <summary>
@@ -425,15 +434,6 @@ public partial class App : Application
         BringToFront(_historyWindow);
     }
 
-    public void ShowMonitors()
-    {
-        var lines = MonitorService.GetMonitors().Select(m =>
-            $"{m.ShortName}  —  {m.Bounds.Width}x{m.Bounds.Height} em ({m.Bounds.Left}, {m.Bounds.Top})" +
-            (m.IsPrimary ? Strings.MonitorPrimarySuffix : ""));
-
-        MessageBox.Show(Strings.MonitorsDialogBody(string.Join("\n", lines)), "Heimdall — Monitores");
-    }
-
     /// <summary>Clique triplo + arrastar na barra: fixa a barra no monitor onde ela foi solta.</summary>
     public void MoveBarToMonitor(string deviceName)
     {
@@ -457,6 +457,7 @@ public partial class App : Application
         _updateTimer?.Stop();
         UpdateService.UpdateFound -= ShowUpdateNotification;
         _hotkeys?.Dispose();
+        _tray?.Dispose();
         CloseBars();
         if (_mutex is not null)
         {

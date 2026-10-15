@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using Heimdall.Config;
 using Heimdall.Native;
 using Heimdall.Services;
+using Heimdall.UI.Menus;
 using Heimdall.Widgets;
 using Microsoft.Win32;
 
@@ -52,10 +53,6 @@ public partial class BarWindow : Window
         ApplyStyle();
         BuildWidgets();
         SetupUpdateButton();
-        ApplyMenuLabels();
-        BuildThemeMenu();
-        BuildAddWidgetMenu();
-        UpdateGamingModeMenuItem();
 
         ThemeManager.Changed += OnThemeChanged;
         SourceInitialized += OnSourceInitialized;
@@ -202,74 +199,79 @@ public partial class BarWindow : Window
 
     private static App CurrentApp => (App)Application.Current;
 
-    private void ApplyMenuLabels()
+    /// <summary>
+    /// Menu da área vazia: Configurações · Posição da barra ▸ · Widgets ▸ · — · Modo overlay ·
+    /// Ocultar barra · Recarregar widgets · — · Sair. Clique direito num widget abre o menu
+    /// do próprio widget (o slot tem ContextMenu próprio), não este.
+    /// </summary>
+    private void Root_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        SettingsMenuItem.Header = Strings.MenuSettings;
-        EditConfigMenuItem.Header = Strings.MenuEditConfig;
-        ReminderHistoryMenuItem.Header = Strings.MenuReminderHistory;
-        AddShortcutMenu.Header = Strings.MenuAddShortcut;
-        AddShortcutFromFileMenuItem.Header = Strings.MenuAddShortcutFromFile;
-        AddShortcutFromInstalledMenuItem.Header = Strings.MenuAddShortcutFromInstalled;
-        AddSeparatorMenuItem.Header = Strings.MenuAddSeparator;
-        AddWidgetMenu.Header = Strings.MenuAddWidget;
-        ThemeMenu.Header = Strings.MenuTheme;
-        ReloadMenuItem.Header = Strings.MenuReload;
-        MonitorsMenuItem.Header = Strings.MenuMonitors;
-        ExitMenuItem.Header = Strings.MenuExit;
+        // Clique direito num widget sobe até aqui também (bolha) — o menu dele é outro, nada a montar.
+        if (!ReferenceEquals(e.Source, Root)) return;
+
+        var app = CurrentApp;
+        var cfg = ConfigService.Load();
+        var items = BarMenu.Items;
+        items.Clear();
+
+        items.Add(MenuFactory.Item(Strings.MenuSettingsShort, "H.Icon.Settings", () => app.OpenSettings()));
+        items.Add(MenuFactory.Submenu(Strings.MenuBarPosition, "H.Icon.Monitor", BuildPositionItems(cfg)));
+        items.Add(MenuFactory.Submenu(Strings.MenuWidgets, "H.Icon.Grid", BuildWidgetItems()));
+        items.Add(MenuFactory.Separator());
+        items.Add(MenuFactory.Item(Strings.MenuOverlayMode, "H.Icon.Gamepad", app.ToggleGamingMode, isChecked: cfg.GamingMode));
+        items.Add(MenuFactory.Item(Strings.MenuHideBar, "H.Icon.EyeOff", app.ToggleBarsVisibility, "Ctrl+Alt+H"));
+        items.Add(MenuFactory.Item(Strings.MenuReloadWidgets, "H.Icon.Refresh", app.Reload));
+        items.Add(MenuFactory.Separator());
+        items.Add(MenuFactory.Item(Strings.MenuExitApp, "H.Icon.LogOut", app.ExitApp, danger: true));
     }
 
-    private void BuildThemeMenu()
+    /// <summary>Topo/Baixo/Esquerda/Direita com check na ativa + lista de monitores.</summary>
+    private static IEnumerable<object> BuildPositionItems(AppConfig cfg)
     {
-        foreach (var name in ThemeService.GetAllThemeNames())
+        var app = CurrentApp;
+        foreach (var edge in Enum.GetValues<BarEdge>())
+            yield return MenuFactory.Item(Strings.EdgeName(edge), onClick: () => app.SetEdge(edge), isChecked: cfg.Edge == edge);
+
+        yield return MenuFactory.Separator();
+
+        string? device = MonitorInfo.Normalize(cfg.MonitorDevice);
+        foreach (var monitor in MonitorService.GetMonitors())
         {
-            var item = new MenuItem
+            bool active = cfg.MonitorMode switch
             {
-                Header = ThemeManager.DisplayName(name),
-                IsCheckable = true,
-                IsChecked = string.Equals(name, _cfg.Theme, StringComparison.OrdinalIgnoreCase),
-                Tag = name
+                MonitorMode.Specific => string.Equals(monitor.ShortName, device, StringComparison.OrdinalIgnoreCase),
+                MonitorMode.Primary => monitor.IsPrimary,
+                _ => false
             };
-            item.Click += (sender, _) => CurrentApp.SetTheme((string)((MenuItem)sender).Tag);
-            ThemeMenu.Items.Add(item);
+            yield return MenuFactory.Item(monitor.ShortName, onClick: () => app.MoveBarToMonitor(monitor.ShortName), isChecked: active,
+                gesture: monitor.IsPrimary ? Strings.MonitorPrimarySuffix.Trim().Trim('[', ']') : null);
         }
+        yield return MenuFactory.Item(Strings.MenuAllMonitors, onClick: app.ShowOnAllMonitors, isChecked: cfg.MonitorMode == MonitorMode.All);
     }
 
-    /// <summary>Adicionar widget direto pelo menu da barra, sem precisar abrir Configurações — mesmo catálogo da aba Widgets.</summary>
-    private void BuildAddWidgetMenu()
+    /// <summary>Catálogo pra adicionar + atalhos do launcher + histórico e config.json.</summary>
+    private IEnumerable<object> BuildWidgetItems()
     {
-        foreach (var (id, icon) in WidgetFactory.Catalog)
+        var app = CurrentApp;
+        yield return MenuFactory.Caption(Strings.MenuAddWidget.ToUpperInvariant());
+        foreach (var (id, _) in WidgetFactory.Catalog)
+            yield return MenuFactory.Item(Strings.WidgetName(id), onClick: () => app.AddWidget(id));
+
+        yield return MenuFactory.Separator();
+        yield return MenuFactory.Submenu(Strings.MenuAddShortcut, "H.Icon.Plus", new object[]
         {
-            var item = new MenuItem { Header = $"{icon}  {Strings.WidgetName(id)}", Tag = id };
-            item.Click += (sender, _) => CurrentApp.AddWidget((string)((MenuItem)sender).Tag);
-            AddWidgetMenu.Items.Add(item);
-        }
+            MenuFactory.Item(Strings.MenuAddShortcutFromFile, onClick: AddLauncherFromFile),
+            MenuFactory.Item(Strings.MenuAddShortcutFromInstalled, onClick: AddLauncherFromInstalled)
+        });
+        yield return MenuFactory.Item(Strings.MenuAddSeparator, onClick: AddSeparator);
+        yield return MenuFactory.Separator();
+        yield return MenuFactory.Item(Strings.MenuReminderHistory, "H.Icon.ListChecks", app.OpenReminderHistory);
+        yield return MenuFactory.Item(Strings.MenuEditConfig, "H.Icon.ExternalLink", app.OpenConfig);
     }
-
-    private void UpdateGamingModeMenuItem()
-    {
-        GamingModeMenuItem.Header = _cfg.GamingMode ? Strings.MenuGamingModeOn : Strings.MenuGamingModeOff;
-        GamingModeMenuItem.IsChecked = _cfg.GamingMode;
-    }
-
-    private void GamingMode_Click(object sender, RoutedEventArgs e) => CurrentApp.ToggleGamingMode();
-
-    private void OpenSettings_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenSettings();
-
-    private void OpenConfig_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenConfig();
-
-    private void OpenReminderHistory_Click(object sender, RoutedEventArgs e) => CurrentApp.OpenReminderHistory();
-
-    private void Reload_Click(object sender, RoutedEventArgs e) =>
-        Dispatcher.BeginInvoke(new Action(CurrentApp.Reload));
-
-    private void Monitors_Click(object sender, RoutedEventArgs e) => CurrentApp.ShowMonitors();
-
-    private void Exit_Click(object sender, RoutedEventArgs e) =>
-        Dispatcher.BeginInvoke(new Action(CurrentApp.ExitApp));
 
     // ---------- Adicionar atalho ----------
 
-    private void AddLauncherFromFile_Click(object sender, RoutedEventArgs e)
+    private void AddLauncherFromFile()
     {
         // Nem sem owner nem com esta janela (WS_EX_NOACTIVATE) como dono o diálogo aparece
         // de verdade: o processo nunca tem uma janela "ativa" de verdade pro Explorer usar
@@ -298,7 +300,7 @@ public partial class BarWindow : Window
         });
     }
 
-    private void AddLauncherFromInstalled_Click(object sender, RoutedEventArgs e)
+    private void AddLauncherFromInstalled()
     {
         if (_appPicker is not null)
         {
@@ -319,7 +321,7 @@ public partial class BarWindow : Window
     private void Root_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
         _lastRightClickScreenPoint = PointToScreen(e.GetPosition(this));
 
-    private void AddSeparator_Click(object sender, RoutedEventArgs e)
+    private void AddSeparator()
     {
         var launcherWidget = _widgets.OfType<LauncherWidget>().FirstOrDefault();
 

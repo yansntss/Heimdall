@@ -25,7 +25,7 @@ namespace Heimdall.Widgets;
 /// Windows, sem login nem API key do serviço. Volume por app via NAudio, já que
 /// o SMTC não expõe controle de volume.
 /// </summary>
-public sealed class MediaWidget : IWidget
+public sealed class MediaWidget : IWidget, IWidgetMenuProvider
 {
     private const double TextWidth = 170;
     private const double CoverSize = 22;
@@ -194,6 +194,11 @@ public sealed class MediaWidget : IWidget
 
         _feedbackTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
         _feedbackTimer.Tick += (_, _) => { _feedbackTimer.Stop(); _feedbackPopup.IsOpen = false; };
+    }
+
+    public IEnumerable<WidgetMenuEntry> GetMenuEntries()
+    {
+        if (_session is not null) yield return new WidgetMenuEntry(Strings.MediaOpenPlayer, "H.Icon.Music", OpenFlyout);
     }
 
     private void OpenFlyout()

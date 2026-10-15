@@ -114,6 +114,12 @@ public partial class SettingsWindow : Window
         Closed += (_, _) => _clockPreviewTimer.Stop();
     }
 
+    /// <summary>Abre direto numa seção (ex.: "Configurar widget" do menu de um widget).</summary>
+    internal void SelectSection(string key)
+    {
+        if (_vm.Sections.FirstOrDefault(s => s.Key == key) is { } section) _vm.SelectedSection = section;
+    }
+
     // ---------- Chrome (só visual) ----------
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

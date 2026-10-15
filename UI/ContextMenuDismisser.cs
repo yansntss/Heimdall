@@ -36,6 +36,8 @@ internal static class ContextMenuDismisser
         // O clique direito que abriu o menu pode ainda estar pressionado — só conta um
         // clique novo, depois de soltar.
         _wasPressed = AnyButtonPressed();
+        // Zera o "apertada desde a última leitura" do Esc — um Esc antigo não pode fechar o menu recém-aberto.
+        NativeMethods.GetAsyncKeyState(NativeMethods.VK_ESCAPE);
         Timer.Start();
     }
 
@@ -47,6 +49,14 @@ internal static class ContextMenuDismisser
 
     private static void Poll()
     {
+        // Esc fecha: a barra nunca fica ativa (WS_EX_NOACTIVATE), então o menu não recebe o teclado.
+        // 0x0001 = apertada desde a última leitura: pega toques rápidos entre duas checagens.
+        if ((NativeMethods.GetAsyncKeyState(NativeMethods.VK_ESCAPE) & 0x8001) != 0)
+        {
+            foreach (var open in OpenMenus.ToList()) open.IsOpen = false;
+            return;
+        }
+
         bool pressed = AnyButtonPressed();
         bool newPress = pressed && !_wasPressed;
         _wasPressed = pressed;

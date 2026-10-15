@@ -11,27 +11,12 @@
         Background="Transparent">
 
     <Border x:Name="Root" AllowDrop="True" Background="{DynamicResource H.Brush.BarBg}" DragEnter="Root_DragEnter" Drop="Root_Drop"
-            PreviewMouseRightButtonDown="Root_PreviewMouseRightButtonDown"
+            PreviewMouseRightButtonDown="Root_PreviewMouseRightButtonDown" ContextMenuOpening="Root_ContextMenuOpening"
             MouseLeftButtonDown="Root_MouseLeftButtonDown" MouseMove="Root_MouseMove"
             MouseLeftButtonUp="Root_MouseLeftButtonUp" LostMouseCapture="Root_LostMouseCapture">
+        <!-- Itens montados a cada abertura (BarWindow.Root_ContextMenuOpening): checks de posição, monitor e modo overlay sempre atuais. -->
         <Border.ContextMenu>
-            <ContextMenu>
-                <MenuItem x:Name="SettingsMenuItem" Click="OpenSettings_Click" />
-                <MenuItem x:Name="EditConfigMenuItem" Click="OpenConfig_Click" />
-                <MenuItem x:Name="ReminderHistoryMenuItem" Click="OpenReminderHistory_Click" />
-                <MenuItem x:Name="AddShortcutMenu">
-                    <MenuItem x:Name="AddShortcutFromFileMenuItem" Click="AddLauncherFromFile_Click" />
-                    <MenuItem x:Name="AddShortcutFromInstalledMenuItem" Click="AddLauncherFromInstalled_Click" />
-                </MenuItem>
-                <MenuItem x:Name="AddSeparatorMenuItem" Click="AddSeparator_Click" />
-                <MenuItem x:Name="AddWidgetMenu" />
-                <MenuItem x:Name="ThemeMenu" />
-                <MenuItem x:Name="GamingModeMenuItem" IsCheckable="True" Click="GamingMode_Click" />
-                <MenuItem x:Name="ReloadMenuItem" Click="Reload_Click" />
-                <MenuItem x:Name="MonitorsMenuItem" Click="Monitors_Click" />
-                <Separator />
-                <MenuItem x:Name="ExitMenuItem" Click="Exit_Click" />
-            </ContextMenu>
+            <ContextMenu x:Name="BarMenu"/>
         </Border.ContextMenu>
 
         <Grid>

@@ -13,7 +13,7 @@ using Heimdall.ViewModels;
 namespace Heimdall.Widgets;
 
 /// <summary>Chip de CPU: rótulo, sparkline das últimas 5 amostras (a cada 2s) e o valor atual.</summary>
-public sealed class CpuWidget : IWidget
+public sealed class CpuWidget : IWidget, IWidgetMenuProvider
 {
     private const int Samples = 5;
     private const double SparkMaxHeight = 12;
@@ -31,6 +31,13 @@ public sealed class CpuWidget : IWidget
     private readonly Border _chip = new() { Padding = new Thickness(8, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
 
     public FrameworkElement View => _chip;
+
+    private readonly Action? _openFlyout;
+
+    public IEnumerable<WidgetMenuEntry> GetMenuEntries()
+    {
+        if (_openFlyout is not null) yield return new WidgetMenuEntry(Strings.MenuSystemMonitor, "H.Icon.Cpu", _openFlyout);
+    }
 
     public CpuWidget(AppConfig cfg, bool isOverlay = false)
     {
@@ -72,8 +79,9 @@ public sealed class CpuWidget : IWidget
             AutomationProperties.SetName(_chip, Strings.FlyoutSystemTitle);
             _chip.MouseEnter += (_, _) => _chip.SetResourceReference(Border.BackgroundProperty, "H.Brush.Pressed");
             _chip.MouseLeave += (_, _) => _chip.SetResourceReference(Border.BackgroundProperty, "H.Brush.Selected");
-            ClickHelper.Attach(_chip, () => FlyoutWindow.Toggle(_chip, cfg.Edge,
-                () => new SystemFlyout(new SystemFlyoutViewModel(cfg)), Strings.FlyoutSystemTitle));
+            _openFlyout = () => FlyoutWindow.Toggle(_chip, cfg.Edge,
+                () => new SystemFlyout(new SystemFlyoutViewModel(cfg)), Strings.FlyoutSystemTitle);
+            ClickHelper.Attach(_chip, _openFlyout);
         }
 
         _timer.Tick += (_, _) => Update();

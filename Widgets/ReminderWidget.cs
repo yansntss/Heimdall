@@ -26,6 +26,9 @@ public sealed class ReminderWidget : IWidget
     /// <summary>Último widget de lembretes construído — é nele que o hotkey global Ctrl+Shift+R abre o popup.</summary>
     internal static ReminderWidget? Primary { get; private set; }
 
+    /// <summary>"Pausar lembretes" da bandeja: agendados não disparam enquanto true (só nesta sessão).</summary>
+    internal static bool Paused { get; set; }
+
     private readonly AppConfig _cfg;
     private readonly Color _accent;
     private readonly EffectiveStyle _style;
@@ -178,6 +181,8 @@ public sealed class ReminderWidget : IWidget
 
     private void CheckSchedule()
     {
+        if (Paused) return;
+
         var now = DateTime.Now;
         string minuteKey = now.ToString("yyyy-MM-dd HH:mm");
 

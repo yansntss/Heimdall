@@ -1,0 +1,137 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:c="clr-namespace:Heimdall.UI.Controls">
+
+    <!-- Menus de contexto do app inteiro (barra, widgets, bandeja, launcher...): implícitos
+         de propósito, todo ContextMenu/MenuItem/Separator pega este visual.
+         Largura 230–244, itens 32px raio 7, ícone 14 à esquerda, atalho mono 10.5 à direita
+         em texto terciário, separador 1px com margem 5/7, submenu abrindo à direita. -->
+
+    <DropShadowEffect x:Key="H.Shadow.Menu" BlurRadius="28" ShadowDepth="10" Direction="270" Color="Black" Opacity="0.40"/>
+
+    <!-- Superfície de menu e submenu: #161B23 @ 98%, raio 12, borda 9%. -->
+    <Style x:Key="H.MenuSurface" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource H.Brush.Elevated}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource H.Brush.Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="MinWidth" Value="230"/>
+        <Setter Property="MaxWidth" Value="244"/>
+        <Setter Property="Effect" Value="{StaticResource H.Shadow.Menu}"/>
+        <!-- Respiro pra sombra não ser cortada pela borda do popup. -->
+        <Setter Property="Margin" Value="10,4,10,16"/>
+    </Style>
+
+    <Style TargetType="ContextMenu">
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Style="{StaticResource H.MenuSurface}">
+                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Separador: 1px, margem 5 vertical / 7 horizontal. -->
+    <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Margin="7,5" Background="{DynamicResource H.Brush.Line}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="7" Padding="9,0,8,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="16"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Ícone (MenuItem.Icon = um Icon de 14) ou check quando marcado. -->
+                            <ContentPresenter x:Name="IconSite" ContentSource="Icon" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            <c:Icon x:Name="Check" Geometry="{DynamicResource H.Icon.Check}" Size="14" HorizontalAlignment="Left"
+                                    Foreground="{DynamicResource H.Brush.Accent}" Visibility="Collapsed"/>
+
+                            <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+
+                            <TextBlock x:Name="Gesture" Grid.Column="2" Text="{TemplateBinding InputGestureText}" Margin="12,0,0,0"
+                                       VerticalAlignment="Center" FontFamily="{DynamicResource H.Font.Mono}" FontSize="10.5"
+                                       Foreground="{DynamicResource H.Brush.TextTertiary}"/>
+
+                            <c:Icon x:Name="Arrow" Grid.Column="3" Geometry="{DynamicResource H.Icon.ChevronRight}" Size="12"
+                                    HorizontalAlignment="Right" Foreground="{DynamicResource H.Brush.TextTertiary}" Visibility="Collapsed"/>
+
+                            <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="-2" VerticalOffset="-10"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Style="{StaticResource H.MenuSurface}">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="IconSite" Property="Visibility" Value="Hidden"/>
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsSubmenuOpen" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Item destrutivo (Sair, Ocultar widget): texto e ícone em #F2A58C. -->
+    <Style x:Key="H.MenuItem.Danger" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Danger}"/>
+    </Style>
+
+    <!-- Cabeçalho não clicável ("WIDGET · MÍDIA"). -->
+    <Style x:Key="H.MenuItem.Caption" TargetType="MenuItem">
+        <Setter Property="IsHitTestVisible" Value="False"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <TextBlock Text="{TemplateBinding Header}" Margin="10,6,10,4" FontSize="10" FontWeight="SemiBold"
+                               FontFamily="{DynamicResource H.Font.UI}" Foreground="{DynamicResource H.Brush.TextTertiary}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
