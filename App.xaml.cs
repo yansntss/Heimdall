@@ -23,6 +23,9 @@ public partial class App : Application
     private DispatcherTimer? _updateTimer;
     private UpdateNotificationWindow? _updateNotification;
     private TrayIcon? _tray;
+    private Services.Reminders.ReminderScheduler? _reminderScheduler;
+    /// <summary>Borda da barra montada por último — onde o aviso de lembrete não deve aparecer.</summary>
+    private BarEdge _barEdge = BarEdge.Top;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -65,6 +68,7 @@ public partial class App : Application
 
         BuildBars();
         _tray = new TrayIcon();
+        StartReminderScheduler();
         StartUpdateChecks();
     }
 
@@ -249,6 +253,7 @@ public partial class App : Application
         cfg ??= ConfigService.Load();
         ThemeService.ApplyToApp(cfg);
         Services.Reminders.ReminderStore.Instance.Attach(cfg);
+        _barEdge = cfg.Edge;
 
         var monitors = MonitorService.GetMonitors();
         if (monitors.Count == 0) return;
@@ -422,6 +427,32 @@ public partial class App : Application
         Reload();
     }
 
+    // ---------- Avisos de lembrete ----------
+
+    /// <summary>
+    /// Agendador único dos lembretes (um alarme só, pro próximo disparo) com o aviso próprio
+    /// do Heimdall. Independe do widget de lembretes estar na barra.
+    /// </summary>
+    private void StartReminderScheduler()
+    {
+        var store = Services.Reminders.ReminderStore.Instance;
+        var toasts = new UI.Reminders.ReminderToastPresenter(store, () => _barEdge, () => OpenReminders());
+        _reminderScheduler = new Services.Reminders.ReminderScheduler(store, toasts, new Services.Reminders.DispatcherReminderAlarm());
+        _reminderScheduler.Start();
+
+        // Relógio ajustado (fuso, horário de verão manual) e volta da suspensão: recalcula.
+        SystemEvents.TimeChanged += OnClockOrPowerChanged;
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+    }
+
+    private void OnClockOrPowerChanged(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(new Action(() => _reminderScheduler?.Reschedule()));
+
+    private void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Resume) OnClockOrPowerChanged(sender, e);
+    }
+
     /// <summary>
     /// Janela de lembretes — uma só; se já está aberta, vem pra frente. É também onde se
     /// cria e edita lembrete: <paramref name="newReminder"/> abre uma linha nova em edição
@@ -479,6 +510,9 @@ public partial class App : Application
     {
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+        SystemEvents.TimeChanged -= OnClockOrPowerChanged;
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+        _reminderScheduler?.Dispose();
         _updateTimer?.Stop();
         UpdateService.UpdateFound -= ShowUpdateNotification;
         _hotkeys?.Dispose();

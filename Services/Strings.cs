@@ -159,6 +159,12 @@ public static class Strings
     public static string ReminderNoDate => T("Sem data", "No date");
     public static string RemindersListEmpty => T("Nenhum lembrete aqui", "No reminders here");
     public static string SuggestNextMonday => T("Próxima segunda", "Next Monday");
+    public static string ToastName => T("Lembrete", "Reminder");
+    public static string ToastOverdueGroup(int count) => T($"{count} lembretes atrasados", $"{count} overdue reminders");
+    public static string ToastGroup(int count) => T($"{count} lembretes", $"{count} reminders");
+    public static string ToastOpen => T("Ver lembretes", "View reminders");
+    public static string ToastDismiss => T("Dispensar", "Dismiss");
+    public static string ToastClose => T("Fechar aviso", "Close notice");
     public static string MoreDetails => T("Mais detalhes", "More details");
     public static string DetailsName => T("Detalhes do lembrete", "Reminder details");
     public static string DetailsDate => T("Data", "Date");
@@ -265,7 +271,6 @@ public static class Strings
     public static string ReminderComplete => T("Concluir", "Complete");
     public static string ReminderEdit => T("Editar...", "Edit...");
     public static string ReminderDelete => T("Excluir", "Delete");
-    public static string ReminderQueueTooltip(int count) => T($"+{count} lembrete(s) na fila", $"+{count} reminder(s) queued");
 
     // ---------- Widget de temperatura (TempWidget) ----------
 

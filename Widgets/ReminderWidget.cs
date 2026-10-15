@@ -1,10 +1,8 @@
-using System.Media;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
 using Heimdall.Services.Reminders;
@@ -13,22 +11,20 @@ using Heimdall.UI;
 namespace Heimdall.Widgets;
 
 /// <summary>
-/// Lembretes fixos e agendados como "chips" individuais — hover revela um botão
-/// "Concluir" (fade via Opacity, sem deslocar layout), clique direito abre "Excluir".
-/// Concluir grava no histórico (<see cref="ReminderHistoryService"/>); excluir não.
+/// Lembretes sem data como "chips" fixos na barra — hover revela um botão "Concluir" (fade
+/// via Opacity, sem deslocar layout), clique direito abre Editar/Excluir — e um "+" que
+/// cria na janela de lembretes. O aviso na hora marcada é do agendador (toast próprio), não
+/// deste widget: funciona mesmo sem ele na barra.
 /// </summary>
 public sealed class ReminderWidget : IWidget
 {
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
-    private const string GlyphAdd = "";
-    private const string GlyphCheck = "";
+    private const string GlyphAdd = "";
+    private const string GlyphCheck = "";
 
-    private readonly bool _isOverlay;
     private readonly Color _accent;
     private readonly EffectiveStyle _style;
 
-    private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMinutes(1) };
-    private readonly Queue<ReminderConfig> _pendingScheduled = new();
     private readonly List<Border> _fixedChips = new();
     private readonly List<ReminderConfig> _fixedReminders = new();
     private readonly Dictionary<ReminderConfig, string> _fixedTitles = new();
@@ -37,22 +33,12 @@ public sealed class ReminderWidget : IWidget
     private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center, Background = Brushes.Transparent };
     private readonly Button _addButton;
 
-    private Border? _activeScheduledChip;
-    private Border? _activeBadge;
-    private bool _highlighting;
-
     public FrameworkElement View => _root;
 
-    /// <param name="isOverlay">
-    /// Cópia no overlay de tela cheia (janela escondida fora do jogo): não coleta disparos,
-    /// que o store entrega uma vez só e a cópia escondida "engoliria".
-    /// </param>
-    public ReminderWidget(AppConfig cfg, bool isOverlay = false)
+    public ReminderWidget(AppConfig cfg)
     {
-        _isOverlay = isOverlay;
         _style = ThemeService.GetEffectiveStyle(cfg);
         _accent = _style.Accent;
-        _clock.Tick += (_, _) => CheckSchedule();
 
         var addIcon = new TextBlock
         {
@@ -76,6 +62,7 @@ public sealed class ReminderWidget : IWidget
             Focusable = false,
             ToolTip = Strings.ReminderNewTooltip
         };
+        System.Windows.Automation.AutomationProperties.SetName(_addButton, Strings.RemindersNew);
         // Criar e editar acontecem na janela de lembretes, com a linha já em edição.
         _addButton.Click += (_, _) => ReminderActions.OpenNew();
 
@@ -85,9 +72,7 @@ public sealed class ReminderWidget : IWidget
             _addButton.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(150)));
 
         _root.Children.Add(_addButton);
-
     }
-
 
     public void ApplyOrientation(Orientation orientation) => _root.Orientation = orientation;
 
@@ -95,8 +80,6 @@ public sealed class ReminderWidget : IWidget
     {
         RebuildFixedChips();
         _store.Changed += RebuildFixedChips;
-        CheckSchedule();
-        _clock.Start();
     }
 
     /// <summary>
@@ -119,7 +102,7 @@ public sealed class ReminderWidget : IWidget
         int insertAt = _root.Children.IndexOf(_addButton);
         foreach (var reminder in undated)
         {
-            var chip = CreateChip(reminder, isFixed: true, out _);
+            var chip = CreateChip(reminder);
             _fixedChips.Add(chip);
             _fixedReminders.Add(reminder);
             _fixedTitles[reminder] = reminder.Title;
@@ -127,139 +110,42 @@ public sealed class ReminderWidget : IWidget
         }
     }
 
-    private void CheckSchedule()
-    {
-        if (_isOverlay) return;
-        foreach (var reminder in _store.CollectDue()) Fire(reminder);
-    }
-
-    private void Fire(ReminderConfig reminder)
-    {
-        _pendingScheduled.Enqueue(reminder);
-        // Se outro lembrete já está em destaque, o badge dele precisa refletir esse novo
-        // agora — calcular o badge só na criação do chip perderia quem chegou depois
-        // (o chip do primeiro já existia quando o segundo foi enfileirado).
-        RefreshBadge();
-        if (_store.Options.PlaySound) SystemSounds.Exclamation.Play();
-
-        if (!_highlighting) ShowNextHighlight();
-    }
-
-    private void ShowNextHighlight()
-    {
-        if (_activeScheduledChip is not null)
-        {
-            RemoveChipWithAnimation(_activeScheduledChip, _root);
-            _activeScheduledChip = null;
-        }
-
-        if (_pendingScheduled.Count == 0)
-        {
-            _highlighting = false;
-            _activeBadge = null;
-            return;
-        }
-
-        _highlighting = true;
-        var reminder = _pendingScheduled.Dequeue();
-        _activeScheduledChip = CreateChip(reminder, isFixed: false, out _activeBadge);
-        _activeScheduledChip.Background = CreatePulsingBrush();
-        _root.Children.Insert(0, _activeScheduledChip);
-        RefreshBadge();
-    }
-
-    /// <summary>Mostra/atualiza o "+N" no chip agendado ativo conforme quantos ainda estão na fila.</summary>
-    private void RefreshBadge()
-    {
-        if (_activeBadge is null) return;
-
-        int count = _pendingScheduled.Count;
-        if (count > 0)
-        {
-            ((TextBlock)_activeBadge.Child).Text = $"+{count}";
-            _activeBadge.ToolTip = Strings.ReminderQueueTooltip(count);
-            _activeBadge.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            _activeBadge.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private void DismissActiveScheduled() => ShowNextHighlight();
-
     // ---------- Concluir / Excluir ----------
 
     // O chip sai (com animação) antes de avisar o store — o Changed refaz os fixos e
     // tiraria o chip na hora, sem animação.
 
-    private void Complete(ReminderConfig reminder, bool isFixed, Border chip)
+    private void Complete(ReminderConfig reminder, Border chip)
     {
-        RemoveChip(isFixed, chip);
-        // Recorrente avança pra próxima ocorrência e dispara de novo nela.
+        RemoveChip(chip);
         _store.Complete(reminder);
     }
 
-    private void Delete(ReminderConfig reminder, bool isFixed, Border chip)
+    private void Delete(ReminderConfig reminder, Border chip)
     {
-        RemoveChip(isFixed, chip);
+        RemoveChip(chip);
         _store.Delete(reminder);
     }
 
-    private void RemoveChip(bool isFixed, Border chip)
+    private void RemoveChip(Border chip)
     {
-        if (isFixed)
+        int index = _fixedChips.IndexOf(chip);
+        if (index >= 0)
         {
-            int index = _fixedChips.IndexOf(chip);
-            if (index >= 0)
-            {
-                _fixedChips.RemoveAt(index);
-                _fixedReminders.RemoveAt(index);
-            }
-            RemoveChipWithAnimation(chip, _root);
+            _fixedChips.RemoveAt(index);
+            _fixedReminders.RemoveAt(index);
         }
-        else
-        {
-            DismissActiveScheduled();
-        }
-    }
 
-    private static void RemoveChipWithAnimation(Border chip, Panel parent)
-    {
         var animation = new DoubleAnimation(0, TimeSpan.FromMilliseconds(200));
-        animation.Completed += (_, _) => parent.Children.Remove(chip);
+        animation.Completed += (_, _) => _root.Children.Remove(chip);
         chip.BeginAnimation(UIElement.OpacityProperty, animation);
     }
 
-    private Border CreateChip(ReminderConfig reminder, bool isFixed, out Border? badge)
+    private Border CreateChip(ReminderConfig reminder)
     {
         Border chip = null!;
-        badge = null;
 
         var text = new TextBlock { Text = reminder.Title, VerticalAlignment = VerticalAlignment.Center };
-
-        var row = new StackPanel { Orientation = Orientation.Horizontal };
-
-        if (!isFixed)
-        {
-            var badgeText = new TextBlock
-            {
-                FontSize = 10,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = Brushes.White
-            };
-            badge = new Border
-            {
-                Background = FrozenBrush(_accent),
-                CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(4, 0, 4, 0),
-                Margin = new Thickness(0, 0, 4, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                Visibility = Visibility.Collapsed,
-                Child = badgeText
-            };
-            row.Children.Add(badge);
-        }
 
         var checkIcon = new TextBlock
         {
@@ -283,8 +169,10 @@ public sealed class ReminderWidget : IWidget
             Focusable = false,
             ToolTip = Strings.ReminderComplete
         };
-        completeButton.Click += (_, e) => { e.Handled = true; Complete(reminder, isFixed, chip); };
+        System.Windows.Automation.AutomationProperties.SetName(completeButton, Strings.ReminderCompleteNamed(reminder.Title));
+        completeButton.Click += (_, e) => { e.Handled = true; Complete(reminder, chip); };
 
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
         row.Children.Add(text);
         row.Children.Add(completeButton);
 
@@ -305,7 +193,7 @@ public sealed class ReminderWidget : IWidget
         var editItem = new MenuItem { Header = Strings.ReminderEdit };
         editItem.Click += (_, _) => ReminderActions.OpenEdit(reminder);
         var deleteItem = new MenuItem { Header = Strings.ReminderDelete };
-        deleteItem.Click += (_, _) => Delete(reminder, isFixed, chip);
+        deleteItem.Click += (_, _) => Delete(reminder, chip);
         chip.ContextMenu = new ContextMenu { Items = { editItem, deleteItem } };
 
         return chip;
@@ -318,25 +206,5 @@ public sealed class ReminderWidget : IWidget
         return brush;
     }
 
-    /// <summary>Fundo do chip ao disparar: pulsa com a cor de destaque do tema por alguns segundos.</summary>
-    private Brush CreatePulsingBrush()
-    {
-        var brush = new SolidColorBrush(_accent);
-        var animation = new DoubleAnimation
-        {
-            From = 0.25,
-            To = 0.85,
-            Duration = TimeSpan.FromMilliseconds(600),
-            AutoReverse = true,
-            RepeatBehavior = new RepeatBehavior(3)
-        };
-        brush.BeginAnimation(Brush.OpacityProperty, animation);
-        return brush;
-    }
-
-    public void Dispose()
-    {
-        _clock.Stop();
-        _store.Changed -= RebuildFixedChips;
-    }
+    public void Dispose() => _store.Changed -= RebuildFixedChips;
 }

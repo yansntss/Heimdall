@@ -161,6 +161,42 @@ public class XamlSmokeTests
     }
 
     [Fact]
+    public void Toasts_stack_in_the_corner_opposite_to_the_bar()
+    {
+        RunSta(() =>
+        {
+            var listener = new BindingErrors();
+            PresentationTraceSources.Refresh();
+            PresentationTraceSources.DataBindingSource.Listeners.Add(listener);
+            PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Error;
+
+            var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            ThemeManager.Initialize();
+            var cfg = SampleConfig();
+            var store = new ReminderStore(_ => { }, (_, _, _) => { }, TimeProvider.System);
+            store.Attach(cfg);
+
+            // Barra em cima → avisos no canto de baixo à direita, o mais novo encostado nele.
+            var presenter = new Heimdall.UI.Reminders.ReminderToastPresenter(store, () => BarEdge.Top, () => { });
+            presenter.Show(cfg.Reminders[0]);
+            presenter.ShowGroup(cfg.Reminders.Take(3).ToList(), overdue: true);
+            var toasts = presenter.OpenToasts.ToList();
+            foreach (var t in toasts) t.UpdateLayout();
+
+            var area = SystemParameters.WorkArea;
+            Assert.Equal(2, toasts.Count);
+            var newest = toasts[1];
+            Assert.Equal(area.Bottom, newest.Top + newest.ActualHeight, 1);
+            Assert.Equal(area.Right, newest.Left + newest.ActualWidth, 1);
+            Assert.True(toasts[0].Top < newest.Top);
+            Assert.False(newest.IsActive);
+
+            foreach (var t in toasts) t.Close();
+            Assert.Empty(listener.Errors);
+        });
+    }
+
+    [Fact]
     public void Popup_anchored_to_a_detached_element_does_not_crash()
     {
         RunSta(() =>

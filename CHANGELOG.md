@@ -67,6 +67,16 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - Data no próprio texto, em português: "amanhã 14h", "sexta 19:00", "dia 20 às 10h",
     "todo dia 9h", "toda segunda e quarta 8h", "todo dia 10" (mensal). O chip de data
     mostra o que foi entendido enquanto você digita, e esse trecho sai do título ao salvar.
+- Aviso próprio do Heimdall na hora do lembrete, no canto oposto à barra, com "Adiar
+  10 min" e "Concluir". Clicar nele abre a janela de lembretes.
+  - Nunca rouba o foco e aparece por cima de jogo em tela cheia sem bordas.
+  - Some sozinho em 12 segundos, exceto lembretes de prioridade alta; para de contar com
+    o mouse em cima.
+  - Lembretes que venceram com o app fechado chegam juntos num aviso só ("3 lembretes
+    atrasados").
+  - Com o Assistente de Foco (Não incomodar) ligado, os avisos esperam e aparecem
+    juntos quando ele desliga. "Pausar lembretes" da bandeja continua valendo.
+  - O som continua opcional e desligado por padrão.
 - Tela de Configurações nova: janela redimensionável com barra de título própria,
   menu lateral (Geral, Aparência, Relógio, Widgets, Lembretes, Atalhos, Sobre) e rodapé
   com **Restaurar padrões**, **Cancelar** e **Aplicar**.
@@ -113,13 +123,19 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
     concluir, ele avisa de novo na ocorrência seguinte.
   - Lembrete com data e sem hora avisa às 09:00.
   - O som do aviso virou uma opção geral, não mais por lembrete.
-- "Novo lembrete" (no sino, no "+" do widget de lembretes e no Ctrl+Shift+R) e "Editar"
-  abrem a janela de lembretes com a linha já em edição, em vez do popup de adição rápida.
   - Lembrete sem data concluído fica marcado como concluído em vez de ser apagado do
     config (continua indo para o histórico).
+- "Novo lembrete" (no sino, no "+" do widget de lembretes e no Ctrl+Shift+R) e "Editar"
+  abrem a janela de lembretes com a linha já em edição, em vez do popup de adição rápida.
+- Na hora do lembrete aparece o aviso novo, no lugar do chip piscando no widget de
+  lembretes. O widget continua mostrando os lembretes sem data.
 - A tabela de lembretes das Configurações agora tem data e hora em colunas separadas.
 
 ### Corrigido
+
+- Lembretes com hora só avisavam se o widget `reminder` estivesse na barra (e ele não
+  vem no layout padrão), e o aviso podia atrasar até 1 minuto. Agora o aviso sai na
+  hora marcada, com ou sem o widget.
 
 - "Novo lembrete" (no sino ou no Ctrl+Shift+R) fechava o app quando o widget de
   lembretes estava na barra: o popup era ancorado na cópia escondida do overlay de tela
