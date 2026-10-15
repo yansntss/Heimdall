@@ -97,6 +97,9 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 
 ### Corrigido
 
+- "Novo lembrete" (no sino ou no Ctrl+Shift+R) fechava o app quando o widget de
+  lembretes estava na barra: o popup era ancorado na cópia escondida do overlay de tela
+  cheia. Essa cópia também não "engole" mais os avisos que deviam aparecer na barra.
 - Salvar a tela de Configurações apagava as datas dos lembretes (criação, dia
   específico, início/fim de recorrência).
 
