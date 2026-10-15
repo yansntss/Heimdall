@@ -519,4 +519,56 @@ public class RemindersWindowViewModelTests
         Assert.Equal(RepeatKind.Weekly, r.Recurrence!.Kind);
         Assert.Equal(new[] { DayOfWeek.Thursday }, r.Recurrence.Days);
     }
+
+    // ---------- Estado vazio e concluídos ----------
+
+    [Fact]
+    public void Empty_today_says_all_clear_with_the_next_one()
+    {
+        Add("dentista", 16, 14);
+        var vm = CreateVm();
+
+        Assert.True(vm.IsEmpty);
+        Assert.Equal("Próximo: dentista · Amanhã, 14:00", vm.EmptyNextText);
+    }
+
+    [Fact]
+    public void Empty_with_nothing_ahead()
+    {
+        var vm = CreateVm();
+        Assert.True(vm.IsEmpty);
+        Assert.Equal("Nada agendado por enquanto", vm.EmptyNextText);
+    }
+
+    [Fact]
+    public void Show_completed_lists_them_at_the_end_and_space_unchecks()
+    {
+        _cfg.ReminderOptions.ShowCompleted = true;
+        var done = Add("feito", hour: 8);
+        Add("pendente", hour: 18);
+        var vm = CreateVm();
+        Rows(vm).Single(r => r.Reminder == done).CompleteCommand.Execute(null);
+
+        Assert.Equal(new[] { "pendente", "§CONCLUÍDOS", "feito" }, Layout(vm));
+        var doneRow = Rows(vm).Single(r => r.Reminder == done);
+        Assert.True(doneRow.IsCompleted);
+        Assert.Equal("Desmarcar lembrete: feito", doneRow.CompleteName);
+        Assert.Equal(1, vm.Active.Count);
+
+        vm.SelectedItem = doneRow;
+        vm.CompleteSelectedCommand.Execute(null);
+        Assert.False(done.IsCompleted);
+        Assert.Equal(new[] { "feito", "pendente" }, Layout(vm));
+    }
+
+    [Fact]
+    public void Completed_stay_hidden_by_default()
+    {
+        var done = Add("feito");
+        var vm = CreateVm();
+        Rows(vm)[0].CompleteCommand.Execute(null);
+
+        Assert.True(done.IsCompleted);
+        Assert.Empty(vm.Items);
+    }
 }

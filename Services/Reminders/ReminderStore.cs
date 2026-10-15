@@ -78,6 +78,19 @@ internal sealed class ReminderStore
 
     public int PendingToday => TodayAgenda().Count;
 
+    /// <summary>O próximo lembrete que ainda vai avisar (estado vazio: "Próximo: ...").</summary>
+    public ReminderConfig? NextUpcoming()
+    {
+        var now = Now;
+        return _cfg.Reminders
+            .Where(r => !string.IsNullOrWhiteSpace(r.Title))
+            .Select(r => (Reminder: r, Fire: ReminderSchedule.FireAt(r, _cfg.ReminderOptions.DefaultTime, TimeZone)))
+            .Where(x => x.Fire > now)
+            .OrderBy(x => x.Fire)
+            .Select(x => x.Reminder)
+            .FirstOrDefault();
+    }
+
     /// <summary>Sem data e pendentes — os chips fixos da barra.</summary>
     public List<ReminderConfig> Undated() =>
         _cfg.Reminders.Where(r => r.DueDate is null && !r.IsCompleted && !string.IsNullOrWhiteSpace(r.Title)).ToList();

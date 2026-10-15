@@ -160,6 +160,16 @@
             </Style>
 
 
+            <!-- Título da linha; concluído (com "mostrar concluídos") fica riscado e apagado. -->
+            <Style x:Key="RowTitle" TargetType="TextBlock" BasedOn="{StaticResource H.Text}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextTertiary}"/>
+                        <Setter Property="TextDecorations" Value="Strikethrough"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <!-- Círculo de concluir (21px): vazio = pendente, verde-água com check = concluído. -->
             <Style x:Key="RoundTaskCheck" TargetType="CheckBox">
                 <Setter Property="Cursor" Value="Hand"/>
@@ -296,12 +306,13 @@
                     <!-- Focusable=False: o Tab para na linha (e Espaço conclui), não no checkbox.
                          Na linha nova fica vazio e desabilitado (não há o que concluir ainda). -->
                     <CheckBox Style="{StaticResource RoundTaskCheck}" VerticalAlignment="Top" Margin="0,-1,0,0" Focusable="False"
+                              IsChecked="{Binding IsCompleted, Mode=OneWay}"
                               Command="{Binding CompleteCommand}" AutomationProperties.Name="{Binding CompleteName}"/>
 
                     <!-- Lendo: título (clique edita), nota, quando · repetição · lista -->
                     <StackPanel Grid.Column="1" Margin="10,0,8,0"
                                 Visibility="{Binding IsEditing, Converter={StaticResource H.InverseBoolToVis}}">
-                        <TextBlock FontSize="13" TextWrapping="Wrap" Style="{StaticResource H.Text}" Cursor="IBeam">
+                        <TextBlock FontSize="13" TextWrapping="Wrap" Style="{StaticResource RowTitle}" Cursor="IBeam">
                             <TextBlock.InputBindings>
                                 <MouseBinding MouseAction="LeftClick" Command="{Binding BeginEditCommand}"/>
                             </TextBlock.InputBindings>
@@ -430,11 +441,10 @@
                            FontFamily="{DynamicResource H.Font.UI}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
             </DockPanel>
 
-            <!-- ===== Lembretes da lista ativa ===== -->
-            <Grid Grid.Row="3">
-                <TextBlock Text="{x:Static s:Strings.RemindersListEmpty}" Style="{StaticResource H.Text.Secondary}"
-                           FontSize="{DynamicResource H.FontSize.M}" Margin="20,8"
-                           Visibility="{Binding IsEmpty, Converter={StaticResource H.BoolToVis}}"/>
+            <!-- ===== Lembretes da lista ativa (com o card "Tudo em ordem" quando não sobra pendente) ===== -->
+            <DockPanel Grid.Row="3">
+                <ContentControl DockPanel.Dock="Top" Style="{DynamicResource H.AllClearCard}" Content="{Binding EmptyNextText}" Margin="20,6,20,8"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource H.BoolToVis}}"/>
 
                 <ListBox x:Name="ItemsList" Style="{StaticResource ReminderList}" ItemContainerStyleSelector="{StaticResource EntryStyles}"
                          ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
@@ -444,7 +454,7 @@
                         <KeyBinding Key="Space" Command="{Binding CompleteSelectedCommand}"/>
                     </ListBox.InputBindings>
                 </ListBox>
-            </Grid>
+            </DockPanel>
 
             <!-- ===== Minhas listas ===== -->
             <Border Grid.Row="4" BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="0,1,0,0" Padding="10,10,10,12">

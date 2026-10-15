@@ -101,8 +101,8 @@
             <TextBlock Text="{x:Static s:Strings.RemindersToday}" Style="{DynamicResource H.Text.Caption}" VerticalAlignment="Center"/>
         </DockPanel>
 
-        <TextBlock Text="{x:Static s:Strings.RemindersEmpty}" Style="{DynamicResource H.Text.Secondary}" FontSize="{DynamicResource H.FontSize.M}"
-                   Margin="2,6,2,10" Visibility="{Binding IsEmpty, Converter={StaticResource H.BoolToVis}}"/>
+        <ContentControl Style="{DynamicResource H.AllClearCard}" Content="{Binding EmptyNextText}" Margin="0,2,0,6"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource H.BoolToVis}}"/>
 
         <!-- Atrasados (de dias anteriores) primeiro, com legenda própria -->
         <StackPanel Visibility="{Binding HasOverdue, Converter={StaticResource H.BoolToVis}}">

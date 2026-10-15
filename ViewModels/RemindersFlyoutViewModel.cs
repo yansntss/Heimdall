@@ -101,6 +101,7 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
     private string _pendingText = "";
     private bool _isEmpty;
     private bool _hasOverdue;
+    private string _emptyNextText = "";
 
     public RemindersFlyoutViewModel(AppConfig cfg, FrameworkElement anchor)
     {
@@ -145,6 +146,13 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _isEmpty, value);
     }
 
+    /// <summary>Segunda linha do "Tudo em ordem": o próximo lembrete futuro.</summary>
+    public string EmptyNextText
+    {
+        get => _emptyNextText;
+        private set => SetProperty(ref _emptyNextText, value);
+    }
+
     public bool HasOverdue
     {
         get => _hasOverdue;
@@ -164,6 +172,7 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
         int total = Overdue.Count + Items.Count;
         HasOverdue = Overdue.Count > 0;
         IsEmpty = total == 0;
+        EmptyNextText = IsEmpty ? ReminderDisplay.NextUpText(_store) : "";
         PendingText = Strings.RemindersPending(total);
     }
 

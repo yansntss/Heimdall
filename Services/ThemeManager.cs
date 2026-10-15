@@ -182,6 +182,7 @@ internal static class ThemeManager
             ["H.Brush.AccentTint"] = Brush(p.Accent, 0.10),
             ["H.Brush.Subtle"] = Brush(p.Overlay, 0.025),
             ["H.Brush.Ring"] = Brush(p.Overlay, 0.14),
+            ["H.Brush.OkWash"] = Brush(p.Ok, 0.14),
         };
         return d;
     }

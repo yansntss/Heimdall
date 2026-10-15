@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:c="clr-namespace:Heimdall.UI.Controls">
+                    xmlns:c="clr-namespace:Heimdall.UI.Controls"
+                    xmlns:s="clr-namespace:Heimdall.Services">
 
     <!-- Estilos base reaproveitados pela barra, popups, menus e Configurações. Só
          estilos com chave (H.*): nada aqui muda controles que não pediram o estilo.
@@ -657,6 +658,39 @@
                             <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Estado vazio: "Tudo em ordem" ===================== -->
+    <!-- Check em círculo de 38px (verde-água @14%), "Tudo em ordem" e, como Content, a
+         segunda linha (o próximo lembrete futuro). -->
+    <Style x:Key="H.AllClearCard" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="AutomationProperties.Name" Value="{x:Static s:Strings.AllClear}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Background="{DynamicResource H.Brush.Card}" BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="1"
+                            CornerRadius="12" Padding="14,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="38" Height="38" VerticalAlignment="Center">
+                                <Ellipse Fill="{DynamicResource H.Brush.OkWash}"/>
+                                <c:Icon Geometry="{DynamicResource H.Icon.Check}" Size="18" StrokeThickness="2.4" Foreground="{DynamicResource H.Brush.Ok}"/>
+                            </Grid>
+                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static s:Strings.AllClear}" Style="{StaticResource H.Text}" FontSize="{DynamicResource H.FontSize.M}"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource H.Text.Secondary}"
+                                           Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

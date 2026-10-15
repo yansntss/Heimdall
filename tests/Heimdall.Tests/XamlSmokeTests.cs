@@ -114,7 +114,7 @@ public class XamlSmokeTests
 
             window.Close();
             flyoutHost.Close();
-            Assert.Empty(listener.Errors);
+            Assert.True(listener.Errors.Count == 0, string.Join("\n", listener.Errors));
         });
     }
 

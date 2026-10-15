@@ -58,6 +58,17 @@ internal sealed class ReminderSourceViewModel : ObservableObject
 
     public List<ReminderConfig> Query(IEnumerable<ReminderConfig> all, DateOnly today) =>
         Smart is { } smart ? ReminderQueries.Get(smart, all, today) : ReminderQueries.InList(all, ListId!);
+
+    /// <summary>Concluídos que pertencem a esta lista (Hoje: os concluídos hoje), mais recente primeiro.</summary>
+    public List<ReminderConfig> QueryCompleted(IEnumerable<ReminderConfig> all, DateOnly today) =>
+        ReminderQueries.Completed(all).Where(r => Smart switch
+        {
+            SmartList.Today => r.CompletedAt is { } at && DateOnly.FromDateTime(at) == today,
+            SmartList.Scheduled => r.DueDate is not null,
+            SmartList.Flagged => r.Flagged,
+            SmartList.All => true,
+            _ => r.ListId == ListId
+        }).ToList();
 }
 
 /// <summary>Item da lista da janela: cabeçalho de seção ou lembrete.</summary>
@@ -85,12 +96,18 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
     private Brush _listBrush = Brushes.Gray;
     private NewReminderViewModel? _editor;
     private bool _isNew;
+    private bool _isCompleted;
 
     public ReminderRowViewModel(ReminderConfig reminder, ReminderStore store, Action<ReminderRowViewModel> beginEdit)
     {
         Reminder = reminder;
         _store = store;
-        CompleteCommand = new RelayCommand(() => store.Complete(reminder), () => !IsNew);
+        // Concluído (com "mostrar concluídos" ligado): o check desmarca.
+        CompleteCommand = new RelayCommand(() =>
+        {
+            if (reminder.IsCompleted) store.Uncomplete(reminder);
+            else store.Complete(reminder);
+        }, () => !IsNew);
         BeginEditCommand = new RelayCommand(() => beginEdit(this), () => !IsEditing);
         SnoozeCommand = new RelayCommand(() => store.Snooze(reminder));
         ToggleFlagCommand = new RelayCommand(() =>
@@ -145,7 +162,14 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
         set => SetProperty(ref _isNew, value);
     }
 
-    public string CompleteName => Strings.ReminderCompleteNamed(Title);
+    public string CompleteName => _isCompleted ? Strings.ReminderUncompleteNamed(Title) : Strings.ReminderCompleteNamed(Title);
+
+    /// <summary>Concluído (aparece com "mostrar concluídos"): check marcado, texto riscado.</summary>
+    public bool IsCompleted
+    {
+        get => _isCompleted;
+        private set { if (SetProperty(ref _isCompleted, value)) OnPropertyChanged(nameof(CompleteName)); }
+    }
     public string SnoozeHeader { get; }
 
     public ICommand CompleteCommand { get; }
@@ -172,6 +196,7 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
 
         IsLate = ReminderSchedule.IsOverdue(r, _store.Now, _store.TimeZone);
         IsFlagged = r.Flagged;
+        IsCompleted = r.IsCompleted;
         IsHighPriority = r.Priority == ReminderPriority.High;
         FlagHeader = r.Flagged ? Strings.ReminderUnflag : Strings.ReminderFlag;
         ListBrush = ReminderDisplay.ListBrush(list.Color);
@@ -198,6 +223,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
     private ReminderEntryViewModel? _selectedItem;
     private ReminderRowViewModel? _newRow;
     private bool _isEmpty;
+    private string _emptyNextText = "";
 
     /// <param name="themeBrush">Pincel de um token do tema ("H.Brush.Accent") — vem da view, que é quem conhece os recursos.</param>
     public RemindersWindowViewModel(ReminderStore store, Func<string, Brush> themeBrush)
@@ -293,10 +319,18 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _selectedItem, value is ReminderSectionViewModel ? _selectedItem : value);
     }
 
+    /// <summary>Nenhum pendente na lista ativa: mostra o card "Tudo em ordem".</summary>
     public bool IsEmpty
     {
         get => _isEmpty;
         private set => SetProperty(ref _isEmpty, value);
+    }
+
+    /// <summary>Segunda linha do "Tudo em ordem": o próximo lembrete futuro.</summary>
+    public string EmptyNextText
+    {
+        get => _emptyNextText;
+        private set => SetProperty(ref _emptyNextText, value);
     }
 
     // ---------- Edição ----------
@@ -438,8 +472,14 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         var reminders = _active.Query(all, today);
         var target = WithSections(reminders, today);
         if (_newRow is not null) target.Insert(0, new NewRowKey(_newRow));
+        if (_store.Options.ShowCompleted && _active.QueryCompleted(all, today) is { Count: > 0 } done)
+        {
+            target.Add(Strings.RemindersCompletedSection);
+            target.AddRange(done);
+        }
         SyncItems(target);
         IsEmpty = reminders.Count == 0 && _newRow is null;
+        EmptyNextText = IsEmpty ? ReminderDisplay.NextUpText(_store) : "";
     }
 
     private void SyncUserLists(List<ReminderConfig> all)
@@ -559,7 +599,8 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
 
     private void CompleteSelected()
     {
-        if (SelectedItem is ReminderRowViewModel { IsNew: false } row) _store.Complete(row.Reminder);
+        // Mesmo efeito do check: conclui, ou desmarca um concluído.
+        if (SelectedItem is ReminderRowViewModel { IsNew: false } row) row.CompleteCommand.Execute(null);
     }
 
     public void Dispose()

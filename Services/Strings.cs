@@ -125,7 +125,6 @@ public static class Strings
     public static string FlyoutRemindersTitle => T("Heimdall — Lembretes de hoje", "Heimdall — Today's reminders");
     public static string RemindersToday => T("HOJE", "TODAY");
     public static string RemindersPending(int pending) => pending == 1 ? T("1 pendente", "1 pending") : T($"{pending} pendentes", $"{pending} pending");
-    public static string RemindersEmpty => T("Nada para hoje", "Nothing for today");
     public static string RemindersNew => T("Novo lembrete", "New reminder");
     public static string ReminderMetaFixed => T("Fixo", "Pinned");
     public static string ReminderMetaOnce => T("Uma vez", "Once");
@@ -157,9 +156,13 @@ public static class Strings
     public static string MyLists => T("MINHAS LISTAS", "MY LISTS");
     public static string MyListsName => T("Minhas listas", "My lists");
     public static string ReminderNoDate => T("Sem data", "No date");
-    public static string RemindersListEmpty => T("Nenhum lembrete aqui", "No reminders here");
     public static string SuggestNextMonday => T("Próxima segunda", "Next Monday");
     public static string ToastName => T("Lembrete", "Reminder");
+    public static string AllClear => T("Tudo em ordem", "All clear");
+    public static string NothingScheduled => T("Nada agendado por enquanto", "Nothing scheduled yet");
+    public static string NextUp(string title, string when) => T($"Próximo: {title} · {when}", $"Next: {title} · {when}");
+    public static string RemindersCompletedSection => T("CONCLUÍDOS", "COMPLETED");
+    public static string ReminderUncompleteNamed(string text) => T($"Desmarcar lembrete: {text}", $"Mark as not done: {text}");
     public static string ToastOverdueGroup(int count) => T($"{count} lembretes atrasados", $"{count} overdue reminders");
     public static string ToastGroup(int count) => T($"{count} lembretes", $"{count} reminders");
     public static string ToastOpen => T("Ver lembretes", "View reminders");
