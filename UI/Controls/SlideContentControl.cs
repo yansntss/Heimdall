@@ -51,6 +51,7 @@ public sealed class DetailsPageTemplateSelector : DataTemplateSelector
 {
     public DataTemplate? Main { get; set; }
     public DataTemplate? Repeat { get; set; }
+    public DataTemplate? RepeatEnd { get; set; }
     public DataTemplate? List { get; set; }
     public DataTemplate? Priority { get; set; }
     public DataTemplate? Notes { get; set; }
@@ -58,6 +59,7 @@ public sealed class DetailsPageTemplateSelector : DataTemplateSelector
     public override DataTemplate? SelectTemplate(object item, DependencyObject container) => item switch
     {
         Heimdall.ViewModels.DetailsPage.Repeat => Repeat,
+        Heimdall.ViewModels.DetailsPage.RepeatEnd => RepeatEnd,
         Heimdall.ViewModels.DetailsPage.List => List,
         Heimdall.ViewModels.DetailsPage.Priority => Priority,
         Heimdall.ViewModels.DetailsPage.Notes => Notes,

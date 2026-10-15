@@ -103,7 +103,7 @@ internal sealed class CalendarWindow : Window
 
         ShowMonth(_month);
 
-        // Mesmas guardas do QuickAddReminderWindow: Close() reentrante via Deactivated
+        // Guardas de janela ativada por clique na barra: Close() reentrante via Deactivated
         // derruba o app, e aberta a partir da barra (NOACTIVATE) o Windows às vezes manda
         // um Deactivated espúrio antes da janela chegar a ser ativada.
         Closing += (_, _) => _closing = true;

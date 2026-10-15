@@ -513,7 +513,7 @@ public class RemindersWindowViewModelTests
         var vm = CreateVm();
         var row = Rows(vm)[0];
         row.BeginEditCommand.Execute(null);
-        row.Editor!.SelectedRepeat = row.Editor.RepeatOptions.Single(o => o.Kind == RepeatKind.Weekly);
+        row.Editor!.SelectedRepeat = row.Editor.RepeatOptions.Single(o => o.Choice == RepeatChoice.Weekly);
         vm.CommitActiveEditor();
 
         Assert.Equal(RepeatKind.Weekly, r.Recurrence!.Kind);

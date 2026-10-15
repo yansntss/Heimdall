@@ -10,11 +10,45 @@ namespace Heimdall.ViewModels;
 /// <summary>Uma lista na página "Lista" do painel de detalhes.</summary>
 internal sealed record ReminderListOption(string Id, string Name, Brush Brush);
 
-/// <summary>Uma opção de repetição ("Nunca", "Diariamente"...).</summary>
-internal sealed record RepeatOption(RepeatKind Kind, string Label);
+/// <summary>Escolhas da página Repetir.</summary>
+internal enum RepeatChoice { Never, Daily, Weekly, Weekdays, Monthly, Custom }
+
+internal sealed record RepeatOption(RepeatChoice Choice, string Label);
+
+/// <summary>Unidade do "A cada N" do Personalizado.</summary>
+internal sealed record RepeatUnitOption(RepeatKind Kind, string Label);
+
+/// <summary>Como a repetição termina (substitui os antigos "De:"/"até:").</summary>
+internal enum RepeatEnd { Never, OnDate, AfterCount }
+
+internal sealed record RepeatEndOption(RepeatEnd End, string Label);
 
 /// <summary>Uma opção de prioridade ("Nenhuma"... "Alta").</summary>
 internal sealed record PriorityOption(ReminderPriority Priority, string Label);
+
+/// <summary>Um círculo de dia da semana do Personalizado ("S", anunciado como "Segunda").</summary>
+internal sealed class WeekDayToggleViewModel(DayOfWeek day, string letter, string name, Action<DayOfWeek, bool> toggled) : ObservableObject
+{
+    private bool _isSelected;
+
+    public DayOfWeek Day { get; } = day;
+    public string Letter { get; } = letter;
+    public string Name { get; } = name;
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { if (SetProperty(ref _isSelected, value)) toggled(Day, value); }
+    }
+
+    /// <summary>Atualiza a partir da regra sem avisar de volta.</summary>
+    internal void Sync(bool selected)
+    {
+        if (_isSelected == selected) return;
+        _isSelected = selected;
+        OnPropertyChanged(nameof(IsSelected));
+    }
+}
 
 /// <summary>
 /// Estado em edição de um lembrete (novo ou existente): título com o parser de linguagem
@@ -25,6 +59,8 @@ internal sealed record PriorityOption(ReminderPriority Priority, string Label);
 internal sealed class NewReminderViewModel : ObservableObject
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+    private static readonly DayOfWeek[] Weekdays =
+        { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
 
     private readonly ReminderStore _store;
     private readonly ReminderConfig? _source;
@@ -35,7 +71,10 @@ internal sealed class NewReminderViewModel : ObservableObject
     private bool _showNote;
     private DateOnly? _dueDate;
     private TimeOnly? _dueTime;
-    private RepeatKind _repeat;
+    /// <summary>Regra em edição (cópia); nula = não repete.</summary>
+    private ReminderRecurrence? _rule;
+    /// <summary>"Personalizado" escolhido: o bloco continua aberto mesmo se a regra coincidir com uma opção pronta.</summary>
+    private bool _customChosen;
     private bool _flagged;
     private ReminderPriority _priority;
     private string _listId;
@@ -62,7 +101,7 @@ internal sealed class NewReminderViewModel : ObservableObject
         _showNote = !string.IsNullOrWhiteSpace(_note);
         _dueDate = from.DueDate;
         _dueTime = from.DueTime;
-        _repeat = from.Recurrence?.Kind ?? RepeatKind.None;
+        _rule = Clone(from.Recurrence);
         _flagged = from.Flagged;
         _priority = from.Priority;
         _listId = store.ListOf(from).Id;
@@ -80,11 +119,25 @@ internal sealed class NewReminderViewModel : ObservableObject
 
         RepeatOptions = new[]
         {
-            new RepeatOption(RepeatKind.None, Strings.RepeatNever),
-            new RepeatOption(RepeatKind.Daily, Strings.RepeatDaily),
-            new RepeatOption(RepeatKind.Weekly, Strings.RepeatWeekly),
-            new RepeatOption(RepeatKind.Monthly, Strings.RepeatMonthly),
-            new RepeatOption(RepeatKind.Yearly, Strings.RepeatYearly),
+            new RepeatOption(RepeatChoice.Never, Strings.RepeatNever),
+            new RepeatOption(RepeatChoice.Daily, Strings.RepeatDaily),
+            new RepeatOption(RepeatChoice.Weekly, Strings.RepeatWeekly),
+            new RepeatOption(RepeatChoice.Weekdays, Strings.RepeatWeekdays),
+            new RepeatOption(RepeatChoice.Monthly, Strings.RepeatMonthly),
+            new RepeatOption(RepeatChoice.Custom, Strings.RepeatCustom),
+        };
+        UnitOptions = new[]
+        {
+            new RepeatUnitOption(RepeatKind.Daily, Strings.UnitDay),
+            new RepeatUnitOption(RepeatKind.Weekly, Strings.UnitWeek),
+            new RepeatUnitOption(RepeatKind.Monthly, Strings.UnitMonth),
+            new RepeatUnitOption(RepeatKind.Yearly, Strings.UnitYear),
+        };
+        EndOptions = new[]
+        {
+            new RepeatEndOption(RepeatEnd.Never, Strings.RepeatEndNever),
+            new RepeatEndOption(RepeatEnd.OnDate, Strings.RepeatEndOnDate),
+            new RepeatEndOption(RepeatEnd.AfterCount, Strings.RepeatEndAfterCount),
         };
         PriorityOptions = new[]
         {
@@ -94,7 +147,21 @@ internal sealed class NewReminderViewModel : ObservableObject
             new PriorityOption(ReminderPriority.High, Strings.PriorityHigh),
         };
         ListOptions = store.Lists.Select(l => new ReminderListOption(l.Id, l.Name, ReminderDisplay.ListBrush(l.Color))).ToList();
+
+        // Círculos de dia começando no domingo; letra e nome no idioma do app.
+        var names = new CultureInfo(Strings.Current == AppLanguage.PtBr ? "pt-BR" : "en-US");
+        WeekDayToggles = Enumerable.Range(0, 7).Select(i =>
+        {
+            var day = (DayOfWeek)i;
+            var name = names.DateTimeFormat.GetDayName(day);
+            int dash = name.IndexOf('-');
+            name = char.ToUpper(name[0], names) + (dash > 0 ? name[1..dash] : name[1..]);
+            return new WeekDayToggleViewModel(day, name[..1], name, ToggleDay);
+        }).ToList();
+
+        _customChosen = ChoiceOf(_rule, custom: false) == RepeatChoice.Custom;
         _parsed = Parse(_title);
+        SyncDayToggles();
     }
 
     public bool IsNew => _source is null;
@@ -118,8 +185,11 @@ internal sealed class NewReminderViewModel : ObservableObject
     public ICommand OpenDetailsCommand { get; }
 
     public IReadOnlyList<RepeatOption> RepeatOptions { get; }
+    public IReadOnlyList<RepeatUnitOption> UnitOptions { get; }
+    public IReadOnlyList<RepeatEndOption> EndOptions { get; }
     public IReadOnlyList<PriorityOption> PriorityOptions { get; }
     public IReadOnlyList<ReminderListOption> ListOptions { get; }
+    public IReadOnlyList<WeekDayToggleViewModel> WeekDayToggles { get; }
 
     /// <summary>Painel de detalhes aberto (nulo = fechado).</summary>
     public ReminderDetailsViewModel? Details
@@ -212,17 +282,17 @@ internal sealed class NewReminderViewModel : ObservableObject
 
     public Brush ListBrush => ReminderDisplay.ListBrush(CurrentList.Color);
 
-    // ---------- Data, hora, repetição ----------
+    // ---------- Data e hora ----------
 
     /// <summary>O que o chip de data mostra: o que o parser entendeu do título ou a data escolhida.</summary>
     public string DateChipText
     {
         get
         {
-            var (date, time, kind) = EffectiveSchedule();
+            var (date, time, rule) = EffectiveSchedule();
             if (date is not { } d) return Strings.ChipDate;
             var text = RelativeDateFormatter.Format(d, time, _store.Today, Strings.Current);
-            return kind is RepeatKind.None ? text : $"{text} · {RepeatOptions.First(o => o.Kind == kind).Label}";
+            return rule is null ? text : $"{text} · {SelectedRepeat.Label}";
         }
     }
 
@@ -238,10 +308,10 @@ internal sealed class NewReminderViewModel : ObservableObject
             {
                 _dueTime = null;
                 _timeText = "";
-                _repeat = RepeatKind.None;
+                _rule = null;
+                _customChosen = false;
                 SetDate(null);
                 OnPropertyChanged(nameof(TimeText));
-                OnPropertyChanged(nameof(SelectedRepeat));
             }
         }
     }
@@ -283,17 +353,111 @@ internal sealed class NewReminderViewModel : ObservableObject
         }
     }
 
+    // ---------- Repetição ----------
+
     public RepeatOption SelectedRepeat
     {
-        get => RepeatOptions.First(o => o.Kind == EffectiveSchedule().Kind);
+        get => RepeatOptions.First(o => o.Choice == ChoiceOf(EffectiveSchedule().Rule, UsesParsed ? false : _customChosen));
         set
         {
-            if (value is null || value.Kind == EffectiveSchedule().Kind) return;
+            if (value is null || value.Choice == SelectedRepeat.Choice) return;
             TakeOverFromTitle();
-            _repeat = value.Kind;
+            var day = (_dueDate ?? _store.Today).DayOfWeek;
+            _customChosen = value.Choice == RepeatChoice.Custom;
+            _rule = value.Choice switch
+            {
+                RepeatChoice.Never => null,
+                RepeatChoice.Daily => new ReminderRecurrence { Kind = RepeatKind.Daily },
+                RepeatChoice.Weekly => new ReminderRecurrence { Kind = RepeatKind.Weekly, Days = new() { day } },
+                RepeatChoice.Weekdays => new ReminderRecurrence { Kind = RepeatKind.Weekly, Days = Weekdays.ToList() },
+                RepeatChoice.Monthly => new ReminderRecurrence { Kind = RepeatKind.Monthly },
+                // Personalizado parte do que já estava (ou de "toda semana, no dia da data").
+                _ => _rule ?? new ReminderRecurrence { Kind = RepeatKind.Weekly, Days = new() { day } }
+            };
             _dateChosenByHand = true;
-            if (_repeat != RepeatKind.None && _dueDate is null) SetDate(_store.Today);
+            if (_rule is not null && _dueDate is null) _dueDate = _store.Today;
             NotifySchedule();
+        }
+    }
+
+    public bool IsCustomRepeat => SelectedRepeat.Choice == RepeatChoice.Custom;
+
+    /// <summary>"A cada N" (campo mono de 46px).</summary>
+    public string IntervalText
+    {
+        get => (_rule?.Interval ?? 1).ToString(Inv);
+        set
+        {
+            if (!int.TryParse(value, NumberStyles.None, Inv, out int n) || n is < 1 or > 99) return;
+            EditCustom(r => r.Interval = n);
+        }
+    }
+
+    public RepeatUnitOption SelectedUnit
+    {
+        get => UnitOptions.First(u => u.Kind == (_rule?.Kind ?? RepeatKind.Weekly));
+        set
+        {
+            if (value is null || value.Kind == _rule?.Kind) return;
+            EditCustom(r =>
+            {
+                r.Kind = value.Kind;
+                r.Days = value.Kind == RepeatKind.Weekly ? new() { (_dueDate ?? _store.Today).DayOfWeek } : new();
+            });
+        }
+    }
+
+    /// <summary>Os círculos "NOS DIAS" só aparecem com a unidade semana.</summary>
+    public bool IsWeekUnit => _rule?.Kind == RepeatKind.Weekly;
+
+    public RepeatEndOption SelectedEnd
+    {
+        get => EndOptions.First(o => o.End == EndOf(_rule));
+        set
+        {
+            if (value is null || value.End == EndOf(_rule)) return;
+            EditCustom(r =>
+            {
+                r.Until = value.End == RepeatEnd.OnDate ? (_dueDate ?? _store.Today).AddMonths(1) : null;
+                r.Count = value.End == RepeatEnd.AfterCount ? 5 : null;
+            });
+        }
+    }
+
+    public bool IsEndOnDate => _rule?.Until is not null;
+    public bool IsEndAfterCount => _rule?.Count is not null;
+
+    public DateOnly? EndDate
+    {
+        get => _rule?.Until;
+        set { if (value is { } d && _rule?.Until is not null) EditCustom(r => r.Until = d); }
+    }
+
+    public string EndCountText
+    {
+        get => (_rule?.Count ?? 5).ToString(Inv);
+        set
+        {
+            if (_rule?.Count is null || !int.TryParse(value, NumberStyles.None, Inv, out int n) || n is < 1 or > 999) return;
+            EditCustom(r => r.Count = n);
+        }
+    }
+
+    /// <summary>Valor da linha "Terminar": "Nunca", "20 de dez", "Após 5 vezes".</summary>
+    public string EndText => _rule switch
+    {
+        { Until: { } until } => RelativeDateFormatter.Format(until, null, _store.Today, Strings.Current),
+        { Count: { } count } => Strings.RepeatEndAfterTimes(count),
+        _ => Strings.RepeatEndNever
+    };
+
+    /// <summary>"Toda semana, seg · qua · sex, às 17:00" — recalculado a cada mudança.</summary>
+    public string RepeatSummary
+    {
+        get
+        {
+            var (date, time, rule) = EffectiveSchedule();
+            return RecurrenceSummary.Describe(rule, date ?? _store.Today, time, Strings.Current);
         }
     }
 
@@ -329,24 +493,27 @@ internal sealed class NewReminderViewModel : ObservableObject
         _dateChosenByHand = true;
         _dueDate = p.Date;
         _dueTime = p.Time;
-        _repeat = p.Recurrence?.Kind ?? RepeatKind.None;
+        _rule = Clone(p.Recurrence);
+        _customChosen = false;
         _timeText = _dueTime?.ToString("HH:mm", Inv) ?? "";
         OnPropertyChanged(nameof(TimeText));
     }
 
     internal sealed record EditorSnapshot(
-        string Note, bool ShowNote, DateOnly? DueDate, TimeOnly? DueTime, RepeatKind Repeat, bool Flagged,
-        ReminderPriority Priority, string ListId, bool DateChosenByHand, bool SeededFromParsed);
+        string Note, bool ShowNote, DateOnly? DueDate, TimeOnly? DueTime, ReminderRecurrence? Rule, bool CustomChosen,
+        bool Flagged, ReminderPriority Priority, string ListId, bool DateChosenByHand, bool SeededFromParsed);
 
     private EditorSnapshot Snapshot() =>
-        new(_note, _showNote, _dueDate, _dueTime, _repeat, _flagged, _priority, _listId, _dateChosenByHand, _seededFromParsed);
+        new(_note, _showNote, _dueDate, _dueTime, Clone(_rule), _customChosen, _flagged, _priority, _listId,
+            _dateChosenByHand, _seededFromParsed);
 
     /// <summary>"Cancelar" do painel: volta tudo a como estava quando ele abriu.</summary>
     internal void Restore(EditorSnapshot s)
     {
         _dueDate = s.DueDate;
         _dueTime = s.DueTime;
-        _repeat = s.Repeat;
+        _rule = Clone(s.Rule);
+        _customChosen = s.CustomChosen;
         _dateChosenByHand = s.DateChosenByHand;
         _seededFromParsed = s.SeededFromParsed;
         _timeText = _dueTime?.ToString("HH:mm", Inv) ?? "";
@@ -367,25 +534,17 @@ internal sealed class NewReminderViewModel : ObservableObject
     {
         var title = _title.Trim();
         var (date, time, _) = EffectiveSchedule();
-        ReminderRecurrence? recurrence;
 
         // Trecho de data do título sai do texto se veio dele — mesmo que depois tenha sido
-        // ajustado no painel (que começa do que o parser entendeu).
+        // ajustado à mão (os campos começam do que o parser entendeu).
         bool fromTitle = _parsed is { Found: true } && title != _originalTitle && (UsesParsed || _seededFromParsed);
         if (fromTitle && !string.IsNullOrWhiteSpace(_parsed!.Title)) title = _parsed.Title;
 
-        if (UsesParsed) recurrence = _parsed!.Recurrence;
-        else if (fromTitle && _parsed!.Recurrence is { } fromText && fromText.Kind == _repeat)
-        {
-            recurrence = fromText;
-            if (date is { } d && date != _parsed.Date) recurrence.Anchor = d;
-        }
-        else recurrence = BuildRecurrence(date);
-
+        var recurrence = UsesParsed ? _parsed!.Recurrence : BuildRecurrence(date);
         if (recurrence is not null && date is null) date = _store.Today;
 
         bool scheduleChanged = reminder.DueDate != date || reminder.DueTime != time
-                               || reminder.Recurrence?.Kind != recurrence?.Kind;
+                               || !SameRule(reminder.Recurrence, recurrence);
         reminder.Title = title;
         reminder.Note = string.IsNullOrWhiteSpace(_note) ? null : _note.Trim();
         reminder.DueDate = date;
@@ -406,33 +565,89 @@ internal sealed class NewReminderViewModel : ObservableObject
     /// <summary>O título mudou e tem data/hora/repetição nele, e a data não foi escolhida à mão.</summary>
     private bool UsesParsed => _parsed is { Found: true } && !_dateChosenByHand && _title.Trim() != _originalTitle;
 
-    private (DateOnly? Date, TimeOnly? Time, RepeatKind Kind) EffectiveSchedule() =>
-        UsesParsed && _parsed is { } p
-            ? (p.Date, p.Time, p.Recurrence?.Kind ?? RepeatKind.None)
-            : (_dueDate, _dueTime, _repeat);
+    private (DateOnly? Date, TimeOnly? Time, ReminderRecurrence? Rule) EffectiveSchedule() =>
+        UsesParsed && _parsed is { } p ? (p.Date, p.Time, p.Recurrence) : (_dueDate, _dueTime, _rule);
 
     private ParsedReminder Parse(string title) => NaturalDateParser.Parse(title, _store.Now.DateTime);
 
-    /// <summary>Mantém a regra original (dias, intervalo, fim) quando o tipo não mudou; senão uma nova a partir da data.</summary>
-    private ReminderRecurrence? BuildRecurrence(DateOnly? date)
+    /// <summary>Qual opção da lista a regra é — o que não for uma das prontas é "Personalizado".</summary>
+    private RepeatChoice ChoiceOf(ReminderRecurrence? rule, bool custom)
     {
-        if (_repeat == RepeatKind.None) return null;
-        var anchor = date ?? _store.Today;
-        if (_source?.Recurrence is { } old && old.Kind == _repeat && date == _source.DueDate)
+        if (rule is null || rule.Kind == RepeatKind.None) return RepeatChoice.Never;
+        if (custom || rule.Interval != 1 || rule.Until is not null || rule.Count is not null) return RepeatChoice.Custom;
+        var day = (_dueDate ?? _store.Today).DayOfWeek;
+        return rule.Kind switch
         {
-            return new ReminderRecurrence
-            {
-                Kind = old.Kind, Days = old.Days.ToList(), Anchor = old.Anchor ?? anchor,
-                Interval = old.Interval, Until = old.Until, Count = old.Count
-            };
-        }
-        return new ReminderRecurrence
-        {
-            Kind = _repeat,
-            Days = _repeat == RepeatKind.Weekly ? new List<DayOfWeek> { anchor.DayOfWeek } : new(),
-            Anchor = anchor
+            RepeatKind.Daily => RepeatChoice.Daily,
+            RepeatKind.Monthly => RepeatChoice.Monthly,
+            RepeatKind.Weekly when rule.Days.Count == 0 || (rule.Days.Count == 1 && rule.Days[0] == day) => RepeatChoice.Weekly,
+            RepeatKind.Weekly when rule.Days.Distinct().Count() == 5 && Weekdays.All(rule.Days.Contains) => RepeatChoice.Weekdays,
+            _ => RepeatChoice.Custom
         };
     }
+
+    private static RepeatEnd EndOf(ReminderRecurrence? rule) =>
+        rule?.Until is not null ? RepeatEnd.OnDate : rule?.Count is not null ? RepeatEnd.AfterCount : RepeatEnd.Never;
+
+    /// <summary>Mexe na regra do Personalizado (criando uma, se não houver) e recalcula tudo que depende dela.</summary>
+    private void EditCustom(Action<ReminderRecurrence> change)
+    {
+        TakeOverFromTitle();
+        _customChosen = true;
+        _rule ??= new ReminderRecurrence { Kind = RepeatKind.Weekly, Days = new() { (_dueDate ?? _store.Today).DayOfWeek } };
+        change(_rule);
+        _dateChosenByHand = true;
+        if (_dueDate is null) _dueDate = _store.Today;
+        NotifySchedule();
+    }
+
+    private void ToggleDay(DayOfWeek day, bool selected)
+    {
+        EditCustom(r =>
+        {
+            r.Days.Remove(day);
+            if (selected) r.Days.Add(day);
+            r.Days.Sort();
+        });
+    }
+
+    private void SyncDayToggles()
+    {
+        var (date, _, rule) = EffectiveSchedule();
+        var days = rule is { Kind: RepeatKind.Weekly }
+            ? (rule.Days.Count > 0 ? rule.Days : new List<DayOfWeek> { (date ?? _store.Today).DayOfWeek })
+            : new List<DayOfWeek>();
+        foreach (var toggle in WeekDayToggles) toggle.Sync(days.Contains(toggle.Day));
+    }
+
+    /// <summary>
+    /// A regra em edição pronta pra gravar. Mantém a âncora antiga se a data não mudou (a
+    /// fase do "a cada N" não pula); senão a série recomeça na data nova.
+    /// </summary>
+    private ReminderRecurrence? BuildRecurrence(DateOnly? date)
+    {
+        if (_rule is null || _rule.Kind == RepeatKind.None) return null;
+        var rule = Clone(_rule)!;
+        var anchor = date ?? _store.Today;
+        bool sameDate = _source?.Recurrence is not null && date == _source.DueDate;
+        rule.Anchor = sameDate ? _source!.Recurrence!.Anchor ?? anchor : anchor;
+        if (rule.Kind == RepeatKind.Weekly && rule.Days.Count == 0) rule.Days = new() { anchor.DayOfWeek };
+        return rule;
+    }
+
+    private static ReminderRecurrence? Clone(ReminderRecurrence? r) => r is null ? null : new ReminderRecurrence
+    {
+        Kind = r.Kind, Days = r.Days.ToList(), Anchor = r.Anchor, Interval = r.Interval, Until = r.Until, Count = r.Count
+    };
+
+    private static bool SameRule(ReminderRecurrence? a, ReminderRecurrence? b) =>
+        (a, b) switch
+        {
+            (null, null) => true,
+            (null, _) or (_, null) => false,
+            _ => a!.Kind == b!.Kind && a.Interval == b.Interval && a.Until == b.Until && a.Count == b.Count
+                 && a.Days.OrderBy(d => d).SequenceEqual(b.Days.OrderBy(d => d))
+        };
 
     private void SetQuickDate(string? choice)
     {
@@ -485,6 +700,18 @@ internal sealed class NewReminderViewModel : ObservableObject
         OnPropertyChanged(nameof(Date));
         OnPropertyChanged(nameof(HasTime));
         OnPropertyChanged(nameof(SelectedRepeat));
+        OnPropertyChanged(nameof(IsCustomRepeat));
+        OnPropertyChanged(nameof(IntervalText));
+        OnPropertyChanged(nameof(SelectedUnit));
+        OnPropertyChanged(nameof(IsWeekUnit));
+        OnPropertyChanged(nameof(SelectedEnd));
+        OnPropertyChanged(nameof(IsEndOnDate));
+        OnPropertyChanged(nameof(IsEndAfterCount));
+        OnPropertyChanged(nameof(EndDate));
+        OnPropertyChanged(nameof(EndCountText));
+        OnPropertyChanged(nameof(EndText));
+        OnPropertyChanged(nameof(RepeatSummary));
         OnPropertyChanged(nameof(IsDateFromTitle));
+        SyncDayToggles();
     }
 }

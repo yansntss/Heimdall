@@ -158,7 +158,6 @@ public static class Strings
     public static string MyListsName => T("Minhas listas", "My lists");
     public static string ReminderNoDate => T("Sem data", "No date");
     public static string RemindersListEmpty => T("Nenhum lembrete aqui", "No reminders here");
-    public static string RepeatNone => T("Não repete", "Doesn't repeat");
     public static string SuggestNextMonday => T("Próxima segunda", "Next Monday");
     public static string MoreDetails => T("Mais detalhes", "More details");
     public static string DetailsName => T("Detalhes do lembrete", "Reminder details");
@@ -181,6 +180,22 @@ public static class Strings
     public static string RepeatWeekly => T("Semanalmente", "Weekly");
     public static string RepeatMonthly => T("Mensalmente", "Monthly");
     public static string RepeatYearly => T("Anualmente", "Yearly");
+    public static string RepeatWeekdays => T("Dias úteis", "Weekdays");
+    public static string RepeatCustom => T("Personalizado", "Custom");
+    public static string RepeatEvery => T("A cada", "Every");
+    public static string RepeatOnDays => T("NOS DIAS", "ON DAYS");
+    public static string RepeatOnDaysName => T("Nos dias", "On days");
+    public static string RepeatEndLabel => T("Terminar", "End");
+    public static string RepeatEndNever => T("Nunca", "Never");
+    public static string RepeatEndOnDate => T("Em uma data", "On a date");
+    public static string RepeatEndAfterCount => T("Após N vezes", "After N times");
+    public static string RepeatEndAfterTimes(int count) => T($"Após {count} vezes", $"After {count} times");
+    public static string RepeatTimes => T("Vezes", "Times");
+    public static string RepeatSummaryName => T("Resumo da repetição", "Repeat summary");
+    public static string UnitDay => T("dia", "day");
+    public static string UnitWeek => T("semana", "week");
+    public static string UnitMonth => T("mês", "month");
+    public static string UnitYear => T("ano", "year");
     public static string PriorityNone => T("Nenhuma", "None");
     public static string PriorityLow => T("Baixa", "Low");
     public static string PriorityMedium => T("Média", "Medium");
@@ -196,10 +211,6 @@ public static class Strings
     public static string ReminderTitleField => T("Título do lembrete", "Reminder title");
     public static string ReminderNoteField => T("Nota do lembrete", "Reminder note");
     public static string QuickTomorrow => T("Amanhã", "Tomorrow");
-    public static string QuickNextWeek => T("Próx. semana", "Next week");
-    public static string LabelDate => T("Data", "Date");
-    public static string LabelTime => T("Hora", "Time");
-    public static string LabelRepeat => T("Repetir", "Repeat");
     public static string ReminderListCount(string name, int count) => T($"{name}, {count} lembrete(s)", $"{name}, {count} reminder(s)");
     public static string ReminderCompleteNamed(string text) => T($"Concluir lembrete: {text}", $"Complete reminder: {text}");
 
@@ -275,35 +286,6 @@ public static class Strings
     public static string MediaMutedLabel => T("Mudo", "Muted");
     public static string MicNoDevice => T("Nenhum microfone padrão encontrado", "No default microphone found");
     public static string VolumeNoDevice => T("Nenhum dispositivo de saída padrão encontrado", "No default output device found");
-
-    // ---------- Popup de adicionar/editar lembrete (QuickAddReminderWindow) ----------
-
-    public static string ReminderNewTitle => T("Heimdall — Novo lembrete", "Heimdall — New reminder");
-    public static string ReminderEditTitle => T("Heimdall — Editar lembrete", "Heimdall — Edit reminder");
-    public static string ChipNone => T("Sem horário", "No time");
-    public static string ChipPlus15 => T("+15 min", "+15 min");
-    public static string ChipPlus1h => T("+1 h", "+1 h");
-    public static string ChipToday18 => T("Hoje 18h", "Today 6 PM");
-    public static string ChipTomorrow9 => T("Amanhã 9h", "Tomorrow 9 AM");
-    public static string ChipCustom => T("Personalizado", "Custom");
-    public static string MoreOptions => T("Mais opções", "More options");
-    public static string RecurOnce => T("Única", "Once");
-    public static string RecurDaily => T("Diária", "Daily");
-    public static string RecurWeekly => T("Dias da semana", "Days of week");
-    public static string PlaySound => T("Tocar som", "Play sound");
-    public static string RangeFrom => T("De:", "From:");
-    public static string RangeTo => T("até:", "to:");
-
-    public static string DayLabel(DayOfWeek day) => day switch
-    {
-        DayOfWeek.Monday => T("Seg", "Mon"),
-        DayOfWeek.Tuesday => T("Ter", "Tue"),
-        DayOfWeek.Wednesday => T("Qua", "Wed"),
-        DayOfWeek.Thursday => T("Qui", "Thu"),
-        DayOfWeek.Friday => T("Sex", "Fri"),
-        DayOfWeek.Saturday => T("Sáb", "Sat"),
-        _ => T("Dom", "Sun")
-    };
 
     // ---------- Renomear (RenamePromptWindow) ----------
 

@@ -182,11 +182,88 @@
                 </StackPanel>
             </DataTemplate>
 
+            <!-- Repetir: opções com check; "Personalizado" expande o bloco logo abaixo. -->
             <DataTemplate x:Key="RepeatPage">
-                <ListBox DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                         Style="{StaticResource OptionList}" ItemsSource="{Binding Editor.RepeatOptions}"
-                         SelectedItem="{Binding Editor.SelectedRepeat}" DisplayMemberPath="Label"
-                         AutomationProperties.Name="{x:Static s:Strings.DetailsRepeat}"/>
+                <StackPanel DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <ListBox Style="{StaticResource OptionList}" ItemsSource="{Binding Editor.RepeatOptions}"
+                             SelectedItem="{Binding Editor.SelectedRepeat}" DisplayMemberPath="Label"
+                             AutomationProperties.Name="{x:Static s:Strings.DetailsRepeat}"/>
+
+                    <Border Background="{DynamicResource H.Brush.Subtle}" CornerRadius="12" Padding="6,4,6,10" Margin="0,6,0,2"
+                            Visibility="{Binding Editor.IsCustomRepeat, Converter={StaticResource H.BoolToVis}}">
+                        <StackPanel>
+                            <!-- A cada [N] [unidade] -->
+                            <DockPanel Height="44" Margin="6,0">
+                                <ComboBox DockPanel.Dock="Right" Width="96" ItemsSource="{Binding Editor.UnitOptions}"
+                                          SelectedItem="{Binding Editor.SelectedUnit}" DisplayMemberPath="Label" VerticalAlignment="Center"
+                                          AutomationProperties.Name="{x:Static s:Strings.RepeatEvery}"/>
+                                <TextBox DockPanel.Dock="Right" Style="{StaticResource H.MonoField}" Width="46" FontSize="13" Margin="0,0,6,0"
+                                         TextAlignment="Center" VerticalAlignment="Center"
+                                         Text="{Binding Editor.IntervalText, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.Name="{x:Static s:Strings.RepeatEvery}"/>
+                                <TextBlock Text="{x:Static s:Strings.RepeatEvery}" VerticalAlignment="Center" Style="{StaticResource H.Text}"
+                                           FontSize="{DynamicResource H.FontSize.M}"/>
+                            </DockPanel>
+
+                            <!-- NOS DIAS: 7 círculos de 38px (só com a unidade semana) -->
+                            <StackPanel Visibility="{Binding Editor.IsWeekUnit, Converter={StaticResource H.BoolToVis}}" Margin="6,2,6,8">
+                                <TextBlock Text="{Binding Source={x:Static s:Strings.RepeatOnDays}, Converter={x:Static ui:LetterSpacingConverter.Instance}}"
+                                           AutomationProperties.Name="{x:Static s:Strings.RepeatOnDaysName}"
+                                           FontSize="10.5" FontWeight="Bold" FontFamily="{DynamicResource H.Font.UI}"
+                                           Foreground="{DynamicResource H.Brush.TextTertiary}" Margin="0,0,0,8"/>
+                                <ItemsControl ItemsSource="{Binding Editor.WeekDayToggles}" Focusable="False"
+                                              AutomationProperties.Name="{x:Static s:Strings.RepeatOnDaysName}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="7"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ToggleButton Style="{StaticResource DayCircleStyle}" Content="{Binding Letter}"
+                                                          IsChecked="{Binding IsSelected}" HorizontalAlignment="Center"
+                                                          AutomationProperties.Name="{Binding Name}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- Terminar → Nunca · Em uma data · Após N vezes -->
+                            <Button Style="{StaticResource DetailRowStyle}" Content="{x:Static s:Strings.RepeatEndLabel}"
+                                    Tag="{Binding Editor.EndText}"
+                                    Command="{Binding NavigateCommand}" CommandParameter="{x:Static vm:DetailsPage.RepeatEnd}"
+                                    AutomationProperties.Name="{x:Static s:Strings.RepeatEndLabel}"
+                                    AutomationProperties.HelpText="{Binding Editor.EndText}"/>
+
+                            <!-- Resumo: recalcula a cada mudança -->
+                            <Border Background="{DynamicResource H.Brush.AccentTint}" CornerRadius="10" Padding="12,9" Margin="6,6,6,0">
+                                <TextBlock Text="{Binding Editor.RepeatSummary}" Foreground="{DynamicResource H.Brush.Accent}" TextWrapping="Wrap"
+                                           FontFamily="{DynamicResource H.Font.UI}" FontSize="{DynamicResource H.FontSize.M}"
+                                           AutomationProperties.Name="{x:Static s:Strings.RepeatSummaryName}"
+                                           AutomationProperties.HelpText="{Binding Editor.RepeatSummary}"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- Terminar: Nunca · Em uma data (calendário) · Após N vezes (campo) -->
+            <DataTemplate x:Key="RepeatEndPage">
+                <StackPanel DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <ListBox Style="{StaticResource OptionList}" ItemsSource="{Binding Editor.EndOptions}"
+                             SelectedItem="{Binding Editor.SelectedEnd}" DisplayMemberPath="Label"
+                             AutomationProperties.Name="{x:Static s:Strings.RepeatEndLabel}"/>
+                    <c:CalendarInline SelectedDate="{Binding Editor.EndDate}" Margin="12,6,12,8"
+                                      Visibility="{Binding Editor.IsEndOnDate, Converter={StaticResource H.BoolToVis}}"/>
+                    <DockPanel Height="44" Margin="12,0"
+                               Visibility="{Binding Editor.IsEndAfterCount, Converter={StaticResource H.BoolToVis}}">
+                        <TextBox DockPanel.Dock="Right" Style="{StaticResource H.MonoField}" Width="46" FontSize="13" TextAlignment="Center"
+                                 VerticalAlignment="Center" Text="{Binding Editor.EndCountText, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="{x:Static s:Strings.RepeatTimes}"/>
+                        <TextBlock Text="{x:Static s:Strings.RepeatTimes}" VerticalAlignment="Center" Style="{StaticResource H.Text}"
+                                   FontSize="{DynamicResource H.FontSize.M}"/>
+                    </DockPanel>
+                </StackPanel>
             </DataTemplate>
 
             <DataTemplate x:Key="ListPage">
@@ -219,7 +296,7 @@
                          AutomationProperties.Name="{x:Static s:Strings.ReminderNoteField}"/>
             </DataTemplate>
 
-            <c:DetailsPageTemplateSelector x:Key="Pages" Main="{StaticResource MainPage}" Repeat="{StaticResource RepeatPage}"
+            <c:DetailsPageTemplateSelector x:Key="Pages" Main="{StaticResource MainPage}" Repeat="{StaticResource RepeatPage}" RepeatEnd="{StaticResource RepeatEndPage}"
                                            List="{StaticResource ListPage}" Priority="{StaticResource PriorityPage}"
                                            Notes="{StaticResource NotesPage}"/>
         </ResourceDictionary>

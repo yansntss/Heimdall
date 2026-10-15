@@ -58,6 +58,10 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
       de 15 em 15 min), Repetir, Lista, Prioridade (Nenhuma, Baixa, Média, Alta), Notas
       e Sinalizar. As opções abrem dentro do próprio painel; Esc volta uma etapa.
       "Cancelar" desfaz o que foi mexido no painel e "Adicionar" salva.
+    - Repetir: Nunca, Diariamente, Semanalmente, Dias úteis, Mensalmente ou
+      Personalizado. O Personalizado tem "a cada N" dias/semanas/meses/anos, os dias da
+      semana em círculos e "Terminar" (nunca, numa data ou após N vezes), com um resumo
+      em texto que se atualiza a cada mudança ("Toda semana, seg · qua · sex, às 17:00").
     - O lembrete novo herda a lista onde foi criado: em Hoje nasce com a data de hoje,
       em Sinalizados vem sinalizado e numa lista sua vai para ela.
   - Data no próprio texto, em português: "amanhã 14h", "sexta 19:00", "dia 20 às 10h",

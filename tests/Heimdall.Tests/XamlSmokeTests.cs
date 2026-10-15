@@ -84,7 +84,9 @@ public class XamlSmokeTests
             row.Editor.HasDate = true;
             row.Editor.HasTime = true;
             window.UpdateLayout();
-            foreach (var page in new[] { DetailsPage.Repeat, DetailsPage.List, DetailsPage.Priority, DetailsPage.Notes })
+            row.Editor.SelectedRepeat = row.Editor.RepeatOptions.Single(o => o.Choice == RepeatChoice.Custom);
+            row.Editor.SelectedEnd = row.Editor.EndOptions.Single(o => o.End == RepeatEnd.OnDate);
+            foreach (var page in new[] { DetailsPage.Repeat, DetailsPage.RepeatEnd, DetailsPage.List, DetailsPage.Priority, DetailsPage.Notes })
             {
                 row.Editor.Details!.NavigateCommand.Execute(page);
                 window.UpdateLayout();

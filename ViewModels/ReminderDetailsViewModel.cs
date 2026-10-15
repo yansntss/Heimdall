@@ -4,7 +4,7 @@ using Heimdall.Services;
 namespace Heimdall.ViewModels;
 
 /// <summary>Páginas do painel de detalhes — a navegação é por este enum, não por Visibility.</summary>
-internal enum DetailsPage { Main, Repeat, List, Priority, Notes }
+internal enum DetailsPage { Main, Repeat, RepeatEnd, List, Priority, Notes }
 
 /// <summary>
 /// Painel de detalhes do lembrete em edição (o "…" da linha). Mexe direto no
@@ -25,10 +25,10 @@ internal sealed class ReminderDetailsViewModel : ObservableObject
         _snapshot = snapshot;
 
         NavigateCommand = new RelayCommand(p => { if (p is DetailsPage target) Navigate(target); });
-        BackCommand = new RelayCommand(() => Navigate(DetailsPage.Main, back: true), () => _page != DetailsPage.Main);
+        BackCommand = new RelayCommand(() => Navigate(Parent(_page), back: true), () => _page != DetailsPage.Main);
         EscapeCommand = new RelayCommand(() =>
         {
-            if (_page != DetailsPage.Main) Navigate(DetailsPage.Main, back: true);
+            if (_page != DetailsPage.Main) Navigate(Parent(_page), back: true);
             else Cancel();
         });
         CancelCommand = new RelayCommand(Cancel);
@@ -65,6 +65,7 @@ internal sealed class ReminderDetailsViewModel : ObservableObject
     public string PageTitle => _page switch
     {
         DetailsPage.Repeat => Strings.DetailsRepeat,
+        DetailsPage.RepeatEnd => Strings.RepeatEndLabel,
         DetailsPage.List => Strings.DetailsList,
         DetailsPage.Priority => Strings.DetailsPriority,
         DetailsPage.Notes => Strings.DetailsNotes,
@@ -79,6 +80,10 @@ internal sealed class ReminderDetailsViewModel : ObservableObject
     public ICommand EscapeCommand { get; }
     public ICommand CancelCommand { get; }
     public ICommand ConfirmCommand { get; }
+
+    /// <summary>"Terminar" fica dentro de Repetir; o resto, na principal.</summary>
+    private static DetailsPage Parent(DetailsPage page) =>
+        page == DetailsPage.RepeatEnd ? DetailsPage.Repeat : DetailsPage.Main;
 
     private void Navigate(DetailsPage page, bool back = false)
     {

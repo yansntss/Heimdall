@@ -122,7 +122,7 @@ public class ReminderDetailsViewModelTests
     {
         var editor = NewDraft("Remédio todo dia 21h");
         editor.OpenDetailsCommand.Execute(DetailsPage.Main);
-        Assert.Equal(RepeatKind.Daily, editor.SelectedRepeat.Kind);
+        Assert.Equal(RepeatChoice.Daily, editor.SelectedRepeat.Choice);
 
         editor.HasDate = false;
         editor.Details!.ConfirmCommand.Execute(null);
@@ -162,5 +162,135 @@ public class ReminderDetailsViewModelTests
 
         Assert.Equal(ReminderPriority.High, r.Priority);
         Assert.Null(_vm.ActiveEditor);
+    }
+
+    // ---------- Repetir ----------
+
+    private NewReminderViewModel OpenRepeat(string title = "Academia")
+    {
+        var editor = NewDraft(title);
+        editor.OpenDetailsCommand.Execute(DetailsPage.Main);
+        editor.Details!.NavigateCommand.Execute(DetailsPage.Repeat);
+        return editor;
+    }
+
+    private static RepeatOption Option(NewReminderViewModel e, RepeatChoice c) => e.RepeatOptions.Single(o => o.Choice == c);
+
+    [Fact]
+    public void Repeat_options_are_the_six_of_the_list()
+    {
+        var editor = OpenRepeat();
+        Assert.Equal(new[] { "Nunca", "Diariamente", "Semanalmente", "Dias úteis", "Mensalmente", "Personalizado" },
+            editor.RepeatOptions.Select(o => o.Label));
+        Assert.Equal(RepeatChoice.Never, editor.SelectedRepeat.Choice);
+        Assert.False(editor.IsCustomRepeat);
+    }
+
+    [Fact]
+    public void Weekdays_is_monday_to_friday()
+    {
+        var editor = OpenRepeat();
+        editor.SelectedRepeat = Option(editor, RepeatChoice.Weekdays);
+        editor.Details!.ConfirmCommand.Execute(null);
+
+        var r = Assert.Single(_store.Reminders);
+        Assert.Equal(RepeatKind.Weekly, r.Recurrence!.Kind);
+        Assert.Equal(new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday },
+            r.Recurrence.Days.OrderBy(d => d));
+    }
+
+    [Fact]
+    public void Custom_every_two_weeks_on_chosen_days_with_summary()
+    {
+        var editor = OpenRepeat();
+        editor.TimeText = "17:00";
+        editor.SelectedRepeat = Option(editor, RepeatChoice.Custom);
+        Assert.True(editor.IsCustomRepeat);
+        Assert.True(editor.IsWeekUnit);
+        // Começa em "toda semana, no dia da data" (quinta).
+        Assert.Equal(new[] { DayOfWeek.Thursday }, editor.WeekDayToggles.Where(t => t.IsSelected).Select(t => t.Day));
+
+        editor.IntervalText = "2";
+        editor.WeekDayToggles.Single(t => t.Day == DayOfWeek.Thursday).IsSelected = false;
+        foreach (var day in new[] { DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday })
+            editor.WeekDayToggles.Single(t => t.Day == day).IsSelected = true;
+
+        Assert.Equal("A cada 2 semanas, seg · qua · sex, às 17:00", editor.RepeatSummary);
+        Assert.Equal("Personalizado", editor.SelectedRepeat.Label);
+
+        editor.Details!.ConfirmCommand.Execute(null);
+        var rule = Assert.Single(_store.Reminders).Recurrence!;
+        Assert.Equal(2, rule.Interval);
+        Assert.Equal(new[] { DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday }, rule.Days);
+    }
+
+    [Fact]
+    public void Day_circles_have_full_names_and_start_on_sunday()
+    {
+        var editor = OpenRepeat();
+        Assert.Equal("DSTQQSS", string.Concat(editor.WeekDayToggles.Select(t => t.Letter)));
+        Assert.Equal("Segunda", editor.WeekDayToggles[1].Name);
+    }
+
+    [Fact]
+    public void Changing_the_unit_hides_the_days()
+    {
+        var editor = OpenRepeat();
+        editor.SelectedRepeat = Option(editor, RepeatChoice.Custom);
+        editor.SelectedUnit = editor.UnitOptions.Single(u => u.Kind == RepeatKind.Monthly);
+        editor.IntervalText = "3";
+
+        Assert.False(editor.IsWeekUnit);
+        Assert.Equal("A cada 3 meses, no dia 15", editor.RepeatSummary);
+    }
+
+    [Fact]
+    public void End_after_n_times_and_on_a_date()
+    {
+        var editor = OpenRepeat();
+        editor.SelectedRepeat = Option(editor, RepeatChoice.Daily);
+        editor.Details!.NavigateCommand.Execute(DetailsPage.RepeatEnd);
+        Assert.Equal("Terminar", editor.Details.PageTitle);
+
+        editor.SelectedEnd = editor.EndOptions.Single(o => o.End == RepeatEnd.AfterCount);
+        editor.EndCountText = "3";
+        Assert.True(editor.IsEndAfterCount);
+        Assert.Equal("Após 3 vezes", editor.EndText);
+        // Terminar faz da regra uma personalizada.
+        Assert.Equal(RepeatChoice.Custom, editor.SelectedRepeat.Choice);
+
+        editor.SelectedEnd = editor.EndOptions.Single(o => o.End == RepeatEnd.OnDate);
+        editor.EndDate = new DateOnly(2026, 12, 20);
+        Assert.Equal("Todo dia, até 20 de dez", editor.RepeatSummary);
+
+        // Esc em "Terminar" volta pra Repetir, não pra principal.
+        editor.Details.EscapeCommand.Execute(null);
+        Assert.Equal(DetailsPage.Repeat, editor.Details.Page);
+
+        editor.Details.ConfirmCommand.Execute(null);
+        var rule = Assert.Single(_store.Reminders).Recurrence!;
+        Assert.Equal(new DateOnly(2026, 12, 20), rule.Until);
+        Assert.Null(rule.Count);
+    }
+
+    [Fact]
+    public void Existing_custom_rule_opens_as_custom_and_keeps_its_anchor()
+    {
+        var r = new ReminderConfig
+        {
+            Title = "Regar", DueDate = new DateOnly(2026, 10, 15),
+            Recurrence = new ReminderRecurrence { Kind = RepeatKind.Daily, Interval = 3, Anchor = new DateOnly(2026, 10, 9) }
+        };
+        _store.Add(r);
+        _vm.BeginEdit(r);
+        var editor = _vm.ActiveEditor!;
+
+        Assert.Equal(RepeatChoice.Custom, editor.SelectedRepeat.Choice);
+        Assert.Equal("3", editor.IntervalText);
+
+        editor.Flagged = true;
+        _vm.CommitActiveEditor();
+        Assert.Equal(new DateOnly(2026, 10, 9), r.Recurrence!.Anchor);
+        Assert.Equal(3, r.Recurrence.Interval);
     }
 }
