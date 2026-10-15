@@ -89,8 +89,7 @@ public partial class SettingsWindow : Window
         foreach (var list in _widgetLists) EnableWidgetDragDrop(list);
 
         // Lembretes
-        KindColumn.ItemsSource = Enum.GetValues(typeof(ReminderKind));
-        RecurrenceColumn.ItemsSource = Enum.GetValues(typeof(ReminderRecurrence));
+        RecurrenceColumn.ItemsSource = Enum.GetValues(typeof(RepeatKind));
         _reminders = new ObservableCollection<ReminderRow>(_cfg.Reminders.Select(ReminderRow.From));
         RemindersGrid.ItemsSource = _reminders;
 
@@ -169,14 +168,13 @@ public partial class SettingsWindow : Window
     /// <summary>Fechar sem aplicar desfaz a prévia ao vivo (a barra volta ao que está salvo).</summary>
     private void OnClosing(object? sender, CancelEventArgs e) => _vm.Cancel();
 
-    /// <summary>Copia as seções antigas pro rascunho; false se algum lembrete tiver horário inválido.</summary>
+    /// <summary>Copia as seções antigas pro rascunho; false se algum lembrete tiver data ou horário inválido.</summary>
     private bool CollectLegacySections()
     {
         RemindersGrid.CommitEdit(DataGridEditingUnit.Row, true);
         foreach (var row in _reminders)
         {
-            if (row.Kind != ReminderKind.Scheduled) continue;
-            if (!DateTime.TryParseExact(row.Time, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            if (!row.IsValid())
             {
                 MessageBox.Show(this, Strings.InvalidTimeMessage(row.Text), "Heimdall", MessageBoxButton.OK, MessageBoxImage.Warning);
                 _vm.SelectedSection = _vm.Sections.First(s => s.Key == "lembretes");
@@ -390,48 +388,70 @@ public partial class SettingsWindow : Window
         public WidgetEntry ToEntry() => new(Id, Pinned);
     }
 
-    /// <summary>Linha editável da tabela. Guarda o lembrete original pra não perder o que a tabela não mostra (datas, criação, DoneOn).</summary>
+    /// <summary>
+    /// Linha editável da tabela (provisória — a seção Lembretes ganha tela própria). Data
+    /// "dd/MM/yyyy" e hora "HH:mm", vazias = sem data/sem hora. Guarda o lembrete original
+    /// pra não perder o que a tabela não mostra (id, lista, nota, bandeira, criação).
+    /// </summary>
     private sealed class ReminderRow
     {
+        private const string DateFormat = "dd/MM/yyyy";
+
         public ReminderConfig? Source { get; init; }
-        public ReminderKind Kind { get; set; }
         public string Text { get; set; } = "";
+        public string? Date { get; set; }
         public string? Time { get; set; }
-        public ReminderRecurrence Recurrence { get; set; }
+        public RepeatKind Recurrence { get; set; }
         public string Days { get; set; } = "";
-        public bool PlaySound { get; set; }
         public bool Completed { get; set; }
 
         public static ReminderRow From(ReminderConfig r) => new()
         {
-            Kind = r.Kind,
-            Text = r.Text,
-            Time = r.Time,
-            Recurrence = r.Recurrence,
-            Days = string.Join(",", r.Days),
-            PlaySound = r.PlaySound,
-            Completed = r.Completed,
+            Text = r.Title,
+            Date = r.DueDate?.ToString(DateFormat, CultureInfo.InvariantCulture),
+            Time = r.DueTime?.ToString("HH:mm", CultureInfo.InvariantCulture),
+            Recurrence = r.Recurrence?.Kind ?? RepeatKind.None,
+            Days = string.Join(",", r.Recurrence?.Days ?? new()),
+            Completed = r.IsCompleted,
             Source = r
         };
 
-        public ReminderConfig ToConfig() => new()
+        public bool IsValid() =>
+            (string.IsNullOrWhiteSpace(Date) || TryDate(out _)) && (string.IsNullOrWhiteSpace(Time) || TryTime(out _));
+
+        public ReminderConfig ToConfig()
         {
-            Kind = Kind,
-            Text = Text,
-            Time = Time,
-            Recurrence = Recurrence,
-            Days = Days.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(d => Enum.TryParse<DayOfWeek>(d, true, out var dow) ? (DayOfWeek?)dow : null)
-                .Where(d => d.HasValue)
-                .Select(d => d!.Value)
-                .ToList(),
-            PlaySound = PlaySound,
-            Completed = Completed,
-            CreatedAt = Source?.CreatedAt ?? DateTime.Now,
-            Date = Source?.Date,
-            StartDate = Source?.StartDate,
-            EndDate = Source?.EndDate,
-            DoneOn = Source?.DoneOn
-        };
+            var r = Source ?? new ReminderConfig { CreatedAt = DateTime.Now };
+            r.Title = Text;
+            r.DueDate = TryDate(out var date) ? date : null;
+            // Hora sem data vira "hoje" — senão não teria quando disparar.
+            if (r.DueDate is null && TryTime(out _)) r.DueDate = DateOnly.FromDateTime(DateTime.Now);
+            r.DueTime = TryTime(out var time) ? time : null;
+
+            if (Recurrence == RepeatKind.None || r.DueDate is null) r.Recurrence = null;
+            else
+            {
+                var days = Days.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(d => Enum.TryParse<DayOfWeek>(d, true, out var dow) ? (DayOfWeek?)dow : null)
+                    .Where(d => d.HasValue).Select(d => d!.Value).ToList();
+                r.Recurrence = new ReminderRecurrence
+                {
+                    Kind = Recurrence,
+                    Days = days,
+                    Anchor = r.Recurrence?.Anchor ?? r.DueDate,
+                    Until = r.Recurrence?.Until
+                };
+            }
+
+            if (!Completed) r.CompletedAt = null;
+            else r.CompletedAt ??= DateTime.Now;
+            return r;
+        }
+
+        private bool TryDate(out DateOnly date) =>
+            DateOnly.TryParseExact(Date?.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+
+        private bool TryTime(out TimeOnly time) =>
+            TimeOnly.TryParseExact(Time?.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out time);
     }
 }

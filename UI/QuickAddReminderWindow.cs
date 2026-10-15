@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.Services.Reminders;
 
 namespace Heimdall.UI;
 
@@ -43,7 +44,6 @@ internal sealed class QuickAddReminderWindow : Window
     private readonly StackPanel _rangePanel;
     private readonly DatePicker _startDatePicker;
     private readonly DatePicker _endDatePicker;
-    private readonly CheckBox _playSoundCheck;
 
     private readonly ReminderConfig? _editing;
     private bool _closing;
@@ -84,7 +84,7 @@ internal sealed class QuickAddReminderWindow : Window
             CaretBrush = FrozenBrush(style.Foreground),
             Foreground = FrozenBrush(style.Foreground),
             FontFamily = style.FontFamily,
-            Text = editing?.Text ?? ""
+            Text = editing?.Title ?? ""
         };
 
         _chipNone = CreateChip(Strings.ChipNone, isChecked: true);
@@ -169,13 +169,10 @@ internal sealed class QuickAddReminderWindow : Window
         recurPanel.Children.Add(_recurDaily);
         recurPanel.Children.Add(_recurWeekly);
 
-        _playSoundCheck = new CheckBox { Content = CreateLabel(Strings.PlaySound), Margin = new Thickness(0, 8, 0, 0) };
-
         var moreOptionsContent = new StackPanel();
         moreOptionsContent.Children.Add(recurPanel);
         moreOptionsContent.Children.Add(_daysPanel);
         moreOptionsContent.Children.Add(_rangePanel);
-        moreOptionsContent.Children.Add(_playSoundCheck);
 
         _moreOptions = new Expander
         {
@@ -237,35 +234,34 @@ internal sealed class QuickAddReminderWindow : Window
     /// <summary>Marca o chip/opções que correspondem ao lembrete existente, editando em vez de criar do zero.</summary>
     private void Prefill(ReminderConfig reminder)
     {
-        if (reminder.Kind == ReminderKind.Fixed)
+        if (reminder.DueDate is not { } date)
         {
             _chipNone.IsChecked = true;
             return;
         }
 
         _chipCustom.IsChecked = true;
-        if (!string.IsNullOrWhiteSpace(reminder.Time)) _customTime.Text = reminder.Time;
-        _customDate.SelectedDate = reminder.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.Today;
+        if (reminder.DueTime is { } time) _customTime.Text = time.ToString("HH:mm");
+        _customDate.SelectedDate = date.ToDateTime(TimeOnly.MinValue);
 
-        if (reminder.Recurrence == ReminderRecurrence.Daily)
+        switch (reminder.Recurrence?.Kind)
         {
-            _recurDaily.IsChecked = true;
-        }
-        else if (reminder.Recurrence == ReminderRecurrence.Weekly)
-        {
-            _recurWeekly.IsChecked = true;
-            foreach (var day in reminder.Days)
-                if (_dayToggles.TryGetValue(day, out var toggle)) toggle.IsChecked = true;
-        }
-
-        if (reminder.Recurrence != ReminderRecurrence.Once)
-        {
-            _startDatePicker.SelectedDate = reminder.StartDate?.ToDateTime(TimeOnly.MinValue);
-            _endDatePicker.SelectedDate = reminder.EndDate?.ToDateTime(TimeOnly.MinValue);
+            case RepeatKind.Daily:
+                _recurDaily.IsChecked = true;
+                break;
+            case RepeatKind.Weekly:
+                _recurWeekly.IsChecked = true;
+                foreach (var day in reminder.Recurrence.Days)
+                    if (_dayToggles.TryGetValue(day, out var toggle)) toggle.IsChecked = true;
+                break;
         }
 
-        _playSoundCheck.IsChecked = reminder.PlaySound;
-        _moreOptions.IsExpanded = true;
+        if (reminder.Repeats)
+        {
+            _startDatePicker.SelectedDate = date.ToDateTime(TimeOnly.MinValue);
+            _endDatePicker.SelectedDate = reminder.Recurrence!.Until?.ToDateTime(TimeOnly.MinValue);
+            _moreOptions.IsExpanded = true;
+        }
     }
 
     private static string DayLabel(DayOfWeek day) => Strings.DayLabel(day);
@@ -321,25 +317,20 @@ internal sealed class QuickAddReminderWindow : Window
         // Editando: atualiza o mesmo objeto (mesma referência, já está em _cfg.Reminders)
         // em vez de criar outro — e mantém o CreatedAt original.
         var reminder = _editing ?? new ReminderConfig { CreatedAt = now };
-        reminder.Text = text;
-        reminder.PlaySound = _playSoundCheck.IsChecked == true;
-        // Reativa um "Once" que já tinha disparado/sido concluído — editar implica
+        reminder.Title = text;
+        // Reativa um lembrete que já tinha disparado/sido concluído — editar implica
         // "quero isso de novo", não deixar preso no estado antigo.
-        reminder.Completed = false;
+        reminder.CompletedAt = null;
+        reminder.SnoozedUntil = null;
+        reminder.NotifiedAt = null;
 
         if (_chipNone.IsChecked == true)
         {
-            reminder.Kind = ReminderKind.Fixed;
-            reminder.Time = null;
-            reminder.Date = null;
-            reminder.Recurrence = ReminderRecurrence.Once;
-            reminder.Days = new();
-            reminder.StartDate = null;
-            reminder.EndDate = null;
+            reminder.DueDate = null;
+            reminder.DueTime = null;
+            reminder.Recurrence = null;
             return reminder;
         }
-
-        reminder.Kind = ReminderKind.Scheduled;
 
         DateTime target;
         if (_chipPlus15.IsChecked == true) target = now.AddMinutes(15);
@@ -352,35 +343,40 @@ internal sealed class QuickAddReminderWindow : Window
             target = (_customDate.SelectedDate ?? now.Date).Date + time;
         }
 
-        reminder.Time = target.ToString("HH:mm");
-        reminder.Date = null;
-        reminder.Days = new();
-        reminder.StartDate = null;
-        reminder.EndDate = null;
+        var dueTime = new TimeOnly(target.Hour, target.Minute);
+        bool daily = _recurDaily.IsChecked == true;
+        bool weekly = _recurWeekly.IsChecked == true;
 
-        if (_recurDaily.IsChecked == true)
+        if (!daily && !weekly)
         {
-            reminder.Recurrence = ReminderRecurrence.Daily;
-            reminder.StartDate = _startDatePicker.SelectedDate is { } s ? DateOnly.FromDateTime(s) : null;
-            reminder.EndDate = _endDatePicker.SelectedDate is { } e ? DateOnly.FromDateTime(e) : null;
-        }
-        else if (_recurWeekly.IsChecked == true)
-        {
-            reminder.Recurrence = ReminderRecurrence.Weekly;
-            reminder.Days = _dayToggles.Where(kv => kv.Value.IsChecked == true).Select(kv => kv.Key).ToList();
-            reminder.StartDate = _startDatePicker.SelectedDate is { } s ? DateOnly.FromDateTime(s) : null;
-            reminder.EndDate = _endDatePicker.SelectedDate is { } e ? DateOnly.FromDateTime(e) : null;
-        }
-        else
-        {
-            reminder.Recurrence = ReminderRecurrence.Once;
-            reminder.Date = DateOnly.FromDateTime(target);
+            reminder.DueDate = DateOnly.FromDateTime(target);
+            reminder.DueTime = dueTime;
+            reminder.Recurrence = null;
+            return reminder;
         }
 
-        // Fim antes do início nunca dispararia — deixa a janela aberta pra corrigir
-        // em vez de salvar um lembrete que nunca vai funcionar.
-        if (reminder.StartDate is { } rs && reminder.EndDate is { } re && re < rs) return null;
+        var today = DateOnly.FromDateTime(now);
+        var start = _startDatePicker.SelectedDate is { } s ? DateOnly.FromDateTime(s) : today;
+        if (start < today) start = today;
+        var rule = new ReminderRecurrence
+        {
+            Kind = daily ? RepeatKind.Daily : RepeatKind.Weekly,
+            Days = weekly ? _dayToggles.Where(kv => kv.Value.IsChecked == true).Select(kv => kv.Key).ToList() : new(),
+            Until = _endDatePicker.SelectedDate is { } e ? DateOnly.FromDateTime(e) : null
+        };
 
+        // Primeira ocorrência a partir do início — hoje só se o horário ainda não passou.
+        var first = RecurrenceCalculator.FirstOnOrAfter(rule, start, start);
+        if (first == today && dueTime <= TimeOnly.FromDateTime(now)) first = RecurrenceCalculator.NextDate(rule, start, today);
+
+        // Fim antes da primeira ocorrência nunca dispararia — deixa a janela aberta pra
+        // corrigir em vez de salvar um lembrete que nunca vai funcionar.
+        if (first is not { } firstDate) return null;
+
+        rule.Anchor = firstDate;
+        reminder.DueDate = firstDate;
+        reminder.DueTime = dueTime;
+        reminder.Recurrence = rule;
         return reminder;
     }
 

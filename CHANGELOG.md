@@ -70,6 +70,18 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   Configurações; continuam funcionando pelo `config.json` (`Style`).
 - A troca de tema e a lista de monitores saíram do menu de clique direito: tema fica em
   Configurações → Aparência; monitores em Posição da barra ▸.
+- Lembretes num formato novo, com data, hora opcional, repetição (diária, semanal,
+  mensal ou anual) e lista. Os lembretes existentes são migrados sozinhos; o config
+  original fica salvo em `config.json.bak-v2`.
+  - Lembrete com hora que passou sem ser concluído continua na lista de hoje como
+    atrasado, em vez de sumir como feito.
+  - Concluir um lembrete que se repete pula para a próxima ocorrência. Se ninguém
+    concluir, ele avisa de novo na ocorrência seguinte.
+  - Lembrete com data e sem hora avisa às 09:00.
+  - O som do aviso virou uma opção geral, não mais por lembrete.
+  - Lembrete sem data concluído fica marcado como concluído em vez de ser apagado do
+    config (continua indo para o histórico).
+- A tabela de lembretes das Configurações agora tem data e hora em colunas separadas.
 
 ### Corrigido
 

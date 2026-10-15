@@ -11,7 +11,13 @@
     <AssemblyName>Heimdall</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\heimdall.ico</ApplicationIcon>
+    <!-- O csproj fica na raiz: sem isso o glob padrão compilaria os testes (e o material do brag) dentro do app. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**;brag-output\**</DefaultItemExcludes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Heimdall.Tests" />
+  </ItemGroup>
 
   <PropertyGroup>
     <Version>1.3.0</Version>

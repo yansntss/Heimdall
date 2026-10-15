@@ -9,7 +9,7 @@ public enum MonitorMode { Primary, Specific, All }
 public sealed class AppConfig
 {
     /// <summary>Versão do formato do config — sobe quando uma migração muda valores salvos (ver ConfigService).</summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     /// <summary>Ausente nos configs anteriores ao tema novo (= 0 na leitura) — é isso que dispara a migração.</summary>
     public int ConfigVersion { get; set; } = CurrentVersion;
@@ -37,6 +37,11 @@ public sealed class AppConfig
     public ClockConfig Clock { get; set; } = new();
 
     public List<ReminderConfig> Reminders { get; set; } = new();
+
+    /// <summary>Listas do usuário. Sempre tem pelo menos a padrão (garantido pelo ConfigService ao carregar).</summary>
+    public List<ReminderListConfig> ReminderLists { get; set; } = new();
+
+    public ReminderOptions ReminderOptions { get; set; } = new();
 
     public List<LauncherConfig> Launchers { get; set; } = new();
 

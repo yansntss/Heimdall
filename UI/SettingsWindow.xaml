@@ -291,13 +291,11 @@
                     <DataGrid x:Name="RemindersGrid" Grid.Row="2" AutoGenerateColumns="False" CanUserAddRows="False" RowHeaderWidth="0"
                               AutomationProperties.Name="{x:Static s:Strings.SectionLembretes}">
                         <DataGrid.Columns>
-                            <DataGridComboBoxColumn x:Name="KindColumn" Header="{x:Static s:Strings.ColumnType}" SelectedItemBinding="{Binding Kind}" Width="90"/>
                             <DataGridTextColumn Header="{x:Static s:Strings.ColumnText}" Binding="{Binding Text}" Width="*"/>
-                            <DataGridTextColumn Header="{x:Static s:Strings.ColumnTime}" Binding="{Binding Time}" Width="110"/>
+                            <DataGridTextColumn Header="{x:Static s:Strings.ColumnDate}" Binding="{Binding Date}" Width="100"/>
+                            <DataGridTextColumn Header="{x:Static s:Strings.ColumnTime}" Binding="{Binding Time}" Width="70"/>
                             <DataGridComboBoxColumn x:Name="RecurrenceColumn" Header="{x:Static s:Strings.ColumnRecurrence}" SelectedItemBinding="{Binding Recurrence}" Width="100"/>
                             <DataGridTextColumn Header="{x:Static s:Strings.ColumnDays}" Binding="{Binding Days}" Width="140"/>
-                            <DataGridCheckBoxColumn Header="{x:Static s:Strings.ColumnSound}" Binding="{Binding PlaySound}" Width="50"
-                                                    ElementStyle="{StaticResource TableCheck}" EditingElementStyle="{StaticResource TableCheck}"/>
                             <DataGridCheckBoxColumn Header="{x:Static s:Strings.ColumnCompleted}" Binding="{Binding Completed}" Width="80"
                                                     ElementStyle="{StaticResource TableCheck}" EditingElementStyle="{StaticResource TableCheck}"/>
                         </DataGrid.Columns>

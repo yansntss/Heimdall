@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Media;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,6 +7,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.Services.Reminders;
 using Heimdall.UI;
 
 namespace Heimdall.Widgets;
@@ -35,7 +35,6 @@ public sealed class ReminderWidget : IWidget
 
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMinutes(1) };
     private readonly Queue<ReminderConfig> _pendingScheduled = new();
-    private readonly Dictionary<ReminderConfig, string> _lastFired = new();
     private readonly List<Border> _fixedChips = new();
 
     private readonly StackPanel _root = new() { VerticalAlignment = VerticalAlignment.Center, Background = Brushes.Transparent };
@@ -171,7 +170,7 @@ public sealed class ReminderWidget : IWidget
         // O botão "+" fica sempre por último (índice mais alto) — os chips fixos
         // entram antes dele, na ordem em que aparecem no config.
         int insertAt = _root.Children.IndexOf(_addButton);
-        foreach (var reminder in _cfg.Reminders.Where(r => r.Kind == ReminderKind.Fixed && !string.IsNullOrWhiteSpace(r.Text)))
+        foreach (var reminder in _cfg.Reminders.Where(r => r.DueDate is null && !r.IsCompleted && !string.IsNullOrWhiteSpace(r.Title)))
         {
             var chip = CreateChip(reminder, isFixed: true, out _);
             _fixedChips.Add(chip);
@@ -181,40 +180,26 @@ public sealed class ReminderWidget : IWidget
 
     private void CheckSchedule()
     {
-        if (Paused) return;
+        var now = DateTimeOffset.Now;
+        var tz = TimeZoneInfo.Local;
+        var defaultTime = _cfg.ReminderOptions.DefaultTime;
+        bool changed = false;
 
-        var now = DateTime.Now;
-        string minuteKey = now.ToString("yyyy-MM-dd HH:mm");
-
-        foreach (var reminder in _cfg.Reminders)
+        foreach (var reminder in _cfg.Reminders.ToList())
         {
-            if (reminder.Kind != ReminderKind.Scheduled) continue;
-            if (reminder.Recurrence == ReminderRecurrence.Once && reminder.Completed) continue;
-            if (reminder.Recurrence == ReminderRecurrence.Once && reminder.Date is { } date
-                && date != DateOnly.FromDateTime(now))
-                continue;
+            changed |= ReminderSchedule.CatchUp(reminder, now, defaultTime, tz);
+            if (!ReminderSchedule.IsDue(reminder, now, defaultTime, tz)) continue;
 
-            if (!DateTime.TryParseExact(reminder.Time, "HH:mm", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out var time))
-                continue;
-            if (time.Hour != now.Hour || time.Minute != now.Minute) continue;
+            // Pausado: a ocorrência passa sem avisar (não acumula pra disparar tudo ao despausar).
+            ReminderSchedule.MarkNotified(reminder, now);
+            changed = true;
+            if (!Paused) Fire(reminder);
+        }
 
-            if (reminder.Recurrence == ReminderRecurrence.Weekly && !reminder.Days.Contains(now.DayOfWeek))
-                continue;
-
-            if (reminder.DoneOn == DateOnly.FromDateTime(now)) continue;
-
-            var today = DateOnly.FromDateTime(now);
-            if (reminder.Recurrence != ReminderRecurrence.Once)
-            {
-                if (reminder.StartDate is { } start && today < start) continue;
-                if (reminder.EndDate is { } end && today > end) continue;
-            }
-
-            if (_lastFired.TryGetValue(reminder, out var lastKey) && lastKey == minuteKey) continue;
-            _lastFired[reminder] = minuteKey;
-
-            Fire(reminder);
+        if (changed)
+        {
+            ConfigService.Save(_cfg);
+            ReminderAgenda.NotifyChanged();
         }
     }
 
@@ -225,13 +210,7 @@ public sealed class ReminderWidget : IWidget
         // agora — calcular o badge só na criação do chip perderia quem chegou depois
         // (o chip do primeiro já existia quando o segundo foi enfileirado).
         RefreshBadge();
-        if (reminder.PlaySound) SystemSounds.Exclamation.Play();
-
-        if (reminder.Recurrence == ReminderRecurrence.Once)
-        {
-            reminder.Completed = true;
-            ConfigService.Save(_cfg);
-        }
+        if (_cfg.ReminderOptions.PlaySound) SystemSounds.Exclamation.Play();
 
         if (!_highlighting) ShowNextHighlight();
     }
@@ -283,20 +262,20 @@ public sealed class ReminderWidget : IWidget
 
     private void Complete(ReminderConfig reminder, bool isFixed, Border chip)
     {
-        ReminderHistoryService.AppendCompleted(reminder.Text, reminder.CreatedAt, DateTime.Now);
+        var now = DateTimeOffset.Now;
+        ReminderHistoryService.AppendCompleted(reminder.Title, reminder.CreatedAt, now.LocalDateTime);
+        // Recorrente avança pra próxima ocorrência e dispara de novo nela.
+        ReminderSchedule.Complete(reminder, now);
+        ConfigService.Save(_cfg);
+        ReminderAgenda.NotifyChanged();
 
         if (isFixed)
         {
-            _cfg.Reminders.Remove(reminder);
-            ConfigService.Save(_cfg);
-            ReminderAgenda.NotifyChanged();
             _fixedChips.Remove(chip);
             RemoveChipWithAnimation(chip, _root);
         }
         else
         {
-            // "Once" já foi marcado Completed no Fire(); recorrentes (Daily/Weekly)
-            // continuam no config e disparam de novo no próximo horário.
             DismissActiveScheduled();
         }
     }
@@ -330,7 +309,7 @@ public sealed class ReminderWidget : IWidget
         Border chip = null!;
         badge = null;
 
-        var text = new TextBlock { Text = reminder.Text, VerticalAlignment = VerticalAlignment.Center };
+        var text = new TextBlock { Text = reminder.Title, VerticalAlignment = VerticalAlignment.Center };
 
         var row = new StackPanel { Orientation = Orientation.Horizontal };
 

@@ -1,7 +1,7 @@
 name: Build
 
-# Só compila, a cada push/PR na master — pra saber se a master está pronta pra virar
-# release antes de criar a tag (a release em si é o release.yml, disparado por tag v*).
+# Compila e roda os testes, a cada push/PR na master — pra saber se a master está pronta
+# pra virar release antes de criar a tag (a release em si é o release.yml, disparado por tag v*).
 on:
   push:
     branches: [ master ]
@@ -23,3 +23,6 @@ jobs:
 
       - name: Build
         run: dotnet build -c Release
+
+      - name: Test
+        run: dotnet test tests/Heimdall.Tests -c Release

@@ -1,5 +1,6 @@
 using System.Windows;
 using Heimdall.Config;
+using Heimdall.Services.Reminders;
 using Heimdall.UI;
 using Heimdall.Widgets;
 
@@ -10,17 +11,13 @@ internal static class ReminderActions
 {
     /// <summary>
     /// Conclui pela lista de hoje, com o mesmo efeito do "Concluir" do chip: grava no
-    /// histórico; fixo sai do config; "uma vez" fica Completed; recorrente só não dispara
-    /// mais hoje (DoneOn).
+    /// histórico; recorrente avança pra próxima ocorrência, o resto fica concluído.
     /// </summary>
     public static void Complete(AppConfig cfg, ReminderConfig reminder)
     {
-        var now = DateTime.Now;
-        ReminderHistoryService.AppendCompleted(reminder.Text, reminder.CreatedAt, now);
-
-        if (reminder.Kind == ReminderKind.Fixed) cfg.Reminders.Remove(reminder);
-        else if (reminder.Recurrence == ReminderRecurrence.Once) reminder.Completed = true;
-        else reminder.DoneOn = DateOnly.FromDateTime(now);
+        var now = DateTimeOffset.Now;
+        ReminderHistoryService.AppendCompleted(reminder.Title, reminder.CreatedAt, now.LocalDateTime);
+        ReminderSchedule.Complete(reminder, now);
 
         ConfigService.Save(cfg);
         ReminderWidget.Primary?.Refresh();

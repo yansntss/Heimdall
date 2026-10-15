@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using Heimdall.Config;
 using Heimdall.Services;
+using Heimdall.Services.Reminders;
 using Heimdall.UI.Popups;
 
 namespace Heimdall.ViewModels;
@@ -13,20 +14,24 @@ internal sealed class ReminderItemViewModel : ObservableObject
 {
     private bool _isDone;
 
-    public ReminderItemViewModel(AgendaItem item, Action<ReminderItemViewModel> complete)
+    public ReminderItemViewModel(ReminderConfig reminder, DateOnly today, Action<ReminderItemViewModel> complete)
     {
-        Reminder = item.Reminder;
-        Text = item.Reminder.Text;
-        TimeText = item.Time?.ToString("HH:mm") ?? "";
-        Meta = item.Reminder.Kind == ReminderKind.Fixed
-            ? Strings.ReminderMetaFixed
-            : item.Reminder.Recurrence switch
+        Reminder = reminder;
+        Text = reminder.Title;
+        TimeText = reminder.DueTime?.ToString("HH:mm") ?? "";
+        Meta = reminder.DueDate switch
+        {
+            null => Strings.ReminderMetaFixed,
+            { } date when date < today => RelativeDateFormatter.Format(date, null, today, Strings.Current),
+            _ => reminder.Recurrence?.Kind switch
             {
-                ReminderRecurrence.Daily => Strings.ReminderMetaDaily,
-                ReminderRecurrence.Weekly => Strings.ReminderMetaWeekly,
+                RepeatKind.Daily => Strings.ReminderMetaDaily,
+                RepeatKind.Weekly => Strings.ReminderMetaWeekly,
+                RepeatKind.Monthly => Strings.ReminderMetaMonthly,
+                RepeatKind.Yearly => Strings.ReminderMetaYearly,
                 _ => Strings.ReminderMetaOnce
-            };
-        _isDone = item.Done;
+            }
+        };
         CompleteName = Strings.ReminderCompleteNamed(Text);
         CompleteCommand = new RelayCommand(() => complete(this), () => !IsDone);
     }
@@ -64,7 +69,7 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
 
         Reload();
         ReminderAgenda.Changed += Reload;
-        // Horários passando com o dropdown aberto viram "feitos".
+        // Virada do dia (e recorrentes avançando) com o dropdown aberto.
         _timer.Tick += (_, _) => Reload();
         _timer.Start();
     }
@@ -88,8 +93,9 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
     private void Reload()
     {
         Items.Clear();
-        foreach (var item in ReminderAgenda.Today(_cfg, DateTime.Now))
-            Items.Add(new ReminderItemViewModel(item, Complete));
+        var now = DateTime.Now;
+        foreach (var reminder in ReminderAgenda.Today(_cfg, now))
+            Items.Add(new ReminderItemViewModel(reminder, DateOnly.FromDateTime(now), Complete));
 
         IsEmpty = Items.Count == 0;
         PendingText = Strings.RemindersPending(Items.Count(i => !i.IsDone));

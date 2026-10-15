@@ -131,6 +131,9 @@ public static class Strings
     public static string ReminderMetaOnce => T("Uma vez", "Once");
     public static string ReminderMetaDaily => T("Todo dia", "Every day");
     public static string ReminderMetaWeekly => T("Semanal", "Weekly");
+    public static string ReminderMetaMonthly => T("Mensal", "Monthly");
+    public static string ReminderMetaYearly => T("Anual", "Yearly");
+    public static string ReminderDefaultList => T("Lembretes", "Reminders");
     public static string ReminderCompleteNamed(string text) => T($"Concluir: {text}", $"Complete: {text}");
 
     public static string FlyoutSystemTitle => T("Heimdall — Sistema", "Heimdall — System");
@@ -402,17 +405,16 @@ public static class Strings
     public static string SectionLembretes => T("Lembretes", "Reminders");
     public static string AddReminder => T("Adicionar lembrete", "Add reminder");
     public static string RemoveSelected => T("Remover selecionado", "Remove selected");
-    public static string ColumnType => T("Tipo", "Type");
     public static string ColumnText => T("Texto", "Text");
-    public static string ColumnTime => T("Horário (HH:mm)", "Time (HH:mm)");
+    public static string ColumnDate => T("Data (dd/MM/aaaa)", "Date (dd/MM/yyyy)");
+    public static string ColumnTime => T("Hora", "Time");
     public static string ColumnRecurrence => T("Recorrência", "Recurrence");
     public static string ColumnDays => T("Dias (Weekly)", "Days (Weekly)");
-    public static string ColumnSound => T("Som", "Sound");
     public static string ColumnCompleted => T("Concluído", "Completed");
     public static string NewReminderDefaultText => T("Novo lembrete", "New reminder");
     public static string InvalidTimeMessage(string text) => T(
-        $"Horário inválido em \"{text}\" — use o formato HH:mm.",
-        $"Invalid time in \"{text}\" — use the HH:mm format.");
+        $"Data ou horário inválido em \"{text}\" — use dd/MM/aaaa e HH:mm (ou deixe vazio).",
+        $"Invalid date or time in \"{text}\" — use dd/MM/yyyy and HH:mm (or leave empty).");
 
     // Sobre
     public static string SectionSobre => T("Sobre", "About");

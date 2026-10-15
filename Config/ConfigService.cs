@@ -40,15 +40,20 @@ public static class ConfigService
             });
             MigrateClockConfig(node);
             MigrateWidgetLayout(node);
-            bool migratedTheme = MigrateToThemeV2(node);
+            int version = ReadVersion(node);
+            if (version < 2) MigrateToThemeV2(node);
+            if (version < 3 && node is JsonObject root) ReminderMigration.Migrate(root, DateTime.Now);
+            if (version < AppConfig.CurrentVersion && node is JsonObject versioned) versioned["ConfigVersion"] = AppConfig.CurrentVersion;
+
             var config = node.Deserialize<AppConfig>(Options) ?? new AppConfig();
             Services.Strings.Current = config.Language;
+            EnsureReminderLists(config);
 
             // Grava já migrado (com backup do original) — senão a migração rodaria de novo a
             // cada carga e uma troca de tema feita depois seria desfeita na próxima leitura.
-            if (migratedTheme)
+            if (version < AppConfig.CurrentVersion)
             {
-                File.Copy(ConfigPath, ConfigPath + ".bak-v1", overwrite: true);
+                File.Copy(ConfigPath, ConfigPath + $".bak-v{Math.Max(version, 1)}", overwrite: true);
                 Save(config);
             }
             return config;
@@ -124,11 +129,9 @@ public static class ConfigService
     /// próprios (themes/*.json) passam intactos. Tolerante: campo ausente ou de tipo
     /// inesperado só não é migrado, nunca derruba a leitura.
     /// </summary>
-    private static bool MigrateToThemeV2(JsonNode? root)
+    private static void MigrateToThemeV2(JsonNode? root)
     {
-        if (root is not JsonObject obj) return false;
-        if (obj["ConfigVersion"] is JsonValue v && v.TryGetValue<int>(out int version) && version >= AppConfig.CurrentVersion)
-            return false;
+        if (root is not JsonObject obj) return;
 
         string? theme = obj["Theme"] is JsonValue t && t.TryGetValue<string>(out var s) ? s : null;
         if (theme is null)
@@ -151,9 +154,21 @@ public static class ConfigService
             || !(e.Equals("Left", StringComparison.OrdinalIgnoreCase) || e.Equals("Right", StringComparison.OrdinalIgnoreCase));
         if (horizontal && (obj["Thickness"] is null || (obj["Thickness"] is JsonValue th && th.TryGetValue<int>(out int old) && old == 28)))
             obj["Thickness"] = 38;
+    }
 
-        obj["ConfigVersion"] = AppConfig.CurrentVersion;
-        return true;
+    /// <summary>"ConfigVersion" ausente (configs de antes do tema novo) ou inválido = 0.</summary>
+    private static int ReadVersion(JsonNode? root) =>
+        root?["ConfigVersion"] is JsonValue v && v.TryGetValue<int>(out int version) ? version : 0;
+
+    /// <summary>Garante a lista padrão e manda pra ela lembretes de listas que não existem mais.</summary>
+    private static void EnsureReminderLists(AppConfig config)
+    {
+        if (!config.ReminderLists.Any(l => l.Id == ReminderListConfig.DefaultId))
+            config.ReminderLists.Insert(0, new ReminderListConfig { Id = ReminderListConfig.DefaultId, Name = Services.Strings.ReminderDefaultList });
+
+        var ids = config.ReminderLists.Select(l => l.Id).ToHashSet();
+        foreach (var reminder in config.Reminders)
+            if (!ids.Contains(reminder.ListId)) reminder.ListId = ReminderListConfig.DefaultId;
     }
 
     private static void MigrateZone(JsonArray? zone)
