@@ -17,7 +17,7 @@ public static class WidgetFactory
     {
         "clock" => new ClockWidget(config, isOverlay),
         "media" => new MediaWidget(config, isOverlay, narrowBar),
-        "reminder" => new ReminderWidget(config),
+        "reminder" => new ReminderWidget(config, isOverlay),
         // Oculto no overlay: lançar um app clicando em cima do jogo não faz sentido ali.
         "launcher" => isOverlay ? null : new LauncherWidget(config, narrowBar),
         // Oculto no overlay: o clique atravessa a janela ali, então a lista não seria utilizável.

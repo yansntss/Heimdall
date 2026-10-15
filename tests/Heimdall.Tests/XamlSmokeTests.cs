@@ -85,4 +85,25 @@ public class XamlSmokeTests
             Assert.Empty(listener.Errors);
         });
     }
+
+    [Fact]
+    public void Quick_add_anchored_to_a_detached_element_does_not_crash()
+    {
+        RunSta(() =>
+        {
+            _ = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            ThemeManager.Initialize();
+            var cfg = SampleConfig();
+
+            // Overlay de tela cheia: a cópia escondida não pode virar o alvo do "Novo lembrete".
+            using var overlayWidget = new Heimdall.Widgets.ReminderWidget(cfg, isOverlay: true);
+            Assert.Null(Heimdall.Widgets.ReminderWidget.Primary);
+
+            var popup = new QuickAddReminderWindow(ThemeService.GetEffectiveStyle(cfg)) { ShowActivated = false };
+            popup.AnchorTo(new Border(), BarEdge.Top);
+            popup.Show();
+            popup.UpdateLayout();
+            popup.Close();
+        });
+    }
 }

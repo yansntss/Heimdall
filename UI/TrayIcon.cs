@@ -22,7 +22,7 @@ internal sealed class TrayIcon : IDisposable
 
     public TrayIcon()
     {
-        var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/heimdall.ico"))!.Stream;
+        var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Heimdall;component/Assets/heimdall.ico"))!.Stream;
         _icon = new Forms.NotifyIcon
         {
             Icon = new System.Drawing.Icon(stream),

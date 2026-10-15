@@ -27,6 +27,7 @@ public sealed class ReminderWidget : IWidget
     internal static ReminderWidget? Primary { get; private set; }
 
     private readonly AppConfig _cfg;
+    private readonly bool _isOverlay;
     private readonly Color _accent;
     private readonly EffectiveStyle _style;
 
@@ -47,9 +48,15 @@ public sealed class ReminderWidget : IWidget
 
     public FrameworkElement View => _root;
 
-    public ReminderWidget(AppConfig cfg)
+    /// <param name="isOverlay">
+    /// Cópia no overlay de tela cheia (janela escondida fora do jogo): não vira o
+    /// <see cref="Primary"/> — ancorar o popup numa janela escondida derrubava o app — e não
+    /// coleta disparos, que o store entrega uma vez só e a cópia escondida "engoliria".
+    /// </param>
+    public ReminderWidget(AppConfig cfg, bool isOverlay = false)
     {
         _cfg = cfg;
+        _isOverlay = isOverlay;
         _style = ThemeService.GetEffectiveStyle(cfg);
         _accent = _style.Accent;
         _clock.Tick += (_, _) => CheckSchedule();
@@ -85,7 +92,7 @@ public sealed class ReminderWidget : IWidget
 
         _root.Children.Add(_addButton);
 
-        Primary = this;
+        if (!isOverlay) Primary = this;
     }
 
     /// <summary>Abre o popup de adição rápida ancorado a esta barra, no lado oposto à borda configurada.</summary>
@@ -183,6 +190,7 @@ public sealed class ReminderWidget : IWidget
 
     private void CheckSchedule()
     {
+        if (_isOverlay) return;
         foreach (var reminder in _store.CollectDue()) Fire(reminder);
     }
 
