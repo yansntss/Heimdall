@@ -121,5 +121,14 @@
                 <TextBlock Text="{x:Static s:Strings.RemindersNew}" VerticalAlignment="Center"/>
             </StackPanel>
         </Button>
+
+        <Button Style="{DynamicResource H.ListButton}" Margin="0,4,0,0" Command="{Binding OpenAllCommand}"
+                AutomationProperties.Name="{x:Static s:Strings.RemindersOpenAll}">
+            <DockPanel>
+                <c:Icon DockPanel.Dock="Right" Geometry="{DynamicResource H.Icon.ChevronRight}" Size="14"
+                        Foreground="{DynamicResource H.Brush.TextTertiary}"/>
+                <TextBlock Text="{x:Static s:Strings.RemindersOpenAll}" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Button>
     </StackPanel>
 </UserControl>

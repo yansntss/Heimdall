@@ -35,6 +35,14 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
     - Cada lembrete mostra a cor da lista, a repetição, a bandeira e a prioridade alta.
     - Clique direito num lembrete: Editar, Adiar (só nos vencidos), Sinalizar e Excluir.
     - Concluir um lembrete que se repete pula para a próxima ocorrência.
+    - "Ver todos" abre a janela de lembretes.
+- Janela de lembretes (420px, redimensionável), aberta pelo "Ver todos" do sino, pelo
+  menu do sino ou pela bandeja:
+  - Listas inteligentes Hoje, Agendados, Sinalizados e Todos, com a contagem de cada.
+  - A lista ativa aparece com o título na cor dela, e "Minhas listas" fica no rodapé.
+  - Navegação pelo teclado: Tab entre as áreas, setas na lista e Espaço para concluir
+    o lembrete selecionado.
+  - Clique direito num lembrete: Adiar (vencidos), Sinalizar e Excluir.
   - **Sistema** (clique no chip de CPU): uso de CPU, memória e disco, tempo ligado,
     liga/desliga do modo overlay, ocultar barra e Configurações.
 - Tela de Configurações nova: janela redimensionável com barra de título própria,

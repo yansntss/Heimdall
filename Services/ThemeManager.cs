@@ -189,5 +189,5 @@ internal static class ThemeManager
     }
 
     private static ResourceDictionary Load(string name) =>
-        new() { Source = new Uri($"pack://application:,,,/Themes/{name}.xaml", UriKind.Absolute) };
+        new() { Source = new Uri($"pack://application:,,,/Heimdall;component/Themes/{name}.xaml", UriKind.Absolute) };
 }

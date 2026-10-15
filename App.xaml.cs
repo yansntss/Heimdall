@@ -19,6 +19,7 @@ public partial class App : Application
     private HotkeyManager? _hotkeys;
     private SettingsWindow? _settingsWindow;
     private ReminderHistoryWindow? _historyWindow;
+    private RemindersWindow? _remindersWindow;
     private DispatcherTimer? _updateTimer;
     private UpdateNotificationWindow? _updateNotification;
     private TrayIcon? _tray;
@@ -419,6 +420,22 @@ public partial class App : Application
         cfg.Widgets.End.Add(new WidgetEntry(id));
         ConfigService.Save(cfg);
         Reload();
+    }
+
+    /// <summary>Janela de lembretes — uma só; se já está aberta, vem pra frente.</summary>
+    public void OpenReminders()
+    {
+        if (_remindersWindow is not null)
+        {
+            if (_remindersWindow.WindowState == WindowState.Minimized) _remindersWindow.WindowState = WindowState.Normal;
+            BringToFront(_remindersWindow);
+            return;
+        }
+
+        _remindersWindow = new RemindersWindow();
+        _remindersWindow.Closed += (_, _) => _remindersWindow = null;
+        _remindersWindow.Show();
+        BringToFront(_remindersWindow);
     }
 
     public void OpenReminderHistory()

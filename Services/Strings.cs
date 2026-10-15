@@ -142,7 +142,24 @@ public static class Strings
     public static string ReminderUnflag => T("Remover sinalização", "Unflag");
     public static string ReminderFlagged => T("Sinalizado", "Flagged");
     public static string ReminderHighPriority => T("Prioridade alta", "High priority");
-    public static string ReminderCompleteNamed(string text) => T($"Concluir: {text}", $"Complete: {text}");
+
+    // ---------- Janela de lembretes (RemindersWindow) ----------
+
+    public static string RemindersWindowTitle => T("Heimdall — Lembretes", "Heimdall — Reminders");
+    public static string RemindersWindowHeading => T("Lembretes", "Reminders");
+    public static string RemindersOpenAll => T("Ver todos", "View all");
+    public static string MenuOpenReminders => T("Abrir lembretes", "Open reminders");
+    public static string SmartListToday => T("Hoje", "Today");
+    public static string SmartListScheduled => T("Agendados", "Scheduled");
+    public static string SmartListFlagged => T("Sinalizados", "Flagged");
+    public static string SmartListAll => T("Todos", "All");
+    public static string SmartListsName => T("Listas inteligentes", "Smart lists");
+    public static string MyLists => T("MINHAS LISTAS", "MY LISTS");
+    public static string MyListsName => T("Minhas listas", "My lists");
+    public static string ReminderNoDate => T("Sem data", "No date");
+    public static string RemindersListEmpty => T("Nenhum lembrete aqui", "No reminders here");
+    public static string ReminderListCount(string name, int count) => T($"{name}, {count} lembrete(s)", $"{name}, {count} reminder(s)");
+    public static string ReminderCompleteNamed(string text) => T($"Concluir lembrete: {text}", $"Complete reminder: {text}");
 
     public static string FlyoutSystemTitle => T("Heimdall — Sistema", "Heimdall — System");
     public static string SystemMemory => T("Memória", "Memory");

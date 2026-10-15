@@ -51,6 +51,7 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Clear();
         _menu.Items.Add(MenuFactory.Item(Strings.TrayShowBar, "H.Icon.Eye", app.ToggleBarsVisibility, "Ctrl+Alt+H", isChecked: app.AreBarsVisible));
         _menu.Items.Add(MenuFactory.Item(Strings.MenuOverlayMode, "H.Icon.Gamepad", app.ToggleGamingMode, isChecked: cfg.GamingMode));
+        _menu.Items.Add(MenuFactory.Item(Strings.MenuOpenReminders, "H.Icon.ListChecks", app.OpenReminders));
         _menu.Items.Add(MenuFactory.Item(Strings.TrayPauseReminders, "H.Icon.BellOff",
             () => ReminderStore.Instance.Paused = !ReminderStore.Instance.Paused, isChecked: ReminderStore.Instance.Paused));
         _menu.Items.Add(MenuFactory.Separator());

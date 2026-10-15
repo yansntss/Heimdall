@@ -27,7 +27,7 @@ internal sealed class ReminderItemViewModel : ObservableObject
         IsLate = ReminderSchedule.IsOverdue(reminder, store.Now, store.TimeZone);
 
         var list = store.ListOf(reminder);
-        ListBrush = Brush(list.Color);
+        ListBrush = ReminderDisplay.ListBrush(list.Color);
         Meta = BuildMeta(reminder, store, list);
 
         CompleteName = Strings.ReminderCompleteNamed(Text);
@@ -85,29 +85,9 @@ internal sealed class ReminderItemViewModel : ObservableObject
         else if (date < store.Today) parts.Add(RelativeDateFormatter.Format(date, null, store.Today, Strings.Current));
         else parts.Add(reminder.DueTime is null ? Strings.ReminderMetaAllDay : Strings.ReminderMetaToday);
 
-        if (reminder.Recurrence?.Kind is { } kind and not RepeatKind.None)
-        {
-            parts.Add(kind switch
-            {
-                RepeatKind.Daily => Strings.ReminderMetaDaily,
-                RepeatKind.Weekly => Strings.ReminderMetaWeekly,
-                RepeatKind.Monthly => Strings.ReminderMetaMonthly,
-                _ => Strings.ReminderMetaYearly
-            });
-        }
-
+        if (ReminderDisplay.RecurrenceLabel(reminder) is { } recurrence) parts.Add(recurrence);
         if (store.Lists.Count > 1) parts.Add(list.Name);
         return string.Join(" · ", parts);
-    }
-
-    private static Brush Brush(string hex)
-    {
-        Color color;
-        try { color = (Color)ColorConverter.ConvertFromString(hex); }
-        catch (FormatException) { color = Colors.Gray; }
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
     }
 }
 
@@ -131,6 +111,11 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
             FlyoutWindow.CloseCurrent();
             ReminderActions.OpenQuickAdd(_cfg, anchor);
         });
+        OpenAllCommand = new RelayCommand(() =>
+        {
+            FlyoutWindow.CloseCurrent();
+            ((App)Application.Current).OpenReminders();
+        });
 
         Reload();
         _store.Changed += Reload;
@@ -144,6 +129,9 @@ internal sealed class RemindersFlyoutViewModel : ObservableObject, IDisposable
     public ObservableCollection<ReminderItemViewModel> Items { get; } = new();
 
     public ICommand NewReminderCommand { get; }
+
+    /// <summary>"Ver todos": abre a janela de lembretes.</summary>
+    public ICommand OpenAllCommand { get; }
 
     public string PendingText
     {
