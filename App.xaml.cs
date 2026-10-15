@@ -238,11 +238,12 @@ public partial class App : Application
             _displayDebounce.Start();
         }));
 
-    private void BuildBars()
+    /// <param name="cfg">Null = lê do disco. Prévia da tela de Configurações passa um rascunho (cópia) ainda não salvo.</param>
+    private void BuildBars(AppConfig? cfg = null)
     {
         CloseBars();
 
-        var cfg = ConfigService.Load();
+        cfg ??= ConfigService.Load();
         ThemeService.ApplyToApp(cfg);
 
         var monitors = MonitorService.GetMonitors();
@@ -280,6 +281,35 @@ public partial class App : Application
     // ---- Ações chamadas pelo menu de contexto da barra ----
 
     public void Reload() => BuildBars();
+
+    private DispatcherTimer? _previewDebounce;
+    private AppConfig? _pendingPreview;
+
+    /// <summary>
+    /// Prévia ao vivo da tela de Configurações, sem salvar. Cores (acento, opacidade) são só
+    /// pincéis: aplica na hora. O resto (borda, altura, tema, reservar espaço...) recria as
+    /// barras a partir de uma cópia do rascunho, com debounce pra não reconstruir a cada
+    /// passo de um slider. Cancelar = <see cref="Reload"/> (volta ao que está no disco).
+    /// </summary>
+    public void PreviewConfig(AppConfig draft, bool rebuild)
+    {
+        ThemeService.ApplyToApp(draft);
+        if (!rebuild) return;
+
+        _pendingPreview = ConfigService.Clone(draft);
+        if (_previewDebounce is null)
+        {
+            _previewDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            _previewDebounce.Tick += (_, _) =>
+            {
+                _previewDebounce.Stop();
+                if (_pendingPreview is { } pending) BuildBars(pending);
+                _pendingPreview = null;
+            };
+        }
+        _previewDebounce.Stop();
+        _previewDebounce.Start();
+    }
 
     public void SetTheme(string name)
     {

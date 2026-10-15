@@ -137,8 +137,8 @@ O executável final fica em `bin/Release/net10.0-windows.../win-x64/publish/`.
 ## Configuração
 
 Tudo pode ser ajustado pela interface: clique direito na barra → **Configurações...**
-abre uma janela com abas de borda/tamanho, aparência/temas, widgets e lembretes.
-"Salvar e recarregar" aplica as mudanças na hora, sem reiniciar o app.
+abre uma janela com Geral, Aparência, Relógio, Widgets, Lembretes e Atalhos. As mudanças
+de Aparência aparecem na barra na hora; **Aplicar** salva e **Cancelar** desfaz.
 
 Quem preferir também pode editar o JSON diretamente em
 `%AppData%\Heimdall\config.json`:
@@ -151,6 +151,8 @@ Quem preferir também pode editar o JSON diretamente em
   "MonitorMode": "Primary",     // Primary | Specific | All
   "Theme": "Obsidiana",         // Obsidiana | Cristal | Bifrost | Compacta, ou nome em .../themes/*.json
   "AccentColor": null,          // "#RRGGBB", "system" (destaque do Windows) ou null (ouro do tema)
+  "ReserveSpace": true,         // false = não reserva a faixa da barra na área de trabalho
+  "AutoHide": false,            // true = some e volta ao encostar o mouse na borda
   "BarOpacity": null,           // 0.2–1 nos temas translúcidos; null = do tema
   "Widgets": { "Start": [{ "Id": "brand" }, { "Id": "launcher" }], "Center": [{ "Id": "media" }], "End": [{ "Id": "cpu" }, { "Id": "notifications" }, { "Id": "clock" }] }
 }

@@ -74,7 +74,12 @@ public partial class BarWindow : Window
         DwmVisuals.Apply(hwnd, ThemeManager.Palette.Acrylic, roundedCorners: _cfg.FloatingMode);
 
         int floatingMargin = _cfg.FloatingMode ? Math.Clamp(_cfg.FloatingMargin, 0, 100) : 0;
-        AppBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, ThemeService.BarThickness(_cfg), floatingMargin);
+        AppBar = new AppBarManager(hwnd, _monitor, _cfg.Edge, ThemeService.BarThickness(_cfg), floatingMargin,
+            reserveSpace: _cfg.ReserveSpace, autoHide: _cfg.AutoHide)
+        {
+            // Auto-ocultar não esconde a barra com um dropdown ou menu dela aberto.
+            KeepVisible = () => Popups.FlyoutWindow.IsOpen || Root.ContextMenu?.IsOpen == true || Mouse.Captured is not null
+        };
         AppBar.FullscreenChanged += fullscreen => FullscreenChanged?.Invoke(fullscreen);
 
         HwndSource.FromHwnd(hwnd)?.AddHook(AppBar.WndProc);

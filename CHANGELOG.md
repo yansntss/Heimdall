@@ -33,6 +33,17 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
     disparam mais naquele dia.
   - **Sistema** (clique no chip de CPU): uso de CPU, memória e disco, tempo ligado,
     liga/desliga do modo overlay, ocultar barra e Configurações.
+- Tela de Configurações nova: janela redimensionável com barra de título própria,
+  menu lateral (Geral, Aparência, Relógio, Widgets, Lembretes, Atalhos, Sobre) e rodapé
+  com **Restaurar padrões**, **Cancelar** e **Aplicar**.
+- Aba **Aparência** com prévia ao vivo na barra: posição (topo, baixo, esquerda,
+  direita), tema, opacidade, altura, cor de acento (4 cores ou a cor de destaque do
+  Windows) e as opções abaixo. Cancelar desfaz tudo; Aplicar salva.
+- **Reservar espaço na área de trabalho** (`ReserveSpace`): desligado, janelas
+  maximizadas podem ficar por baixo da barra.
+- **Ocultar automaticamente** (`AutoHide`): a barra some e volta ao encostar o mouse na
+  borda da tela.
+- Aba **Atalhos** com a lista dos atalhos globais.
 
 ### Alterado
 
@@ -46,6 +57,13 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   `separator` onde quiser uma divisão.
 - O volume do app saiu do player da barra e foi para o dropdown de mídia (a roda do
   mouse sobre o player continua ajustando o volume).
+- As opções de cor de fundo, cor do texto, fonte e tamanho da fonte saíram da tela de
+  Configurações; continuam funcionando pelo `config.json` (`Style`).
+
+### Corrigido
+
+- Salvar a tela de Configurações apagava as datas dos lembretes (criação, dia
+  específico, início/fim de recorrência).
 
 ## [1.3.0] - 2026-10-12
 

@@ -50,6 +50,12 @@ public sealed class AppConfig
 
     public bool StartWithWindows { get; set; }
 
+    /// <summary>true (padrão) = registra a faixa como AppBar (ABM_SETPOS): janelas maximizadas não ficam por baixo da barra.</summary>
+    public bool ReserveSpace { get; set; } = true;
+
+    /// <summary>Barra escondida fora da tela; aparece ao encostar o mouse na borda. Não reserva espaço.</summary>
+    public bool AutoHide { get; set; }
+
     /// <summary>Id de um tema embutido (Obsidiana, Cristal, Bifrost, Compacta) ou nome de %AppData%\Heimdall\themes\*.json.</summary>
     public string Theme { get; set; } = "Obsidiana";
 

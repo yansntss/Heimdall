@@ -164,6 +164,10 @@ internal static class ThemeManager
             ["H.Brush.Pressed"] = Brush(p.Overlay, 0.12),
             ["H.Brush.Selected"] = Brush(p.Overlay, 0.08),
             ["H.Brush.Track"] = Brush(p.Overlay, 0.12),
+            // Camadas da janela de Configurações: sidebar, cards e campos.
+            ["H.Brush.Sidebar"] = Brush(p.Overlay, 0.03),
+            ["H.Brush.Card"] = Brush(p.Overlay, 0.04),
+            ["H.Brush.Field"] = Brush(p.Overlay, 0.06),
         };
         return d;
     }

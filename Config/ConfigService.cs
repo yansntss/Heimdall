@@ -166,6 +166,10 @@ public static class ConfigService
         }
     }
 
+    /// <summary>Cópia profunda (ida e volta pelo JSON) — rascunho da tela de Configurações e prévia ao vivo.</summary>
+    public static AppConfig Clone(AppConfig config) =>
+        JsonSerializer.Deserialize<AppConfig>(JsonSerializer.Serialize(config, Options), Options) ?? new AppConfig();
+
     public static void Save(AppConfig config)
     {
         Directory.CreateDirectory(ConfigDir);

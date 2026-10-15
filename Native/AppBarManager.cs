@@ -17,6 +17,12 @@ internal sealed class AppBarManager : IDisposable
     private readonly BarEdge _edge;
     private readonly int _thicknessDip;
     private readonly int _floatingMarginDip;
+    private readonly bool _reserveSpace;
+    private readonly bool _autoHide;
+    private readonly DispatcherTimer? _autoHideTimer;
+    private bool _hidden;
+    private DateTime _lastInside = DateTime.UtcNow;
+    private RECT _shownRect;
     private readonly int _callbackMsg;
     private readonly int _taskbarCreatedMsg;
     private readonly DispatcherTimer _fallbackTimer;
@@ -30,8 +36,26 @@ internal sealed class AppBarManager : IDisposable
     /// <summary>Quando false, reposiciona sem forçar "sempre no topo".</summary>
     public bool KeepTopmost { get; set; } = true;
 
-    public AppBarManager(IntPtr hwnd, MonitorInfo monitor, BarEdge edge, int thicknessDip, int floatingMarginDip = 0)
+    /// <summary>Auto-ocultar: enquanto retornar true a barra não some (dropdown ou menu aberto).</summary>
+    public Func<bool>? KeepVisible { get; set; }
+
+    /// <summary>Faixa que fica na tela com a barra escondida — é nela que o mouse "encosta".</summary>
+    private const int RevealPx = 2;
+    private static readonly TimeSpan HideDelay = TimeSpan.FromMilliseconds(600);
+
+    /// <param name="reserveSpace">false = continua registrada (pra receber aviso de tela cheia), mas sem ABM_SETPOS: a área de trabalho não encolhe.</param>
+    /// <param name="autoHide">Esconde fora da tela e mostra ao encostar o mouse na borda (implica não reservar espaço).</param>
+    public AppBarManager(IntPtr hwnd, MonitorInfo monitor, BarEdge edge, int thicknessDip, int floatingMarginDip = 0,
+        bool reserveSpace = true, bool autoHide = false)
     {
+        _reserveSpace = reserveSpace && !autoHide;
+        _autoHide = autoHide;
+        if (autoHide)
+        {
+            _autoHideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
+            _autoHideTimer.Tick += (_, _) => CheckAutoHide();
+            _autoHideTimer.Start();
+        }
         _hwnd = hwnd;
         _monitor = monitor;
         _edge = edge;
@@ -77,14 +101,19 @@ internal sealed class AppBarManager : IDisposable
             abd.rc = _monitor.Bounds;
             ApplyThickness(ref abd.rc, reserved);
 
-            // Sistema ajusta o retângulo considerando taskbar/outras AppBars
-            SHAppBarMessage(ABM_QUERYPOS, ref abd);
-            ApplyThickness(ref abd.rc, reserved);
-            SHAppBarMessage(ABM_SETPOS, ref abd);
+            if (_reserveSpace)
+            {
+                // Sistema ajusta o retângulo considerando taskbar/outras AppBars
+                SHAppBarMessage(ABM_QUERYPOS, ref abd);
+                ApplyThickness(ref abd.rc, reserved);
+                SHAppBarMessage(ABM_SETPOS, ref abd);
+            }
 
             // No modo flutuante a área reservada inclui a margem, mas a janela
             // visível fica menor (com respiro nos 4 lados) dentro dela.
             var visible = margin > 0 ? Inset(abd.rc, margin, thickness) : abd.rc;
+            _shownRect = visible;
+            if (_autoHide && _hidden) visible = Offscreen(visible, reserved - RevealPx);
 
             uint flags = SWP_NOACTIVATE | (KeepTopmost ? 0 : SWP_NOZORDER);
             SetWindowPos(_hwnd, KeepTopmost ? HWND_TOPMOST : IntPtr.Zero,
@@ -94,6 +123,58 @@ internal sealed class AppBarManager : IDisposable
         {
             _positioning = false;
         }
+    }
+
+    /// <summary>Empurra o retângulo pra fora da tela, na direção da borda.</summary>
+    private RECT Offscreen(RECT r, int distance)
+    {
+        switch (_edge)
+        {
+            case BarEdge.Top: r.Top -= distance; r.Bottom -= distance; break;
+            case BarEdge.Bottom: r.Top += distance; r.Bottom += distance; break;
+            case BarEdge.Left: r.Left -= distance; r.Right -= distance; break;
+            case BarEdge.Right: r.Left += distance; r.Right += distance; break;
+        }
+        return r;
+    }
+
+    /// <summary>
+    /// Escondida: mostra quando o cursor encosta na borda (dentro da extensão da barra).
+    /// Visível: esconde depois de <see cref="HideDelay"/> com o cursor fora dela e nada aberto.
+    /// </summary>
+    private void CheckAutoHide()
+    {
+        if (!_registered || _isFullscreen || !GetCursorPos(out var p)) return;
+        var b = _monitor.Bounds;
+        var s = _shownRect;
+
+        if (_hidden)
+        {
+            bool atEdge = _edge switch
+            {
+                BarEdge.Top => p.Y <= b.Top + RevealPx && p.X >= s.Left && p.X < s.Right,
+                BarEdge.Bottom => p.Y >= b.Bottom - 1 - RevealPx && p.X >= s.Left && p.X < s.Right,
+                BarEdge.Left => p.X <= b.Left + RevealPx && p.Y >= s.Top && p.Y < s.Bottom,
+                _ => p.X >= b.Right - 1 - RevealPx && p.Y >= s.Top && p.Y < s.Bottom
+            };
+            if (!atEdge) return;
+            _hidden = false;
+            _lastInside = DateTime.UtcNow;
+            SetPosition();
+            return;
+        }
+
+        const int slack = 8;
+        bool inside = p.X >= s.Left - slack && p.X < s.Right + slack && p.Y >= s.Top - slack && p.Y < s.Bottom + slack;
+        if (inside || KeepVisible?.Invoke() == true)
+        {
+            _lastInside = DateTime.UtcNow;
+            return;
+        }
+        if (DateTime.UtcNow - _lastInside < HideDelay) return;
+
+        _hidden = true;
+        SetPosition();
     }
 
     /// <summary>Encolhe o retângulo reservado (borda + margem) pra janela flutuante com respiro nos 4 lados.</summary>
@@ -255,6 +336,7 @@ internal sealed class AppBarManager : IDisposable
     public void Dispose()
     {
         _fallbackTimer.Stop();
+        _autoHideTimer?.Stop();
         Unregister();
     }
 }

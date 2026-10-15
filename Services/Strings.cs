@@ -256,6 +256,65 @@ public static class Strings
     public static string Cancel => T("Cancelar", "Cancel");
     public static string SaveAndReload => T("Salvar e recarregar", "Save and reload");
     public static string Saved => T("Salvo ✓", "Saved ✓");
+    public static string NavAtalhos => T("Atalhos", "Shortcuts");
+    public static string Apply => T("Aplicar", "Apply");
+    public static string RestoreDefaults => T("Restaurar padrões", "Restore defaults");
+    public static string Applied => T("Aplicado ✓", "Applied ✓");
+    public static string DefaultsRestored => T("Padrões restaurados — clique em Aplicar para manter", "Defaults restored — click Apply to keep them");
+    public static string WindowMinimize => T("Minimizar", "Minimize");
+    public static string WindowMaximize => T("Maximizar", "Maximize");
+    public static string WindowClose => T("Fechar", "Close");
+    public static string SidebarRuntime(string version, string runtime) => $"v{version} · {runtime}";
+
+    // Aparência (painel novo)
+    public static string AppearanceSubtitle => T("Tudo aqui aparece na barra na hora; Aplicar salva, Cancelar desfaz.",
+        "Changes show on the bar right away; Apply saves them, Cancel undoes them.");
+    public static string LabelBarPosition => T("Posição da barra", "Bar position");
+    public static string EdgeName(BarEdge edge) => edge switch
+    {
+        BarEdge.Bottom => T("Baixo", "Bottom"),
+        BarEdge.Left => T("Esquerda", "Left"),
+        BarEdge.Right => T("Direita", "Right"),
+        _ => T("Topo", "Top")
+    };
+    public static string LabelOpacity => T("Opacidade", "Opacity");
+    public static string HintOpacitySolid => T("Este tema é sólido — a opacidade vale só nos temas translúcidos.",
+        "This theme is solid — opacity only applies to translucent themes.");
+    public static string LabelBarHeight => T("Altura", "Height");
+    public static string LabelBarWidth => T("Largura", "Width");
+    public static string HintHeightCompact => T("A Compacta tem altura fixa de 26px.", "Compact has a fixed 26px height.");
+    public static string Decrease => T("Diminuir", "Decrease");
+    public static string Increase => T("Aumentar", "Increase");
+    public static string LabelAccent => T("Cor de acento", "Accent color");
+    public static string AccentWindows => T("Cor do Windows", "Windows color");
+    public static string AccentName(string key) => key switch
+    {
+        "gold" => T("Ouro Hofuð", "Hofuð gold"),
+        "teal" => T("Verde-água", "Teal"),
+        "blue" => T("Azul", "Blue"),
+        "violet" => T("Violeta", "Violet"),
+        _ => key
+    };
+    public static string LabelBehavior => T("Comportamento", "Behavior");
+    public static string HintStartWithWindows => T("Abre a barra junto com o Windows.", "Opens the bar when Windows starts.");
+    public static string LabelReserveSpace => T("Reservar espaço na área de trabalho", "Reserve desktop space");
+    public static string HintReserveSpace => T("Janelas maximizadas param na borda da barra, em vez de ficar por baixo dela.",
+        "Maximized windows stop at the bar instead of going under it.");
+    public static string LabelAutoHide => T("Ocultar automaticamente", "Auto-hide");
+    public static string HintAutoHide => T("A barra some e volta ao encostar o mouse na borda da tela.",
+        "The bar hides and comes back when the mouse touches the screen edge.");
+    public static string LabelOverlayFullscreen => T("Sobrepor jogos em tela cheia", "Overlay fullscreen games");
+
+    // Atalhos
+    public static string SectionAtalhos => T("Atalhos", "Shortcuts");
+    public static string AtalhosSubtitle => T("Atalhos globais — funcionam mesmo com outro app (ou um jogo) em foco.",
+        "Global shortcuts — they work even with another app (or a game) focused.");
+    public static string ShortcutToggleBar => T("Ocultar / mostrar a barra", "Hide / show the bar");
+    public static string ShortcutToggleBarAlt => T("Ocultar / mostrar a barra (alternativo)", "Hide / show the bar (alternative)");
+    public static string ShortcutNewReminder => T("Novo lembrete", "New reminder");
+    public static string ShortcutPlayPause => T("Tocar / pausar", "Play / pause");
+    public static string ShortcutPrevNext => T("Faixa anterior / próxima", "Previous / next track");
+    public static string ShortcutVolume => T("Volume do player", "Player volume");
 
     // Geral
     public static string SectionGeral => T("Geral", "General");

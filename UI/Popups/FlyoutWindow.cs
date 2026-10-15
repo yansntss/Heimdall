@@ -58,6 +58,8 @@ internal sealed class FlyoutWindow : Window
 
     public static void CloseCurrent() => _current?.Close();
 
+    public static bool IsOpen => _current is not null;
+
     private FlyoutWindow(FrameworkElement anchor, BarEdge edge, FrameworkElement content, string title)
     {
         _anchor = anchor;

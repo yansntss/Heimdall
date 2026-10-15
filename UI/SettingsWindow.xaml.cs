@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
@@ -6,67 +7,58 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Heimdall.Config;
-using Heimdall.Native;
 using Heimdall.Services;
+using Heimdall.ViewModels;
 using Heimdall.Widgets;
 
 namespace Heimdall.UI;
 
+/// <summary>
+/// Janela de Configurações. Aparência é MVVM puro (<see cref="AppearanceViewModel"/>, prévia
+/// ao vivo); as seções antigas (Geral, Relógio, Widgets, Lembretes) mantêm a lógica que já
+/// tinham aqui e só escrevem no rascunho (<see cref="SettingsViewModel.Draft"/>) no Aplicar.
+/// </summary>
 public partial class SettingsWindow : Window
 {
     private static readonly (string Id, string Icon)[] WidgetCatalog = WidgetFactory.Catalog;
 
     private const string GitHubUrl = "https://github.com/yansntss/Heimdall";
 
+    private readonly SettingsViewModel _vm;
     private readonly AppConfig _cfg;
     private readonly ObservableCollection<ReminderRow> _reminders;
     private readonly DispatcherTimer _clockPreviewTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly List<ListBox> _widgetLists = new();
-    private string _selectedTheme;
     private Point? _widgetDragStart;
 
     public SettingsWindow()
     {
         InitializeComponent();
-        _cfg = ConfigService.Load();
-        _selectedTheme = _cfg.Theme;
+        _vm = new SettingsViewModel();
+        _cfg = _vm.Draft;
+        DataContext = _vm;
         Title = Strings.SettingsTitleBar;
-        ApplyLabels();
-        SourceInitialized += (_, _) =>
-        {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            int preference = NativeMethods.DWMWCP_ROUND;
-            NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_WINDOW_CORNER_PREFERENCE, ref preference, sizeof(int));
-        };
 
         // Geral
-        EdgeCombo.ItemsSource = Enum.GetValues(typeof(BarEdge));
-        EdgeCombo.SelectedItem = _cfg.Edge;
-        ThicknessSlider.Value = _cfg.Thickness;
         FloatingModeCheck.IsChecked = _cfg.FloatingMode;
         FloatingMarginSlider.Value = _cfg.FloatingMargin;
         FloatingMarginSlider.IsEnabled = _cfg.FloatingMode;
 
         MonitorModeCombo.ItemsSource = Enum.GetValues(typeof(MonitorMode));
-
         var monitors = MonitorService.GetMonitors()
             .Select(m => new MonitorOption(m.ShortName,
-                $"{m.ShortName} — {m.Bounds.Width}x{m.Bounds.Height}" + (m.IsPrimary ? " [principal]" : "")))
+                $"{m.ShortName} — {m.Bounds.Width}x{m.Bounds.Height}" + (m.IsPrimary ? Strings.MonitorPrimarySuffix : "")))
             .ToList();
         MonitorCombo.ItemsSource = monitors;
         MonitorCombo.DisplayMemberPath = nameof(MonitorOption.Label);
         MonitorCombo.SelectedItem = monitors.FirstOrDefault(o =>
             string.Equals(o.Device, MonitorInfo.Normalize(_cfg.MonitorDevice), StringComparison.OrdinalIgnoreCase))
             ?? monitors.FirstOrDefault();
-
         MonitorModeCombo.SelectedItem = _cfg.MonitorMode;
         MonitorCombo.IsEnabled = MonitorModeCombo.SelectedItem is MonitorMode.Specific;
-        StartWithWindowsCheck.IsChecked = _cfg.StartWithWindows;
-        GamingModeCheck.IsChecked = _cfg.GamingMode;
 
         LanguageCombo.ItemsSource = new[]
         {
@@ -76,19 +68,6 @@ public partial class SettingsWindow : Window
         LanguageCombo.DisplayMemberPath = nameof(LanguageOption.Label);
         LanguageCombo.SelectedItem = ((IEnumerable<LanguageOption>)LanguageCombo.ItemsSource)
             .FirstOrDefault(o => o.Value == _cfg.Language);
-
-        // Aparência
-        BackgroundHexBox.Text = _cfg.Style.Background;
-        ForegroundHexBox.Text = _cfg.Style.Foreground;
-        UpdateSwatch(BackgroundSwatch, _cfg.Style.Background);
-        UpdateSwatch(ForegroundSwatch, _cfg.Style.Foreground);
-        FontFamilyCombo.ItemsSource = Fonts.SystemFontFamilies.Select(f => f.Source).OrderBy(s => s).ToList();
-        FontFamilyCombo.Text = _cfg.Style.FontFamily;
-        CustomFontSizeCheck.IsChecked = _cfg.Style.FontSize is not null;
-        FontSizeSlider.Value = _cfg.Style.FontSize ?? 13;
-        FontSizeSlider.IsEnabled = _cfg.Style.FontSize is not null;
-        BuildThemeCards();
-        UpdatePreview();
 
         // Relógio
         ClockModeCombo.ItemsSource = Enum.GetValues(typeof(ClockMode));
@@ -115,92 +94,113 @@ public partial class SettingsWindow : Window
         _reminders = new ObservableCollection<ReminderRow>(_cfg.Reminders.Select(ReminderRow.From));
         RemindersGrid.ItemsSource = _reminders;
 
+        // Atalhos (somente leitura: os globais registrados no App)
+        ShortcutsList.ItemsSource = new[]
+        {
+            new ShortcutRow("Ctrl+Alt+H", Strings.ShortcutToggleBar),
+            new ShortcutRow("Ctrl+Shift+B", Strings.ShortcutToggleBarAlt),
+            new ShortcutRow("Ctrl+Shift+R", Strings.ShortcutNewReminder),
+            new ShortcutRow("Ctrl+Alt+Space", Strings.ShortcutPlayPause),
+            new ShortcutRow("Ctrl+Alt+← / →", Strings.ShortcutPrevNext),
+            new ShortcutRow("Ctrl+Alt+↑ / ↓", Strings.ShortcutVolume),
+        };
+
         // Sobre
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         VersionText.Text = version is null ? Strings.VersionDev : Strings.VersionFormat(version.ToString(3));
 
+        StateChanged += (_, _) => ApplyWindowState();
+        Closing += OnClosing;
         Closed += (_, _) => _clockPreviewTimer.Stop();
     }
 
+    // ---------- Chrome (só visual) ----------
+
+    private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void Maximize_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
     /// <summary>
-    /// Aplica o idioma atual (<see cref="Strings.Current"/>, já resolvido por
-    /// <see cref="ConfigService.Load"/> antes do construtor rodar) a todo texto estático
-    /// da tela — o XAML mantém o pt-BR como valor de design-time/fallback.
+    /// Maximizada, uma janela sem moldura passa uns pixels de cada borda da tela (a borda
+    /// de redimensionar fica pra fora) — compensa com margem e tira o raio, que não faz
+    /// sentido colado na borda.
     /// </summary>
-    private void ApplyLabels()
+    private void ApplyWindowState()
     {
-        TitleBarText.Text = Strings.SettingsTitleBar;
-        CancelButton.Content = Strings.Cancel;
-        SaveButton.Content = Strings.SaveAndReload;
-
-        NavGeral.Content = Strings.NavGeral;
-        NavAparencia.Content = Strings.NavAparencia;
-        NavRelogio.Content = Strings.NavRelogio;
-        NavWidgets.Content = Strings.NavWidgets;
-        NavLembretes.Content = Strings.NavLembretes;
-        NavSobre.Content = Strings.NavSobre;
-
-        GeralTitle.Text = Strings.SectionGeral;
-        EdgeLabel.Text = Strings.LabelEdge;
-        ThicknessLabel.Text = Strings.LabelThickness;
-        FloatingModeCheck.Content = Strings.LabelFloatingMode;
-        FloatingMarginLabel.Text = Strings.LabelFloatingMargin;
-        MonitorModeLabel.Text = Strings.LabelMonitorMode;
-        MonitorSpecificLabel.Text = Strings.LabelMonitorSpecific;
-        StartWithWindowsCheck.Content = Strings.LabelStartWithWindows;
-        GamingModeCheck.Content = Strings.LabelGamingMode;
-        GamingModeHint.Text = Strings.HintGamingMode;
-        LanguageLabel.Text = Strings.LabelLanguage;
-
-        AparenciaTitle.Text = Strings.SectionAparencia;
-        PreviewLabel.Text = Strings.LabelPreview;
-        ThemeLabel.Text = Strings.LabelTheme;
-        OverridesLabel.Text = Strings.LabelOverridesOptional;
-        BackgroundColorHint.Text = Strings.HintBackgroundColor;
-        ClearBackgroundButton.Content = Strings.Clear;
-        ForegroundColorHint.Text = Strings.HintForegroundColor;
-        ClearForegroundButton.Content = Strings.Clear;
-        FontLabel.Text = Strings.LabelFont;
-        CustomFontSizeCheck.Content = Strings.LabelCustomFontSize;
-
-        RelogioTitle.Text = Strings.SectionRelogio;
-        ClockModeLabel.Text = Strings.LabelClockMode;
-        ClockStyleLabel.Text = Strings.LabelClockStyle;
-        ClockCultureLabel.Text = Strings.LabelClockCulture;
-        ClockCustomFormatLabel.Text = Strings.LabelClockCustomFormat;
-        ClockPreviewLabel.Text = Strings.LabelPreviewSection;
-        ClockPreviewHorizontalLabel.Text = Strings.PreviewHorizontal;
-        ClockPreviewVerticalLabel.Text = Strings.PreviewVertical;
-
-        WidgetsTitle.Text = Strings.SectionWidgets;
-        WidgetsHint.Text = Strings.HintWidgets;
-        ZoneStartLabel.Text = Strings.ZoneStart;
-        ZoneCenterLabel.Text = Strings.ZoneCenter;
-        ZoneEndLabel.Text = Strings.ZoneEnd;
-        StartPinButton.ToolTip = Strings.TogglePinTooltip;
-        CenterPinButton.ToolTip = Strings.TogglePinTooltip;
-        EndPinButton.ToolTip = Strings.TogglePinTooltip;
-        StartRemoveButton.Content = Strings.Remove;
-        CenterRemoveButton.Content = Strings.Remove;
-        EndRemoveButton.Content = Strings.Remove;
-        StartAddWidgetButton.Content = Strings.AddWidgetButton;
-        CenterAddWidgetButton.Content = Strings.AddWidgetButton;
-        EndAddWidgetButton.Content = Strings.AddWidgetButton;
-
-        LembretesTitle.Text = Strings.SectionLembretes;
-        AddReminderButton.Content = Strings.AddReminder;
-        RemoveReminderButton.Content = Strings.RemoveSelected;
-        TextColumn.Header = Strings.ColumnText;
-        TimeColumn.Header = Strings.ColumnTime;
-        DaysColumn.Header = Strings.ColumnDays;
-        SoundColumn.Header = Strings.ColumnSound;
-        CompletedColumn.Header = Strings.ColumnCompleted;
-        KindColumn.Header = Strings.ColumnType;
-        RecurrenceColumn.Header = Strings.ColumnRecurrence;
-
-        AppTaglineText.Text = Strings.AppTagline;
-        GitHubButton.Content = Strings.ViewOnGitHub;
+        bool maximized = WindowState == WindowState.Maximized;
+        var border = SystemParameters.WindowResizeBorderThickness;
+        Frame.Margin = maximized ? new Thickness(border.Left + 1, border.Top + 1, border.Right + 1, border.Bottom + 1) : new Thickness(0);
+        if (maximized) Frame.CornerRadius = new CornerRadius(0);
+        else Frame.SetResourceReference(Border.CornerRadiusProperty, "H.Radius.Window");
+        MaximizeIcon.Geometry = (Geometry)FindResource(maximized ? "H.Icon.Restore" : "H.Icon.Maximize");
     }
+
+    // ---------- Rodapé ----------
+
+    private void Apply_Click(object sender, RoutedEventArgs e)
+    {
+        if (!CollectLegacySections()) return;
+
+        var previousLanguage = Strings.Current;
+        _vm.Apply();
+
+        // Essa janela já foi toda montada com os textos do idioma anterior — reabrir do
+        // zero é mais simples e confiável do que trocar texto por texto.
+        if (_cfg.Language != previousLanguage)
+        {
+            Close();
+            ((App)Application.Current).OpenSettings();
+        }
+    }
+
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void RestoreDefaults_Click(object sender, RoutedEventArgs e) => _vm.RestoreDefaults();
+
+    /// <summary>Fechar sem aplicar desfaz a prévia ao vivo (a barra volta ao que está salvo).</summary>
+    private void OnClosing(object? sender, CancelEventArgs e) => _vm.Cancel();
+
+    /// <summary>Copia as seções antigas pro rascunho; false se algum lembrete tiver horário inválido.</summary>
+    private bool CollectLegacySections()
+    {
+        RemindersGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        foreach (var row in _reminders)
+        {
+            if (row.Kind != ReminderKind.Scheduled) continue;
+            if (!DateTime.TryParseExact(row.Time, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            {
+                MessageBox.Show(this, Strings.InvalidTimeMessage(row.Text), "Heimdall", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _vm.SelectedSection = _vm.Sections.First(s => s.Key == "lembretes");
+                return false;
+            }
+        }
+
+        _cfg.FloatingMode = FloatingModeCheck.IsChecked == true;
+        _cfg.FloatingMargin = (int)FloatingMarginSlider.Value;
+        _cfg.MonitorMode = (MonitorMode)MonitorModeCombo.SelectedItem;
+        _cfg.MonitorDevice = (MonitorCombo.SelectedItem as MonitorOption)?.Device;
+        _cfg.Widgets.Start = StartList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
+        _cfg.Widgets.Center = CenterList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
+        _cfg.Widgets.End = EndList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
+        _cfg.Clock.Mode = (ClockMode)ClockModeCombo.SelectedItem;
+        _cfg.Clock.Style = (ClockStyle)ClockStyleCombo.SelectedItem;
+        _cfg.Clock.Culture = string.IsNullOrWhiteSpace(ClockCultureBox.Text) ? "pt-BR" : ClockCultureBox.Text;
+        _cfg.Clock.CustomFormat = string.IsNullOrWhiteSpace(ClockCustomFormatBox.Text) ? null : ClockCustomFormatBox.Text;
+        _cfg.Reminders = _reminders.Select(r => r.ToConfig()).ToList();
+        _cfg.Language = (LanguageCombo.SelectedItem as LanguageOption)?.Value ?? _cfg.Language;
+        return true;
+    }
+
+    // ---------- Geral ----------
+
+    private void MonitorModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        MonitorCombo.IsEnabled = MonitorModeCombo.SelectedItem is MonitorMode.Specific;
+
+    private void FloatingModeCheck_Changed(object sender, RoutedEventArgs e) =>
+        FloatingMarginSlider.IsEnabled = FloatingModeCheck.IsChecked == true;
 
     // ---------- Relógio ----------
 
@@ -239,209 +239,6 @@ public partial class SettingsWindow : Window
         ClockPreviewVertical.Text = ClockFormatter.Format(preview, now, vertical: true).Replace("\n", "   /   ");
     }
 
-    // ---------- Navegação lateral ----------
-
-    private void Nav_Changed(object sender, RoutedEventArgs e)
-    {
-        if (GeralSection is null) return; // dispara durante o InitializeComponent antes dos outros elementos existirem
-
-        GeralSection.Visibility = NavGeral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        AparenciaSection.Visibility = NavAparencia.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        RelogioSection.Visibility = NavRelogio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        WidgetsSection.Visibility = NavWidgets.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        LembretesSection.Visibility = NavLembretes.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SobreSection.Visibility = NavSobre.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    // ---------- Barra de título customizada ----------
-
-    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ClickCount == 2) return; // sem maximizar — ResizeMode="NoResize"
-        DragMove();
-    }
-
-    private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
-
-    // ---------- Geral ----------
-
-    private void MonitorModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
-        MonitorCombo.IsEnabled = MonitorModeCombo.SelectedItem is MonitorMode.Specific;
-
-    private void FloatingModeCheck_Changed(object sender, RoutedEventArgs e) =>
-        FloatingMarginSlider.IsEnabled = FloatingModeCheck.IsChecked == true;
-
-    // ---------- Aparência ----------
-
-    private void BuildThemeCards()
-    {
-        var amber = (Brush)FindResource("HeimdallAccent");
-        var border = (Brush)FindResource("HeimdallBorder");
-
-        ThemeCardsList.ItemsSource = ThemeService.GetAllThemeNames().Select(name =>
-        {
-            var def = ThemeService.GetThemeDefinition(name);
-            bool selected = string.Equals(name, _selectedTheme, StringComparison.OrdinalIgnoreCase);
-            return new ThemeCardViewModel
-            {
-                Name = name,
-                Background = ToBrush(def.Background),
-                Accent = ToBrush(def.Accent),
-                Text = ToBrush(def.TextPrimary),
-                BorderBrush = selected ? amber : border,
-                BorderThickness = new Thickness(selected ? 2 : 1)
-            };
-        }).ToList();
-    }
-
-    private void ThemeCard_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as Button)?.Tag is not string name) return;
-        _selectedTheme = name;
-        BuildThemeCards();
-        UpdatePreview();
-    }
-
-    private void BackgroundHexBox_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        UpdateSwatch(BackgroundSwatch, BackgroundHexBox.Text);
-        UpdatePreview();
-    }
-
-    private void ForegroundHexBox_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        UpdateSwatch(ForegroundSwatch, ForegroundHexBox.Text);
-        UpdatePreview();
-    }
-
-    private static void UpdateSwatch(Border swatch, string? hex)
-    {
-        swatch.Background = TryParseColor(hex) is { } color ? new SolidColorBrush(color) : Brushes.Transparent;
-    }
-
-    private static Color? TryParseColor(string? hex)
-    {
-        if (string.IsNullOrWhiteSpace(hex)) return null;
-        try { return ColorConverter.ConvertFromString(hex) as Color?; }
-        catch (FormatException) { return null; }
-    }
-
-    private static Brush ToBrush(string hex) =>
-        TryParseColor(hex) is { } color ? new SolidColorBrush(color) : Brushes.Gray;
-
-    // Grid de cores predefinidas do tema — clicar preenche o hex box (o "personalizado"
-    // continua sendo o próprio TextBox de hex ao lado do swatch, sem precisar duplicar um
-    // campo dentro do popup).
-    private static readonly (string Name, string Hex)[] ColorPresets =
-    {
-        ("Âmbar", "#FFE9A23B"), ("Verde-azulado", "#FF2FA39A"), ("Azul", "#FF3F6FE0"),
-        ("Fundo", "#FF0F1318"), ("Painel", "#FF161B22"), ("Campo", "#FF1A2028"),
-        ("Marfim", "#FFF2EEE6"), ("Secundário", "#FFA7B0BC"), ("Cabo", "#FF3A4350"),
-        ("Branco", "#FFFFFFFF"), ("Preto", "#FF000000"), ("Vermelho", "#FFE05252"),
-        ("Verde", "#FF4CAF50"), ("Roxo", "#FF9370DB")
-    };
-
-    private void BackgroundSwatch_Click(object sender, RoutedEventArgs e) => ShowColorPickerPopup(BackgroundSwatchButton, BackgroundHexBox);
-
-    private void ForegroundSwatch_Click(object sender, RoutedEventArgs e) => ShowColorPickerPopup(ForegroundSwatchButton, ForegroundHexBox);
-
-    private void ShowColorPickerPopup(UIElement placementTarget, TextBox targetHexBox)
-    {
-        var grid = new WrapPanel { Width = 200 };
-        foreach (var (name, hex) in ColorPresets)
-        {
-            var swatch = new Border
-            {
-                Width = 28,
-                Height = 28,
-                Margin = new Thickness(3),
-                CornerRadius = new CornerRadius(4),
-                Background = ToBrush(hex),
-                BorderBrush = (Brush)FindResource("HeimdallBorder"),
-                BorderThickness = new Thickness(1),
-                Cursor = Cursors.Hand,
-                ToolTip = Strings.ColorPresetName(name)
-            };
-            var popup = new Popup { PlacementTarget = placementTarget, Placement = PlacementMode.Bottom, StaysOpen = false };
-            swatch.MouseLeftButtonUp += (_, _) =>
-            {
-                targetHexBox.Text = hex;
-                popup.IsOpen = false;
-            };
-            grid.Children.Add(swatch);
-
-            if (grid.Tag is null) grid.Tag = popup; // guarda o popup só pra manter uma referência viva
-        }
-
-        var container = new Border
-        {
-            Background = (Brush)FindResource("HeimdallPanelBackground"),
-            BorderBrush = (Brush)FindResource("HeimdallBorder"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(8),
-            Child = grid
-        };
-
-        var mainPopup = new Popup
-        {
-            PlacementTarget = placementTarget,
-            Placement = PlacementMode.Bottom,
-            StaysOpen = false,
-            AllowsTransparency = true,
-            Child = container,
-            IsOpen = true
-        };
-
-        // Cada swatch fecha o popup certo — reatribui aqui em vez de dentro do loop, já
-        // que o popup só existe depois de montar o conteúdo inteiro.
-        foreach (var child in grid.Children.OfType<Border>())
-        {
-            child.MouseLeftButtonUp += (_, _) => mainPopup.IsOpen = false;
-        }
-    }
-
-    private void FontFamilyCombo_Changed(object sender, RoutedEventArgs e) => UpdatePreview();
-
-    private void CustomFontSizeCheck_Changed(object sender, RoutedEventArgs e)
-    {
-        FontSizeSlider.IsEnabled = CustomFontSizeCheck.IsChecked == true;
-        UpdatePreview();
-    }
-
-    private void FontSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => UpdatePreview();
-
-    private void ClearBackground_Click(object sender, RoutedEventArgs e)
-    {
-        BackgroundHexBox.Text = "";
-    }
-
-    private void ClearForeground_Click(object sender, RoutedEventArgs e)
-    {
-        ForegroundHexBox.Text = "";
-    }
-
-    private void UpdatePreview()
-    {
-        if (PreviewBar is null) return; // ainda no InitializeComponent
-
-        var theme = ThemeService.GetThemeDefinition(_selectedTheme);
-        var bg = TryParseColor(BackgroundHexBox.Text) ?? TryParseColor(theme.Background) ?? Colors.Black;
-        var fg = TryParseColor(ForegroundHexBox.Text) ?? TryParseColor(theme.TextPrimary) ?? Colors.White;
-        string fontFamily = string.IsNullOrWhiteSpace(FontFamilyCombo.Text) ? theme.FontFamily : FontFamilyCombo.Text;
-        double fontSize = CustomFontSizeCheck.IsChecked == true ? FontSizeSlider.Value : 13;
-
-        PreviewBar.Background = new SolidColorBrush(bg);
-        var fgBrush = new SolidColorBrush(fg);
-        PreviewTitle.Foreground = fgBrush;
-        PreviewClock.Foreground = fgBrush;
-        var family = new FontFamily(fontFamily);
-        PreviewTitle.FontFamily = family;
-        PreviewClock.FontFamily = family;
-        PreviewTitle.FontSize = fontSize;
-        PreviewClock.FontSize = fontSize;
-    }
-
     // ---------- Widgets ----------
 
     private void TogglePin_Click(object sender, RoutedEventArgs e)
@@ -474,7 +271,7 @@ public partial class SettingsWindow : Window
                 Height = 56,
                 Margin = new Thickness(3),
                 Tag = id,
-                Style = (Style)FindResource("HeimdallSecondaryButton"),
+                Style = (Style)FindResource("H.SecondaryButton"),
                 Content = new StackPanel
                 {
                     Children =
@@ -493,15 +290,10 @@ public partial class SettingsWindow : Window
             grid.Children.Add(button);
         }
 
-        popup.Child = new Border
-        {
-            Background = (Brush)FindResource("HeimdallPanelBackground"),
-            BorderBrush = (Brush)FindResource("HeimdallBorder"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(8),
-            Child = grid
-        };
+        var surface = new Border { BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(8), Child = grid };
+        surface.SetResourceReference(Border.BackgroundProperty, "H.Brush.Elevated");
+        surface.SetResourceReference(Border.BorderBrushProperty, "H.Brush.Line");
+        popup.Child = surface;
         popup.IsOpen = true;
     }
 
@@ -564,92 +356,19 @@ public partial class SettingsWindow : Window
         if (RemindersGrid.SelectedItem is ReminderRow row) _reminders.Remove(row);
     }
 
-    // ---------- Salvar ----------
-
-    private void Save_Click(object sender, RoutedEventArgs e)
-    {
-        RemindersGrid.CommitEdit(DataGridEditingUnit.Row, true);
-
-        foreach (var row in _reminders)
-        {
-            if (row.Kind != ReminderKind.Scheduled) continue;
-            if (!DateTime.TryParseExact(row.Time, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
-            {
-                MessageBox.Show(this, Strings.InvalidTimeMessage(row.Text), "Heimdall",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-        }
-
-        _cfg.Edge = (BarEdge)EdgeCombo.SelectedItem;
-        _cfg.Thickness = (int)ThicknessSlider.Value;
-        _cfg.FloatingMode = FloatingModeCheck.IsChecked == true;
-        _cfg.FloatingMargin = (int)FloatingMarginSlider.Value;
-        _cfg.MonitorMode = (MonitorMode)MonitorModeCombo.SelectedItem;
-        _cfg.MonitorDevice = (MonitorCombo.SelectedItem as MonitorOption)?.Device;
-        _cfg.Theme = _selectedTheme;
-        _cfg.Style.Background = string.IsNullOrWhiteSpace(BackgroundHexBox.Text) ? null : BackgroundHexBox.Text;
-        _cfg.Style.Foreground = string.IsNullOrWhiteSpace(ForegroundHexBox.Text) ? null : ForegroundHexBox.Text;
-        _cfg.Style.FontFamily = string.IsNullOrWhiteSpace(FontFamilyCombo.Text) ? null : FontFamilyCombo.Text;
-        _cfg.Style.FontSize = CustomFontSizeCheck.IsChecked == true ? FontSizeSlider.Value : null;
-        _cfg.Widgets.Start = StartList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
-        _cfg.Widgets.Center = CenterList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
-        _cfg.Widgets.End = EndList.Items.Cast<WidgetRow>().Select(r => r.ToEntry()).ToList();
-        _cfg.Clock.Mode = (ClockMode)ClockModeCombo.SelectedItem;
-        _cfg.Clock.Style = (ClockStyle)ClockStyleCombo.SelectedItem;
-        _cfg.Clock.Culture = string.IsNullOrWhiteSpace(ClockCultureBox.Text) ? "pt-BR" : ClockCultureBox.Text;
-        _cfg.Clock.CustomFormat = string.IsNullOrWhiteSpace(ClockCustomFormatBox.Text) ? null : ClockCustomFormatBox.Text;
-        _cfg.Reminders = _reminders.Select(r => r.ToConfig()).ToList();
-
-        bool startWithWindows = StartWithWindowsCheck.IsChecked == true;
-        if (startWithWindows != _cfg.StartWithWindows) StartupService.SetEnabled(startWithWindows);
-        _cfg.StartWithWindows = startWithWindows;
-        _cfg.GamingMode = GamingModeCheck.IsChecked == true;
-
-        var previousLanguage = _cfg.Language;
-        _cfg.Language = (LanguageCombo.SelectedItem as LanguageOption)?.Value ?? _cfg.Language;
-
-        ConfigService.Save(_cfg);
-        var app = (App)Application.Current;
-        app.Reload();
-
-        // Essa janela já foi toda montada com os textos do idioma anterior — reabrir do
-        // zero é mais simples e confiável do que re-aplicar ApplyLabels() em cima de
-        // controles que já têm valor/seleção do usuário. Close() dispara o Closed que
-        // limpa App._settingsWindow, então OpenSettings() já cria uma instância nova.
-        if (_cfg.Language != previousLanguage)
-        {
-            Close();
-            app.OpenSettings();
-            return;
-        }
-
-        StatusText.Text = Strings.Saved;
-    }
-
-    private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
-
     private sealed record MonitorOption(string Device, string Label)
     {
         public override string ToString() => Label;
     }
 
+    private sealed record ShortcutRow(string Keys, string Description);
+
     private sealed record LanguageOption(AppLanguage Value, string Label)
     {
-        // O ComboBox estilizado (Theme.xaml) mostra o item selecionado via SelectionBoxItem,
+        // O ComboBox estilizado (Themes/Forms.xaml) mostra o item selecionado via SelectionBoxItem,
         // que às vezes cai no ToString() padrão em vez de respeitar DisplayMemberPath —
         // sobrescrever aqui garante o texto certo independente de qual caminho o WPF usa.
         public override string ToString() => Label;
-    }
-
-    private sealed class ThemeCardViewModel
-    {
-        public required string Name { get; init; }
-        public required Brush Background { get; init; }
-        public required Brush Accent { get; init; }
-        public required Brush Text { get; init; }
-        public required Brush BorderBrush { get; init; }
-        public required Thickness BorderThickness { get; init; }
     }
 
     private sealed class WidgetRow
@@ -665,8 +384,10 @@ public partial class SettingsWindow : Window
         public WidgetEntry ToEntry() => new(Id, Pinned);
     }
 
+    /// <summary>Linha editável da tabela. Guarda o lembrete original pra não perder o que a tabela não mostra (datas, criação, DoneOn).</summary>
     private sealed class ReminderRow
     {
+        public ReminderConfig? Source { get; init; }
         public ReminderKind Kind { get; set; }
         public string Text { get; set; } = "";
         public string? Time { get; set; }
@@ -683,7 +404,8 @@ public partial class SettingsWindow : Window
             Recurrence = r.Recurrence,
             Days = string.Join(",", r.Days),
             PlaySound = r.PlaySound,
-            Completed = r.Completed
+            Completed = r.Completed,
+            Source = r
         };
 
         public ReminderConfig ToConfig() => new()
@@ -698,7 +420,12 @@ public partial class SettingsWindow : Window
                 .Select(d => d!.Value)
                 .ToList(),
             PlaySound = PlaySound,
-            Completed = Completed
+            Completed = Completed,
+            CreatedAt = Source?.CreatedAt ?? DateTime.Now,
+            Date = Source?.Date,
+            StartDate = Source?.StartDate,
+            EndDate = Source?.EndDate,
+            DoneOn = Source?.DoneOn
         };
     }
 }
