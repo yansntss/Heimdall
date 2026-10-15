@@ -466,4 +466,233 @@
         <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
+    <!-- ===================== Switch 38x22 (ToggleButton) ===================== -->
+    <!-- Só o trilho: o rótulo fica na linha (DetailSwitchRowStyle). Espaço alterna. -->
+    <Style x:Key="SwitchToggleStyle" TargetType="ToggleButton">
+        <Setter Property="Width" Value="38"/>
+        <Setter Property="Height" Value="22"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Track" CornerRadius="11" Background="{DynamicResource H.Brush.Track}"
+                            BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="1">
+                        <Ellipse x:Name="Knob" Width="16" Height="16" Margin="2,0" HorizontalAlignment="Left"
+                                 Fill="{DynamicResource H.Brush.TextSecondary}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource H.Brush.Accent}"/>
+                            <Setter TargetName="Track" Property="BorderThickness" Value="0"/>
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource H.Brush.OnAccent}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Chip 28px, raio 999 ===================== -->
+    <!-- Tag=True = preenchido (acento @16%, texto no acento). -->
+    <Style x:Key="ChipButtonStyle" TargetType="ButtonBase">
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="11,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextSecondary}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.S}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ButtonBase">
+                    <Border x:Name="Bd" CornerRadius="999" Background="Transparent" BorderThickness="1"
+                            BorderBrush="{DynamicResource H.Brush.Line}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <!-- DataTrigger: Tag é object, e um Trigger compararia com o texto "True". -->
+                        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.AccentChip}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="{DynamicResource H.Brush.Accent}"/>
+                        </DataTrigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Pressed}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Chip só-ícone 28x28 (bandeira, nota, "…"). Precisa de AutomationProperties.Name. -->
+    <Style x:Key="ChipIconButtonStyle" TargetType="ButtonBase" BasedOn="{StaticResource ChipButtonStyle}">
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+
+    <!-- ===================== Linha de detalhe 44px ===================== -->
+    <!-- Content = rótulo à esquerda; Tag = valor à direita (texto secundário) + chevron. -->
+    <Style x:Key="DetailRowStyle" TargetType="Button">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                            <ContentPresenter Grid.Column="1" Content="{TemplateBinding Tag}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Margin="12,0,6,0" TextElement.Foreground="{DynamicResource H.Brush.TextSecondary}"/>
+                            <c:Icon Grid.Column="2" Geometry="{DynamicResource H.Icon.ChevronRight}" Size="14"
+                                    Foreground="{DynamicResource H.Brush.TextTertiary}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Pressed}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Linha de detalhe com switch à direita: a linha inteira é o ToggleButton (Espaço alterna). -->
+    <Style x:Key="DetailSwitchRowStyle" TargetType="ToggleButton">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                            <!-- Trilho do switch (mesmo visual do SwitchToggleStyle), só desenho. -->
+                            <Border x:Name="Track" Grid.Column="1" Width="38" Height="22" CornerRadius="11"
+                                    Background="{DynamicResource H.Brush.Track}" BorderBrush="{DynamicResource H.Brush.Line}" BorderThickness="1">
+                                <Ellipse x:Name="Knob" Width="16" Height="16" Margin="2,0" HorizontalAlignment="Left"
+                                         Fill="{DynamicResource H.Brush.TextSecondary}"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource H.Brush.Accent}"/>
+                            <Setter TargetName="Track" Property="BorderThickness" Value="0"/>
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource H.Brush.OnAccent}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Lista de opções com check (40px) ===================== -->
+    <!-- ListBox de escolha única no lugar de RadioButton: selecionado = check 14px no acento à direita. -->
+    <Style x:Key="OptionRowStyle" TargetType="ListBoxItem">
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.Text}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                            <c:Icon x:Name="Check" Grid.Column="1" Geometry="{DynamicResource H.Icon.Check}" Size="14" StrokeThickness="2.4"
+                                    Foreground="{DynamicResource H.Brush.Accent}" VerticalAlignment="Center" Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Círculo de dia da semana (38px) ===================== -->
+    <!-- Selecionado = fundo acento, texto escuro; solto = borda @14%, texto suave. -->
+    <Style x:Key="DayCircleStyle" TargetType="ToggleButton">
+        <Setter Property="Width" Value="38"/>
+        <Setter Property="Height" Value="38"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource H.Brush.TextSoft}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource H.Font.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource H.FontSize.M}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" CornerRadius="999" Background="Transparent" BorderThickness="1"
+                            BorderBrush="{DynamicResource H.Brush.Ring}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource H.Brush.Accent}"/>
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="0"/>
+                            <Setter Property="Foreground" Value="{DynamicResource H.Brush.OnAccent}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

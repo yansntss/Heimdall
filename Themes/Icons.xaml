@@ -55,6 +55,10 @@
     <Geometry x:Key="H.Icon.Maximize">M5 5 h14 v14 H5 Z</Geometry>
     <Geometry x:Key="H.Icon.Restore">M8 8 h11 v11 H8 Z M5 16 V5 h11</Geometry>
     <Geometry x:Key="H.Icon.ChevronRight">M9 18 L15 12 L9 6</Geometry>
+    <Geometry x:Key="H.Icon.ChevronLeft">M15 18 L9 12 L15 6</Geometry>
+    <Geometry x:Key="H.Icon.ChevronUp">M18 15 L12 9 L6 15</Geometry>
+    <Geometry x:Key="H.Icon.More">M5 12 h0.01 M12 12 h0.01 M19 12 h0.01</Geometry>
+    <Geometry x:Key="H.Icon.Note">M14 2 H6 a2 2 0 0 0 -2 2 v16 a2 2 0 0 0 2 2 h12 a2 2 0 0 0 2 -2 V8 Z M14 2 v6 h6 M16 13 H8 M16 17 H8 M10 9 H8</Geometry>
     <Geometry x:Key="H.Icon.ChevronDown">M6 9 L12 15 L18 9</Geometry>
 
     <!-- Seções da tela de Configurações -->

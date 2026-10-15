@@ -159,6 +159,11 @@ public static class Strings
     public static string ReminderNoDate => T("Sem data", "No date");
     public static string RemindersListEmpty => T("Nenhum lembrete aqui", "No reminders here");
     public static string RepeatNone => T("Não repete", "Doesn't repeat");
+    public static string SuggestNextMonday => T("Próxima segunda", "Next Monday");
+    public static string SuggestPlusWeek => T("+1 semana", "+1 week");
+    public static string CalendarPreviousMonth => T("Mês anterior", "Previous month");
+    public static string CalendarNextMonth => T("Próximo mês", "Next month");
+    public static string CalendarName => T("Calendário", "Calendar");
     public static string ChipDate => T("Data", "Date");
     public static string ChipNote => T("Nota", "Note");
     public static string ChooseDate => T("Escolher data", "Choose date");

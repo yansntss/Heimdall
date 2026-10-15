@@ -26,5 +26,9 @@
     <!-- Base dos estados de hover (7%), pressed (12%) e selecionado (8%). -->
     <Color x:Key="H.Color.Overlay">#15181F</Color>
     <Color x:Key="H.Color.Muted">#8A96A6</Color>
+    <!-- Atenção (laranja), dia de outro mês no calendário e texto dos círculos de dia. -->
+    <Color x:Key="H.Color.Warning">#B8642F</Color>
+    <Color x:Key="H.Color.Faint">#B4BCC8</Color>
+    <Color x:Key="H.Color.TextSoft">#2E3542</Color>
 
 </ResourceDictionary>

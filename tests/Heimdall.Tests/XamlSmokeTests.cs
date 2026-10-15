@@ -110,6 +110,48 @@ public class XamlSmokeTests
     }
 
     [Fact]
+    public void Inline_calendar_and_shared_styles_render()
+    {
+        RunSta(() =>
+        {
+            var listener = new BindingErrors();
+            PresentationTraceSources.Refresh();
+            PresentationTraceSources.DataBindingSource.Listeners.Add(listener);
+            PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Error;
+
+            var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            ThemeManager.Initialize();
+
+            Style S(string key) => (Style)app.FindResource(key);
+            var calendar = new Heimdall.UI.Controls.CalendarInline { SelectedDate = new DateOnly(2026, 10, 20) };
+            var options = new ListBox { ItemContainerStyle = S("OptionRowStyle"), ItemsSource = new[] { "Nunca", "Diariamente" }, SelectedIndex = 1 };
+            var panel = new StackPanel
+            {
+                Children =
+                {
+                    calendar,
+                    new System.Windows.Controls.Primitives.ToggleButton { Style = S("SwitchToggleStyle"), IsChecked = true },
+                    new Button { Style = S("ChipButtonStyle"), Content = "Hoje, 17:00", Tag = true },
+                    new Button { Style = S("ChipIconButtonStyle"), Content = "…" },
+                    new Button { Style = S("DetailRowStyle"), Content = "Repetir", Tag = "Nunca" },
+                    new System.Windows.Controls.Primitives.ToggleButton { Style = S("DetailSwitchRowStyle"), Content = "Data", IsChecked = true },
+                    new System.Windows.Controls.Primitives.ToggleButton { Style = S("DayCircleStyle"), Content = "S", IsChecked = true },
+                    options,
+                }
+            };
+            var host = new Window { Left = -10000, Top = -10000, ShowActivated = false, Width = 360, Height = 900, Content = panel };
+            host.Show();
+            host.UpdateLayout();
+
+            calendar.SelectedDate = new DateOnly(2027, 1, 5);
+            host.UpdateLayout();
+            host.Close();
+
+            Assert.Empty(listener.Errors);
+        });
+    }
+
+    [Fact]
     public void Quick_add_anchored_to_a_detached_element_does_not_crash()
     {
         RunSta(() =>

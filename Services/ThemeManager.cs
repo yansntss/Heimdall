@@ -7,7 +7,8 @@ namespace Heimdall.Services;
 internal sealed record ThemePalette(
     Color BarBackground, double BarOpacity, bool Acrylic, double AccentLine, double BarHeight, bool IsCompact, bool IsLight,
     Color Surface, Color Elevated, Color Line, Color Text, Color TextSecondary, Color TextTertiary,
-    Color Accent, Color OnAccent, Color Ok, Color Danger, Color Overlay, Color Muted);
+    Color Accent, Color OnAccent, Color Ok, Color Danger, Color Overlay, Color Muted,
+    Color Warning, Color Faint, Color TextSoft);
 
 /// <summary>
 /// Trocas por cima do tema escolhido — acento e opacidade (tela de Aparência), cores
@@ -136,7 +137,10 @@ internal static class ThemeManager
             Ok: (Color)d["H.Color.Ok"],
             Danger: (Color)d["H.Color.Danger"],
             Overlay: o?.Overlay ?? (Color)d["H.Color.Overlay"],
-            Muted: (Color)d["H.Color.Muted"]);
+            Muted: (Color)d["H.Color.Muted"],
+            Warning: (Color)d["H.Color.Warning"],
+            Faint: (Color)d["H.Color.Faint"],
+            TextSoft: (Color)d["H.Color.TextSoft"]);
     }
 
     private static ResourceDictionary BuildBrushes(ThemePalette p)
@@ -169,6 +173,15 @@ internal static class ThemeManager
             ["H.Brush.Sidebar"] = Brush(p.Overlay, 0.03),
             ["H.Brush.Card"] = Brush(p.Overlay, 0.04),
             ["H.Brush.Field"] = Brush(p.Overlay, 0.06),
+            // Lembretes: chip preenchido, resumo da repetição, bloco "Personalizado",
+            // círculos de dia e calendário.
+            ["H.Brush.Warning"] = Brush(p.Warning),
+            ["H.Brush.Faint"] = Brush(p.Faint),
+            ["H.Brush.TextSoft"] = Brush(p.TextSoft),
+            ["H.Brush.AccentChip"] = Brush(p.Accent, 0.16),
+            ["H.Brush.AccentTint"] = Brush(p.Accent, 0.10),
+            ["H.Brush.Subtle"] = Brush(p.Overlay, 0.025),
+            ["H.Brush.Ring"] = Brush(p.Overlay, 0.14),
         };
         return d;
     }
