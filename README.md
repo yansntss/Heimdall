@@ -36,7 +36,9 @@ cheia é aberto, e volta ao normal quando ele fecha.
 - **Relógio sempre visível**, no formato e fuso que você quiser.
 - **Controle de mídia** para Spotify, YouTube ou qualquer player — play/pause, próxima
   faixa, capa do álbum, progresso e volume por app, sem precisar abrir a janela.
-- **Lembretes** rápidos ou agendados, com recorrência, aviso visual na barra e histórico.
+- **Lembretes** no estilo do app do macOS: listas, Hoje/Agendados/Sinalizados, data
+  escrita no próprio texto ("amanhã 14h", "toda segunda 8h"), recorrência e um aviso
+  próprio na hora, que nunca rouba o foco.
 - **Atalhos de apps** direto na barra — arraste um arquivo, uma pasta ou escolha entre os
   apps instalados, e organize em grupos que podem virar pastas.
 - **Volume do PC e do microfone** na própria barra, com roda do mouse, slider e mudo.
@@ -169,7 +171,7 @@ do projeto estão em [`docs/GUIA.md`](docs/GUIA.md).
 |---|---|
 | `clock` | Relógio e data, formato configurável; clique abre um calendário do mês |
 | `media` | Controle de mídia (SMTC) em formato de pílula; clique abre o player com progresso arrastável e volume por app |
-| `reminder` | Lembretes fixos e agendados, com histórico |
+| `reminder` | Lembretes sem data como chips fixos na barra, com "+" para criar um novo |
 | `launcher` | Atalhos de apps, pastas, arquivos e URLs, organizáveis em grupos — que viram pastas com lista ao clicar |
 | `windows` | Janelas abertas no momento, agrupadas por app — uma taskbar leve; em monitor em pé vira uma pasta só |
 | `volume` | Volume e mudo do som do PC (saída padrão) — roda do mouse ou slider |

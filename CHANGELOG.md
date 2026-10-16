@@ -9,6 +9,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 
 ## [Não lançado]
 
+## [1.4.0] - 2026-10-16
+
 ### Adicionado
 
 - Visual novo da barra, inspirado na menu bar do macOS: altura padrão de 38px, botões
@@ -221,7 +223,8 @@ Primeira versão pública.
 - Tela de Configurações com navegação lateral e pré-visualização.
 - Interface em português e inglês.
 
-[Não lançado]: https://github.com/yansntss/Heimdall/compare/v1.3.0...HEAD
+[Não lançado]: https://github.com/yansntss/Heimdall/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/yansntss/Heimdall/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/yansntss/Heimdall/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/yansntss/Heimdall/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yansntss/Heimdall/compare/v1.0.0...v1.1.0
