@@ -90,7 +90,7 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
     private string _extraText = "";
     private bool _isLate;
     private bool _isFlagged;
-    private bool _isHighPriority;
+    private string _priorityMarker = "";
     private bool _canSnooze;
     private string _flagHeader = "";
     private Brush _listBrush = Brushes.Gray;
@@ -135,7 +135,8 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
 
     public bool IsLate { get => _isLate; private set { if (SetProperty(ref _isLate, value)) CanSnooze = value; } }
     public bool IsFlagged { get => _isFlagged; private set => SetProperty(ref _isFlagged, value); }
-    public bool IsHighPriority { get => _isHighPriority; private set => SetProperty(ref _isHighPriority, value); }
+    /// <summary>"! ", "!! " ou "!!! " antes do título; vazio sem prioridade.</summary>
+    public string PriorityMarker { get => _priorityMarker; private set => SetProperty(ref _priorityMarker, value); }
 
     /// <summary>Adiar só faz sentido no que já venceu — num futuro, anteciparia o aviso.</summary>
     public bool CanSnooze { get => _canSnooze; private set => SetProperty(ref _canSnooze, value); }
@@ -197,7 +198,7 @@ internal sealed class ReminderRowViewModel : ReminderEntryViewModel
         IsLate = ReminderSchedule.IsOverdue(r, _store.Now, _store.TimeZone);
         IsFlagged = r.Flagged;
         IsCompleted = r.IsCompleted;
-        IsHighPriority = r.Priority == ReminderPriority.High;
+        PriorityMarker = ReminderDisplay.PriorityMarker(r.Priority);
         FlagHeader = r.Flagged ? Strings.ReminderUnflag : Strings.ReminderFlag;
         ListBrush = ReminderDisplay.ListBrush(list.Color);
     }

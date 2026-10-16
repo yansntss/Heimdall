@@ -22,7 +22,8 @@ internal sealed class ReminderItemViewModel : ObservableObject
         Text = reminder.Title;
         TimeText = reminder.DueTime?.ToString("HH:mm") ?? "";
         IsFlagged = reminder.Flagged;
-        IsHighPriority = reminder.Priority == ReminderPriority.High;
+        PriorityMarker = ReminderDisplay.PriorityMarker(reminder.Priority);
+        PriorityName = Strings.ReminderPriorityName(reminder.Priority);
         IsOverdue = reminder.DueDate is { } date && date < store.Today;
         IsLate = ReminderSchedule.IsOverdue(reminder, store.Now, store.TimeZone);
 
@@ -50,7 +51,8 @@ internal sealed class ReminderItemViewModel : ObservableObject
     public string Meta { get; }
     public string TimeText { get; }
     public bool IsFlagged { get; }
-    public bool IsHighPriority { get; }
+    public string PriorityMarker { get; }
+    public string PriorityName { get; }
     public bool IsOverdue { get; }
 
     /// <summary>A hora já passou (ou o dia, se não tem hora) — hora em destaque de alerta.</summary>

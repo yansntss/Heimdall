@@ -55,20 +55,8 @@
                                     </Style.Triggers>
                                 </Style>
                             </TextBlock.Style>
-                            <Run Foreground="{DynamicResource H.Brush.Accent}" FontWeight="Bold"
-                                 AutomationProperties.Name="{x:Static s:Strings.ReminderHighPriority}">
-                                <Run.Style>
-                                    <!-- Text só pelo estilo: um Text local venceria o gatilho e o "!!" apareceria sempre. -->
-                                    <Style TargetType="Run">
-                                        <Setter Property="Text" Value="!! "/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsHighPriority}" Value="False">
-                                                <Setter Property="Text" Value=""/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Run.Style>
-                            </Run><Run Text="{Binding Text, Mode=OneWay}"/>
+                            <Run Foreground="{DynamicResource H.Brush.Accent}" FontWeight="Bold" Text="{Binding PriorityMarker, Mode=OneWay}"
+                                 AutomationProperties.Name="{Binding PriorityName, Mode=OneWay}"/><Run Text="{Binding Text, Mode=OneWay}"/>
                         </TextBlock>
                     </DockPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">

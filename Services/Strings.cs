@@ -140,7 +140,13 @@ public static class Strings
     public static string ReminderFlag => T("Sinalizar", "Flag");
     public static string ReminderUnflag => T("Remover sinalização", "Unflag");
     public static string ReminderFlagged => T("Sinalizado", "Flagged");
-    public static string ReminderHighPriority => T("Prioridade alta", "High priority");
+    public static string ReminderPriorityName(ReminderPriority priority) => priority switch
+    {
+        ReminderPriority.Low => T("Prioridade baixa", "Low priority"),
+        ReminderPriority.Medium => T("Prioridade média", "Medium priority"),
+        ReminderPriority.High => T("Prioridade alta", "High priority"),
+        _ => ""
+    };
 
     // ---------- Janela de lembretes (RemindersWindow) ----------
 

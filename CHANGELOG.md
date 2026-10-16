@@ -32,7 +32,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
     cada um e botão "Novo lembrete".
     - Os atrasados de dias anteriores ficam numa seção própria, e a hora que já passou
       aparece em destaque.
-    - Cada lembrete mostra a cor da lista, a repetição, a bandeira e a prioridade alta.
+    - Cada lembrete mostra a cor da lista, a repetição, a bandeira e a prioridade (`!`,
+      `!!` ou `!!!` antes do título, de Baixa a Alta).
     - Clique direito num lembrete: Editar, Adiar (só nos vencidos), Sinalizar e Excluir.
     - Concluir um lembrete que se repete pula para a próxima ocorrência.
     - "Ver todos" abre a janela de lembretes.

@@ -17,6 +17,15 @@ internal static class ReminderDisplay
         _ => null
     };
 
+    /// <summary>"! ", "!! " ou "!!! " antes do título, como no Lembretes do macOS; vazio sem prioridade.</summary>
+    public static string PriorityMarker(ReminderPriority priority) => priority switch
+    {
+        ReminderPriority.Low => "! ",
+        ReminderPriority.Medium => "!! ",
+        ReminderPriority.High => "!!! ",
+        _ => ""
+    };
+
     /// <summary>Segunda linha do estado vazio: "Próximo: Dentista · Amanhã, 14:00" ou "Nada agendado".</summary>
     public static string NextUpText(Services.Reminders.ReminderStore store)
     {

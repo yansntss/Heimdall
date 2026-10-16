@@ -316,19 +316,7 @@
                             <TextBlock.InputBindings>
                                 <MouseBinding MouseAction="LeftClick" Command="{Binding BeginEditCommand}"/>
                             </TextBlock.InputBindings>
-                            <Run FontWeight="Bold" Foreground="{DynamicResource H.Brush.Accent}">
-                                <Run.Style>
-                                    <!-- Text só pelo estilo: um Text local venceria o gatilho. -->
-                                    <Style TargetType="Run">
-                                        <Setter Property="Text" Value="!! "/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsHighPriority}" Value="False">
-                                                <Setter Property="Text" Value=""/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Run.Style>
-                            </Run><Run Text="{Binding Title, Mode=OneWay}"/>
+                            <Run FontWeight="Bold" Foreground="{DynamicResource H.Brush.Accent}" Text="{Binding PriorityMarker, Mode=OneWay}"/><Run Text="{Binding Title, Mode=OneWay}"/>
                         </TextBlock>
                         <TextBlock Text="{Binding Note}" Style="{StaticResource H.Text.Secondary}" FontSize="{DynamicResource H.FontSize.S}"
                                    TextTrimming="CharacterEllipsis" Margin="0,2,0,0"

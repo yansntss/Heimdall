@@ -66,6 +66,20 @@ public class RemindersWindowViewModelTests
         Assert.Equal(new[] { 2, 1 }, vm.UserLists.Select(l => l.Count));
     }
 
+    [Theory]
+    [InlineData(ReminderPriority.None, "")]
+    [InlineData(ReminderPriority.Low, "! ")]
+    [InlineData(ReminderPriority.Medium, "!! ")]
+    [InlineData(ReminderPriority.High, "!!! ")]
+    public void Row_shows_one_mark_per_priority_level(ReminderPriority priority, string marker)
+    {
+        var r = Add("tarefa");
+        r.Priority = priority;
+        _store.Update(r);
+
+        Assert.Equal(marker, Rows(CreateVm()).Single().PriorityMarker);
+    }
+
     [Fact]
     public void Smart_and_user_list_selection_are_exclusive()
     {
