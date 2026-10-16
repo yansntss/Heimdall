@@ -51,8 +51,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - Criar e editar acontecem na própria lista. O "+" do cabeçalho põe uma linha em
     edição no topo; clicar no título de um lembrete edita no lugar. Embaixo do título
     ficam chips de data, bandeira, nota e lista.
-    - Enter salva e já abre outra linha logo abaixo; Esc cancela; clicar fora salva (ou descarta,
-      se o título estiver vazio).
+    - Enter salva e já abre outra linha logo abaixo; Esc cancela; clicar fora salva (ou
+      descarta, se o título estiver vazio).
     - Apagar o título de um lembrete existente exclui o lembrete.
     - O "…" (e os chips de data e de lista) abre o painel de detalhes, com Data
       (calendário próprio com Hoje, Amanhã, Próxima segunda e +1 semana), Hora (com ▲▼
@@ -68,8 +68,8 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - Data no próprio texto, em português: "amanhã 14h", "sexta 19:00", "dia 20 às 10h",
     "todo dia 9h", "toda segunda e quarta 8h", "todo dia 10" (mensal). O chip de data
     mostra o que foi entendido enquanto você digita, e esse trecho sai do título ao salvar.
-- Aviso próprio do Heimdall na hora do lembrete, no canto oposto à barra, com "Adiar
-  10 min" e "Concluir". Clicar nele abre a janela de lembretes.
+- Aviso próprio do Heimdall na hora do lembrete, no canto oposto à barra e no monitor
+  dela, com "Adiar 10 min" e "Concluir". Clicar nele abre a janela de lembretes.
   - Nunca rouba o foco e aparece por cima de jogo em tela cheia sem bordas.
   - Some sozinho em 12 segundos, exceto lembretes de prioridade alta; para de contar com
     o mouse em cima.

@@ -183,7 +183,7 @@ public class XamlSmokeTests
             store.Attach(cfg);
 
             // Barra em cima → avisos no canto de baixo à direita, o mais novo encostado nele.
-            var presenter = new Heimdall.UI.Reminders.ReminderToastPresenter(store, () => BarEdge.Top, () => { });
+            var presenter = new Heimdall.UI.Reminders.ReminderToastPresenter(store, () => BarEdge.Top, () => IntPtr.Zero, () => { });
             presenter.Show(cfg.Reminders[0]);
             presenter.ShowGroup(cfg.Reminders.Take(3).ToList(), overdue: true);
             var toasts = presenter.OpenToasts.ToList();
@@ -199,6 +199,35 @@ public class XamlSmokeTests
 
             foreach (var t in toasts) t.Close();
             Assert.Empty(listener.Errors);
+        });
+    }
+
+    [Fact]
+    public void Toasts_go_to_the_work_area_of_the_bar_monitor()
+    {
+        RunSta(() =>
+        {
+            _ = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            ThemeManager.Initialize();
+            var cfg = SampleConfig();
+            var store = new ReminderStore(_ => { }, (_, _, _) => { }, TimeProvider.System);
+            store.Attach(cfg);
+            var monitor = MonitorService.GetMonitors().First(m => m.IsPrimary).Handle;
+
+            var presenter = new Heimdall.UI.Reminders.ReminderToastPresenter(store, () => BarEdge.Top, () => monitor, () => { });
+            presenter.Show(cfg.Reminders[0]);
+            var toast = presenter.OpenToasts.Single();
+            toast.UpdateLayout();
+
+            // Em pixels: canto de baixo à direita da área de trabalho desse monitor.
+            var info = new Heimdall.Native.NativeMethods.MONITORINFOEX { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<Heimdall.Native.NativeMethods.MONITORINFOEX>() };
+            Assert.True(Heimdall.Native.NativeMethods.GetMonitorInfo(monitor, ref info));
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(toast).Handle;
+            Assert.True(Heimdall.Native.NativeMethods.GetWindowRect(hwnd, out var rect));
+            Assert.Equal(info.rcWork.Right, rect.Right);
+            Assert.Equal(info.rcWork.Bottom, rect.Bottom);
+
+            toast.Close();
         });
     }
 

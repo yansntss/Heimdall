@@ -53,6 +53,8 @@ internal sealed class BarPresenter
     /// <summary>Barra normal na tela agora (não escondida, não em tela cheia) — só aí faz sentido abrir um aviso colado nela.</summary>
     public bool IsShowingBar => !_closed && !_fullscreenActive && _bar.IsVisible;
 
+    public MonitorInfo Monitor => _monitor;
+
     /// <summary>Botão de download da barra — âncora da notificação de versão nova.</summary>
     public FrameworkElement UpdateAnchor => _bar.UpdateAnchor;
 

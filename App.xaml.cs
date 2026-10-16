@@ -436,13 +436,20 @@ public partial class App : Application
     private void StartReminderScheduler()
     {
         var store = Services.Reminders.ReminderStore.Instance;
-        var toasts = new UI.Reminders.ReminderToastPresenter(store, () => _barEdge, () => OpenReminders());
+        var toasts = new UI.Reminders.ReminderToastPresenter(store, () => _barEdge, ToastMonitor, () => OpenReminders());
         _reminderScheduler = new Services.Reminders.ReminderScheduler(store, toasts, new Services.Reminders.DispatcherReminderAlarm());
         _reminderScheduler.Start();
 
         // Relógio ajustado (fuso, horário de verão manual) e volta da suspensão: recalcula.
         SystemEvents.TimeChanged += OnClockOrPowerChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
+    }
+
+    /// <summary>Monitor dos avisos: o da barra (com barra em vários monitores, a do principal).</summary>
+    private IntPtr ToastMonitor()
+    {
+        var bar = _bars.FirstOrDefault(b => b.Monitor.IsPrimary) ?? _bars.FirstOrDefault();
+        return bar?.Monitor.Handle ?? IntPtr.Zero;
     }
 
     private void OnClockOrPowerChanged(object? sender, EventArgs e) =>
