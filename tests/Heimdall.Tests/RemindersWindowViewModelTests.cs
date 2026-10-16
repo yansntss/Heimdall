@@ -371,8 +371,23 @@ public class RemindersWindowViewModelTests
         Assert.Equal("Café", row.Title);
         Assert.Equal(new[] { "08h", "Café" }, Titles(vm));
         Assert.Same(row, Rows(vm)[1]);
-        // E outra linha nova já no topo.
+        // E outra linha nova logo abaixo dela.
         Assert.NotSame(row, vm.NewRow);
+        Assert.Same(vm.NewRow, vm.Items[vm.Items.IndexOf(row) + 1]);
+    }
+
+    [Fact]
+    public void Button_opens_the_new_row_on_top_even_after_an_enter()
+    {
+        Add("08h", hour: 8);
+        var vm = CreateVm();
+        vm.NewReminderCommand.Execute(null);
+        Draft(vm)!.Title = "Café 11h";
+        Draft(vm)!.SubmitCommand.Execute(null);
+        vm.CommitActiveEditor();
+
+        vm.NewReminderCommand.Execute(null);
+
         Assert.Same(vm.NewRow, vm.Items[0]);
     }
 
@@ -443,6 +458,21 @@ public class RemindersWindowViewModelTests
         Assert.Equal("depois", row.Title);
         Assert.NotNull(Draft(vm));
         Assert.Same(Draft(vm), vm.ActiveEditor);
+    }
+
+    [Fact]
+    public void Enter_on_a_row_opens_the_new_line_right_below_it()
+    {
+        Add("08h", hour: 8);
+        Add("12h", hour: 12);
+        Add("18h", hour: 18);
+        var vm = CreateVm();
+        var middle = Rows(vm)[1];
+        middle.BeginEditCommand.Execute(null);
+
+        middle.Editor!.SubmitCommand.Execute(null);
+
+        Assert.Equal(new[] { "08h", "12h", "", "18h" }, vm.Items.OfType<ReminderRowViewModel>().Select(r => r.IsNew ? "" : r.Title));
     }
 
     [Fact]

@@ -51,7 +51,7 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
   - Criar e editar acontecem na própria lista. O "+" do cabeçalho põe uma linha em
     edição no topo; clicar no título de um lembrete edita no lugar. Embaixo do título
     ficam chips de data, bandeira, nota e lista.
-    - Enter salva e já abre outra linha; Esc cancela; clicar fora salva (ou descarta,
+    - Enter salva e já abre outra linha logo abaixo; Esc cancela; clicar fora salva (ou descarta,
       se o título estiver vazio).
     - Apagar o título de um lembrete existente exclui o lembrete.
     - O "…" (e os chips de data e de lista) abre o painel de detalhes, com Data

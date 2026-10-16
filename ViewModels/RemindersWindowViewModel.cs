@@ -223,6 +223,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
     private ReminderSourceViewModel? _selectedList;
     private ReminderEntryViewModel? _selectedItem;
     private ReminderRowViewModel? _newRow;
+    private ReminderConfig? _newRowAfter;
     private bool _isEmpty;
     private string _emptyNextText = "";
 
@@ -251,7 +252,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ReminderSourceViewModel> UserLists { get; } = new();
 
-    /// <summary>Linha nova (se houver) no topo, depois cabeçalhos de seção e lembretes, na ordem de exibição.</summary>
+    /// <summary>Cabeçalhos de seção e lembretes na ordem de exibição, com a linha nova (se houver) no topo ou logo abaixo do lembrete que a abriu.</summary>
     public ObservableCollection<ReminderEntryViewModel> Items { get; } = new();
 
     /// <summary>Espaço na linha selecionada.</summary>
@@ -347,7 +348,10 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Linha nova no topo da lista, já em edição (também usado pelos atalhos da barra).</summary>
-    public void BeginNew()
+    public void BeginNew() => BeginNew(after: null);
+
+    /// <param name="after">Enter num lembrete: a linha nova nasce logo abaixo dele (no topo, se ele não estiver na lista).</param>
+    private void BeginNew(ReminderConfig? after)
     {
         if (EditingRow is { } row) CommitRow(row, openNew: false);
         if (_newRow is not null)
@@ -356,6 +360,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+        _newRowAfter = after;
         NewRow = CreateNewRow();
         Reload();
         SelectedItem = _newRow;
@@ -399,7 +404,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
             _store.Update(row.Reminder);
         }
 
-        if (openNew) BeginNew();
+        if (openNew) BeginNew(after: row.Reminder);
     }
 
     private void CloseRowEditor(ReminderRowViewModel row)
@@ -417,7 +422,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Enter salva e já abre outra linha nova no topo; clique fora salva e fecha. A linha
+    /// Enter salva e já abre outra linha nova logo abaixo da salva; clique fora salva e fecha. A linha
     /// salva continua sendo o mesmo objeto: só sai do estado "novo" e vai pro lugar dela.
     /// </summary>
     private void CommitNew(bool keepGoing)
@@ -432,6 +437,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         editor.ApplyTo(row.Reminder);
         row.Editor = null;
         row.IsNew = false;
+        _newRowAfter = keepGoing ? row.Reminder : null;
         NewRow = keepGoing ? CreateNewRow() : null;
         _store.Add(row.Reminder);
         if (keepGoing) SelectedItem = _newRow;
@@ -440,6 +446,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
     private void CancelNew()
     {
         if (_newRow is null) return;
+        _newRowAfter = null;
         NewRow = null;
         Reload();
     }
@@ -472,7 +479,7 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
 
         var reminders = _active.Query(all, today);
         var target = WithSections(reminders, today);
-        if (_newRow is not null) target.Insert(0, new NewRowKey(_newRow));
+        if (_newRow is not null) target.Insert(NewRowIndex(target), new NewRowKey(_newRow));
         if (_store.Options.ShowCompleted && _active.QueryCompleted(all, today) is { Count: > 0 } done)
         {
             target.Add(Strings.RemindersCompletedSection);
@@ -482,6 +489,10 @@ internal sealed class RemindersWindowViewModel : ObservableObject, IDisposable
         IsEmpty = reminders.Count == 0 && _newRow is null;
         EmptyNextText = IsEmpty ? ReminderDisplay.NextUpText(_store) : "";
     }
+
+    /// <summary>Logo abaixo do lembrete que abriu a linha nova; no topo se ele não está na lista (ou se foi o botão).</summary>
+    private int NewRowIndex(List<object> target) =>
+        _newRowAfter is { } after && target.IndexOf(after) is var i and >= 0 ? i + 1 : 0;
 
     private void SyncUserLists(List<ReminderConfig> all)
     {
