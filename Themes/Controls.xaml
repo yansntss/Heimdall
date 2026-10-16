@@ -311,30 +311,34 @@
         </Setter>
     </Style>
 
-    <!-- ===================== Checkbox de tarefa (17px) ===================== -->
-    <!-- Pendente = borda #5F7183; concluído = fundo verde-água com check. -->
+    <!-- ===================== Círculo de concluir tarefa (21px) ===================== -->
+    <!-- Pendente = anel vazio; concluído = verde-água com check. Width/Height locais mudam o
+         tamanho (o sino usa 18px). Mesmo controle no sino e na janela de lembretes. -->
     <Style x:Key="H.TaskCheck" TargetType="CheckBox">
+        <Setter Property="Width" Value="21"/>
+        <Setter Property="Height" Value="21"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="FocusVisualStyle" Value="{StaticResource H.FocusVisual}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <Grid Width="17" Height="17">
-                        <Border x:Name="Box" CornerRadius="5" BorderThickness="1.5" BorderBrush="{DynamicResource H.Brush.Muted}" Background="Transparent"/>
+                    <Grid Background="Transparent">
+                        <Ellipse x:Name="Ring" Stroke="{DynamicResource H.Brush.Muted}" StrokeThickness="1.5"/>
                         <c:Icon x:Name="Mark" Geometry="{DynamicResource H.Icon.Check}" Size="11" StrokeThickness="3"
                                 Foreground="{DynamicResource H.Brush.OnAccent}" Visibility="Collapsed"/>
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource H.Brush.Ok}"/>
-                            <Setter TargetName="Box" Property="BorderThickness" Value="0"/>
-                            <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
-                        </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource H.Brush.Ok}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource H.Brush.Ok}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource H.Brush.Ok}"/>
+                            <Setter TargetName="Ring" Property="StrokeThickness" Value="0"/>
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Cursor" Value="Arrow"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource H.Brush.Faint}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

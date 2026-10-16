@@ -28,7 +28,7 @@ mudanças ainda não lançadas entram em **[Não lançado]**.
 - Dropdowns na barra, abertos ao clicar e fechados com Esc ou clicando fora:
   - **Mídia** (clique na capa ou no título): capa grande, barra de progresso arrastável
     para pular na faixa, controles e volume do app.
-  - **Lembretes de hoje** (clique no sino): lista com checkbox para concluir, horário de
+  - **Lembretes de hoje** (clique no sino): lista com círculo para concluir, horário de
     cada um e botão "Novo lembrete".
     - Os atrasados de dias anteriores ficam numa seção própria, e a hora que já passou
       aparece em destaque.

@@ -34,7 +34,7 @@
                     </ContextMenu>
                 </Grid.ContextMenu>
 
-                <CheckBox Style="{DynamicResource H.TaskCheck}" VerticalAlignment="Top" Margin="0,1,0,0"
+                <CheckBox Style="{DynamicResource H.TaskCheck}" Width="18" Height="18" VerticalAlignment="Top" Margin="0,0,0,0"
                           IsChecked="{Binding IsDone, Mode=OneWay}" Command="{Binding CompleteCommand}"
                           AutomationProperties.Name="{Binding CompleteName}"/>
 
